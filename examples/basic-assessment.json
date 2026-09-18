@@ -1,0 +1,208 @@
+{
+  "assessment_id": "00000000-0000-4000-8000-000000000001",
+  "assessor": {
+    "model_id": "test-model",
+    "model_name": "Test Model",
+    "model_metadata_source": "user_reported",
+    "host": "test-host",
+    "skill_id": "open-estimate-assessor",
+    "skill_version": "0.1.0",
+    "skill_sha256": "81a7cecdb4e818407d2d6d938c80b744552a44ec080cb437383e62d4e0ba9dd5",
+    "started_at": "2026-09-17T00:00:00.000Z",
+    "finished_at": "2026-09-17T00:01:00.000Z",
+    "context_isolation": "not_enforced"
+  },
+  "input": {
+    "repository_label": "sample-notes-app",
+    "snapshot_type": "worktree",
+    "commit": null,
+    "dirty": false,
+    "manifest_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "manifest": {
+      "domain": "oes/source-manifest/v1",
+      "files": [
+        {
+          "path": "src/notes.ts",
+          "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+          "bytes": 500,
+          "line_count": 50,
+          "disposition": "analyzed",
+          "exclusion_reason": null
+        }
+      ]
+    },
+    "analysis_complete": true,
+    "source_binding": "client_reported"
+  },
+  "scope": {
+    "aggregation": "single_application_boundary",
+    "measurement_purpose": "as_built_functional_size",
+    "perspective": "end_user",
+    "description": "Simple notes application with create and list features"
+  },
+  "components": [
+    {
+      "component_id": "comp-1",
+      "name": "notes-service",
+      "status": "measured",
+      "scope_impact": false,
+      "path_prefixes": ["src/notes.ts"],
+      "reason": "Core notes service"
+    }
+  ],
+  "functional_users": [
+    {
+      "user_id": "user-1",
+      "name": "End User",
+      "category": "person",
+      "description": "Human user interacting with notes API"
+    }
+  ],
+  "persistent_stores": [
+    {
+      "store_id": "store-1",
+      "name": "Notes Database",
+      "storage_type": "relational_db",
+      "description": "Database storing note records"
+    }
+  ],
+  "objects_of_interest": [
+    {
+      "object_of_interest_id": "ooi-note",
+      "name": "Note",
+      "description": "A user created note"
+    }
+  ],
+  "data_groups": [
+    {
+      "data_group_id": "dg-note",
+      "object_of_interest_id": "ooi-note",
+      "name": "Note Data",
+      "attributes": ["content", "created_at", "id", "title"],
+      "description": "Data group representing a single note"
+    },
+    {
+      "data_group_id": "dg-note-response",
+      "object_of_interest_id": "ooi-note",
+      "name": "Note Response Data",
+      "attributes": ["content", "id", "status", "title"],
+      "description": "Response data representing operation result"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "ev-1",
+      "file_path": "src/notes.ts",
+      "line_start": 1,
+      "line_end": 25,
+      "symbol": "createNote",
+      "evidence_type": "source",
+      "description": "Implementation of note creation endpoint"
+    },
+    {
+      "evidence_id": "ev-2",
+      "file_path": "src/notes.ts",
+      "line_start": 26,
+      "line_end": 50,
+      "symbol": "listNotes",
+      "evidence_type": "source",
+      "description": "Implementation of note listing endpoint"
+    }
+  ],
+  "functional_processes": [
+    {
+      "process_id": "proc-create-note",
+      "component_id": "comp-1",
+      "name": "Create Note",
+      "description": "User creates a new note in the system",
+      "trigger_movement_id": "mov-create-entry",
+      "trigger_user_id": "user-1",
+      "status": "accepted",
+      "inferred": false,
+      "decision_reason": "Clear user action to persist a new note",
+      "movements": [
+        {
+          "movement_id": "mov-create-entry",
+          "type": "Entry",
+          "data_group_id": "dg-note",
+          "peer_id": "user-1",
+          "store_id": null,
+          "semantic_variant_key": null,
+          "distinctness_basis": "default",
+          "distinctness_reason": null,
+          "evidence_refs": ["ev-1"]
+        },
+        {
+          "movement_id": "mov-create-write",
+          "type": "Write",
+          "data_group_id": "dg-note",
+          "peer_id": null,
+          "store_id": "store-1",
+          "semantic_variant_key": null,
+          "distinctness_basis": "default",
+          "distinctness_reason": null,
+          "evidence_refs": ["ev-1"]
+        },
+        {
+          "movement_id": "mov-create-exit",
+          "type": "Exit",
+          "data_group_id": "dg-note-response",
+          "peer_id": "user-1",
+          "store_id": null,
+          "semantic_variant_key": null,
+          "distinctness_basis": "default",
+          "distinctness_reason": null,
+          "evidence_refs": ["ev-1"]
+        }
+      ]
+    },
+    {
+      "process_id": "proc-list-notes",
+      "component_id": "comp-1",
+      "name": "List Notes",
+      "description": "User retrieves list of all notes",
+      "trigger_movement_id": "mov-list-entry",
+      "trigger_user_id": "user-1",
+      "status": "accepted",
+      "inferred": false,
+      "decision_reason": "User requests all saved notes",
+      "movements": [
+        {
+          "movement_id": "mov-list-entry",
+          "type": "Entry",
+          "data_group_id": "dg-note",
+          "peer_id": "user-1",
+          "store_id": null,
+          "semantic_variant_key": null,
+          "distinctness_basis": "default",
+          "distinctness_reason": null,
+          "evidence_refs": ["ev-2"]
+        },
+        {
+          "movement_id": "mov-list-read",
+          "type": "Read",
+          "data_group_id": "dg-note",
+          "peer_id": null,
+          "store_id": "store-1",
+          "semantic_variant_key": null,
+          "distinctness_basis": "default",
+          "distinctness_reason": null,
+          "evidence_refs": ["ev-2"]
+        },
+        {
+          "movement_id": "mov-list-exit",
+          "type": "Exit",
+          "data_group_id": "dg-note-response",
+          "peer_id": "user-1",
+          "store_id": null,
+          "semantic_variant_key": null,
+          "distinctness_basis": "default",
+          "distinctness_reason": null,
+          "evidence_refs": ["ev-2"]
+        }
+      ]
+    }
+  ],
+  "findings": [],
+  "human_amendments": []
+}

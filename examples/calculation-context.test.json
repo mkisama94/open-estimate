@@ -1,0 +1,25 @@
+{
+  "locale": "ja-JP",
+  "display_currency": "JPY",
+  "benchmarkProfile": {
+    "id": "oes-test-benchmark-v1",
+    "sample_size": 10,
+    "hours_per_cfp": {
+      "p25": "2",
+      "median": "3",
+      "p75": "5"
+    },
+    "min_cfp": 1,
+    "max_cfp": 500,
+    "is_test": true
+  },
+  "wageProfile": {
+    "id": "oes-test-wage-v1",
+    "hourly_wage_usd": "50",
+    "is_test": true
+  },
+  "fxRate": {
+    "currency": "JPY",
+    "currency_per_usd": "150"
+  }
+}
