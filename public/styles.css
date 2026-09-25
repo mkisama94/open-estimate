@@ -144,13 +144,13 @@ a:focus-visible, button:focus-visible {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-left: 14px;
+  padding-left: 18px;
   border-left: 1px solid var(--border-color);
 }
 
 .header-powered .powered-label {
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 500;
   color: var(--text-light);
   white-space: nowrap;
 }
@@ -158,22 +158,17 @@ a:focus-visible, button:focus-visible {
 .header-powered a {
   display: flex;
   align-items: center;
-  padding: 4px 6px;
-  border-radius: var(--radius-sm);
-  background-color: #ffffff;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-  transition: all 0.15s ease;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
 }
 
 .header-powered a:hover {
-  border-color: var(--border-dark);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+  opacity: 0.75;
   text-decoration: none;
 }
 
 .header-powered img {
-  height: 24px;
+  height: 26px;
   width: auto;
   display: block;
 }
@@ -1112,8 +1107,9 @@ a:focus-visible, button:focus-visible {
 
 /* フッター */
 .site-footer {
-  background-color: #141715;
-  color: #c4cac6;
+  background-color: var(--bg-subtle);
+  border-top: 1px solid var(--border-color);
+  color: var(--text-muted);
   padding: 64px 0 40px;
   font-size: 0.9rem;
 }
@@ -1124,7 +1120,7 @@ a:focus-visible, button:focus-visible {
   align-items: flex-start;
   gap: 40px;
   padding-bottom: 40px;
-  border-bottom: 1px solid #282f2b;
+  border-bottom: 1px solid var(--border-color);
   flex-wrap: wrap;
 }
 
@@ -1135,49 +1131,45 @@ a:focus-visible, button:focus-visible {
 .footer-brand-title {
   font-size: 1.25rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-main);
   margin: 0 0 6px;
 }
 
 .footer-tagline {
   font-size: 0.85rem;
-  color: #8c9790;
-  margin: 0 0 20px;
+  color: var(--text-muted);
+  margin: 0 0 24px;
 }
 
-.footer-powered-badge {
-  display: inline-flex;
+.footer-powered {
+  display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 6px;
+  gap: 10px;
+  margin-top: 12px;
 }
 
-.footer-powered-badge .label {
-  font-size: 0.74rem;
-  font-weight: 700;
+.footer-powered .powered-label {
+  font-size: 0.75rem;
+  font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #9aa8a1;
+  color: var(--text-light);
 }
 
-.footer-logo-card {
+.footer-corp-logo {
   display: inline-block;
-  background-color: #ffffff;
-  padding: 8px 14px;
-  border-radius: var(--radius-sm);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: opacity 0.15s ease, transform 0.15s ease;
   width: fit-content;
 }
 
-.footer-logo-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+.footer-corp-logo:hover {
+  opacity: 0.75;
+  transform: translateY(-1px);
   text-decoration: none;
 }
 
-.footer-logo-card img {
-  height: 30px;
+.footer-corp-logo img {
+  height: 46px;
   width: auto;
   display: block;
 }
@@ -1190,10 +1182,10 @@ a:focus-visible, button:focus-visible {
 
 .footer-nav-group h4 {
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 750;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #79867f;
+  color: var(--text-main);
   margin: 0 0 14px;
 }
 
@@ -1207,12 +1199,12 @@ a:focus-visible, button:focus-visible {
 }
 
 .footer-nav-group a {
-  color: #b5beb9;
+  color: var(--text-muted);
   font-size: 0.88rem;
 }
 
 .footer-nav-group a:hover {
-  color: #ffffff;
+  color: var(--text-main);
   text-decoration: underline;
 }
 
@@ -1223,7 +1215,7 @@ a:focus-visible, button:focus-visible {
   align-items: center;
   gap: 20px;
   font-size: 0.8rem;
-  color: #6e7973;
+  color: var(--text-light);
   flex-wrap: wrap;
 }
 
