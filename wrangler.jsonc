@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "open-estimate",
+  "compatibility_date": "2026-09-25",
+  // The Node.js stdio MCP entry point is not an HTTP Worker.
+  // Only this directory is published; dist/ and local snapshots stay private.
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "404-page"
+  }
+}

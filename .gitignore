@@ -2,3 +2,7 @@ node_modules/
 dist/
 .open-estimate-cache/
 *.log
+.cache/
+.wrangler/
+.dev.vars
+.dev.vars.*

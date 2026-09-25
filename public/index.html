@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Open Estimateは、AIによるソフトウェアの解釈と公開ルールによる機能規模の計数を分け、見積の根拠を確認可能にするオープンソースプロジェクトです。">
+    <title>Open Estimate — オープン工数見積</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="page-header">
+      <a class="brand" href="/">Open Estimate</a>
+      <nav aria-label="ページ内ナビゲーション">
+        <a href="#approach">考え方</a>
+        <a href="#status">提供状況</a>
+      </nav>
+    </header>
+    <main>
+      <section class="hero" aria-labelledby="title">
+        <p class="eyebrow">OPEN SOFTWARE ESTIMATION</p>
+        <h1 id="title">見積の根拠を、<br>確かめられるものに。</h1>
+        <p class="lead">AIがソースコードを読み、公開されたルールで機能規模を計数する。Open Estimateは、ソフトウェアの見積を説明可能にするオープンソースプロジェクトです。</p>
+      </section>
+      <section id="approach" aria-labelledby="approach-title">
+        <h2 id="approach-title">AIの解釈と、機械の計算を分ける</h2>
+        <div class="steps">
+          <article>
+            <p class="step">01 / INTERPRET</p>
+            <h3>ソースを解釈する</h3>
+            <p>利用者側のAIが機能とデータの動きを識別し、参照箇所や不確実性を記録します。</p>
+          </article>
+          <article>
+            <p class="step">02 / MEASURE</p>
+            <h3>公開ルールで計数する</h3>
+            <p>COSMICに基づく機能モデルを検証し、同じ入力から同じ機能規模を算出します。</p>
+          </article>
+          <article>
+            <p class="step">03 / VERIFY · 開発予定</p>
+            <h3>発行の証跡を確認する</h3>
+            <p>評価記録への署名と公開履歴により、発行者と内容の同一性を確認できる仕組みを目指します。</p>
+          </article>
+        </div>
+      </section>
+      <section class="status" id="status" aria-labelledby="status-title">
+        <p class="eyebrow">COMMUNITY / 開発中</p>
+        <h2 id="status-title">現在の提供状況</h2>
+        <p>現在は、ローカルMCPを通じたソースコードの読取・機能モデルの検証・機能規模の計数に対応しています。工数と金額の本番提供には、参照データの検証と承認が必要です。</p>
+        <p><strong>証明書の発行・公開台帳・Webでの証跡確認は、まだ提供していません。</strong>このサイトはプロジェクトの案内ページです。ソースコードや評価記録を入力・アップロードする画面はありません。</p>
+        <p>AIによる解釈には不確実性があります。機能規模の計数結果は、工数の実現性やソフトウェアの市場価値を保証するものではありません。</p>
+      </section>
+    </main>
+    <footer>Open Estimate <span>AI interprets. Rules decide.</span></footer>
+  </body>
+</html>

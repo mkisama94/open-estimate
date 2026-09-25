@@ -55,3 +55,23 @@
 ### 未解決事項・次のステップ
 - M1の目標スコープはすべて達成・テスト通過。
 - 次のマイルストーン（M2以降）では、署名発行（`issue_certificate`）、ローカル検証（`verify_certificate`）、SQLite永続化（`db/001_initial.sql`）、レポートHTML出力（`render_report`）等に進むことが可能です。
+
+## 2026-09-25 — Cloudflareの配信対象未設定を修正
+
+`npm run build` は成功していたが、公開アセットもWrangler設定も存在せず、`npx wrangler deploy` が配信対象を検出できなかった。既存の `dist/index.js` はstdio MCPであり、HTTP Workerではない。
+
+- `wrangler.jsonc` で `public/` のみを静的配信対象に指定。
+- 案内ページ・CSS・404ページ・レスポンスヘッダーを追加。署名発行・台帳・Web検証は未提供と表示し、架空の検証結果は返さない。
+- Wrangler 4.140.0をexact versionのdevDependencyとして追加し、lockfileを更新。既存依存パッケージのバージョン変更はない。
+- ローカルWeb起動・deploy dry-run・deployのnpm scriptsと、Workers Buildsの設定手順を追加。
+- Wranglerのローカル状態、npmキャッシュ、開発用秘密値ファイルをGitの除外対象に追加。
+
+検証結果:
+
+- `npm run build`: 成功。
+- `npm test`: 8ファイル・35テスト成功。
+- `npm run deploy:check`: 成功。`public/` の4ファイルを検出。
+- `wrangler dev` のHTTP確認: `/`・`/styles.css` は200。未実装の検証/API、`/dist/index.js`、`/package.json`、`/.open-estimate-cache/` は404。
+- `npm audit`: 既存Vitestとそのmockerにmoderateの指摘が2件。今回追加したWranglerへの指摘はない。テスト基盤のメジャー更新は別作業とする。
+
+サンドボックス内の確認では `WRANGLER_LOG_PATH` と `WRANGLER_REGISTRY_PATH` をリポジトリ内の `.cache/wrangler/` 配下へ指定した。本番のCloudflareアカウントへのデプロイは実施していない。今回公開可能にしたのは案内ページであり、Issuer・D1・リモートMCPの実装完了を意味しない。

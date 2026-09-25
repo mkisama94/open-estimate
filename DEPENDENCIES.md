@@ -16,3 +16,4 @@
 | `typescript` | 5.9.3 | 静的型検査 (ESM, strict) |
 | `@types/node` | 22.20.3 | Node.js API 型定義 |
 | `vitest` | 3.2.7 | 単体テスト・結合テスト実行フレームワーク |
+| `wrangler` | 4.140.0 | Cloudflare Workersの静的アセット配信、ローカル確認、deploy dry-run（2026-09-25追加、exact version固定） |

@@ -30,6 +30,39 @@ npm test
 
 ---
 
+## Cloudflare Workersへの公開
+
+現在のCloudflare配信対象は、`public/` にあるプロジェクト案内ページです。
+ローカルMCPは引き続き利用者の端末で起動します。証明書発行API・D1保存・公開台帳・Web検証・リモートMCPは、このデプロイには含まれません。
+
+`wrangler.jsonc` で静的アセットのディレクトリを明示しています。`dist/index.js` はNode.jsのstdioエントリーポイントであり、HTTP Workerの `main` に指定しないでください。`dist/` やリポジトリ全体を静的配信対象にする必要もありません。
+
+Cloudflare Workers Buildsの設定:
+
+| 設定 | 値 |
+|---|---|
+| ルートディレクトリ | リポジトリのルート |
+| ビルドコマンド | `npm run build` |
+| デプロイコマンド | `npm run deploy`（既存の `npx wrangler deploy` でも可） |
+| Worker名 | `open-estimate`（ダッシュボード側と `wrangler.jsonc` を一致させる） |
+
+WranglerはdevDependencyとして固定し、`package-lock.json` と一緒に管理します。Cloudflareの依存関係インストールでdevDependenciesを省略しないでください。
+
+```bash
+npm ci
+npm run build
+npm run deploy:check  # 認証や公開を行わず設定を検証
+npm run dev:web       # ローカルで案内ページを確認
+# Cloudflareの認証・Worker名を確認してから公開
+npm run deploy
+```
+
+`Could not detect a directory containing static files` が出る場合は、ビルド対象コミットに `wrangler.jsonc` と `public/` が含まれていること、およびルートディレクトリを確認してください。`tsc` はローカルMCP用JavaScriptを生成する処理で、公開HTMLを生成する処理ではありません。
+
+設定形式: [Wrangler configuration](https://developers.cloudflare.com/workers/wrangler/configuration/)、[Workers Static Assets](https://developers.cloudflare.com/workers/static-assets/)。
+
+---
+
 ## ChatGPT / Claude Desktop / Cursor での接続設定
 
 MCPクライアント（ChatGPT Desktop, Claude Desktop, Cursor等）の設定ファイルに以下を追加します。
