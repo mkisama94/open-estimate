@@ -3,52 +3,578 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Open Estimateは、AIによるソフトウェアの解釈と公開ルールによる機能規模の計数を分け、見積の根拠を確認可能にするオープンソースプロジェクトです。">
-    <title>Open Estimate — オープン工数見積</title>
-    <link rel="stylesheet" href="/styles.css">
+    <title>Open Estimate — 工数見積は嫌い。でも、自分が作ったものの見積なら見たい。</title>
+    <meta name="description" content="AIで作ったソフトウェアのソースコードを読み解き、COSMIC規格に基づく機能規模（CFP）を算出。「なんか結構つくった」を根拠付きの数字にするオープンソースプロジェクトです。">
+    
+    <!-- OGP -->
+    <meta property="og:title" content="Open Estimate — オープン工数見積">
+    <meta property="og:description" content="工数見積は嫌い。でも、自分が作ったものの見積なら、ちょっと見たい。AIの成果を客観的な数字にする開発者向けOSS。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://open-estimate.ai-orchestration.jp/">
+    <meta property="og:image" content="https://open-estimate.ai-orchestration.jp/images/ai-orchestration-logo.png">
+    
+    <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
-    <header class="page-header">
-      <a class="brand" href="/">Open Estimate</a>
-      <nav aria-label="ページ内ナビゲーション">
-        <a href="#approach">考え方</a>
-        <a href="#status">提供状況</a>
-      </nav>
+    <!-- ヘッダー -->
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="header-brand" href="#top" aria-label="Open Estimate トップへ">
+          <span class="brand-title">Open Estimate</span>
+          <span class="brand-tag">α</span>
+        </a>
+        <nav class="header-nav" aria-label="グローバルナビゲーション">
+          <div class="nav-links">
+            <a href="#start">使い方</a>
+            <a href="#mechanism">測定のしくみ</a>
+            <a href="https://github.com/mkisama94/open-estimate" target="_blank" rel="noopener">GitHub</a>
+          </div>
+          <div class="header-powered">
+            <span class="powered-label">powered by</span>
+            <a href="https://ai-orchestration.jp/" target="_blank" rel="noopener" title="AI Orchestration 企業AIの設計事務所">
+              <img src="./images/ai-orchestration-logo.png" alt="AI Orchestration">
+            </a>
+          </div>
+        </nav>
+      </div>
     </header>
-    <main>
-      <section class="hero" aria-labelledby="title">
-        <p class="eyebrow">OPEN SOFTWARE ESTIMATION</p>
-        <h1 id="title">見積の根拠を、<br>確かめられるものに。</h1>
-        <p class="lead">AIがソースコードを読み、公開されたルールで機能規模を計数する。Open Estimateは、ソフトウェアの見積を説明可能にするオープンソースプロジェクトです。</p>
+
+    <main id="top">
+      <!-- ① ファーストビュー：工数見積、好きですか？ -->
+      <section class="hero-section" aria-labelledby="hero-title">
+        <div class="container">
+          <div class="hero-grid">
+            <div class="hero-content">
+              <p class="hero-intro">皆さん、工数見積好きですか？</p>
+              <h1 class="hero-hate" id="hero-title">私は嫌いです。</h1>
+              <p class="hero-catch">
+                <strong>でも、自分が作ったソフトの見積なら、<br>ちょっと見たくありませんか？</strong>
+              </p>
+              <p class="hero-desc">
+                AIで作った、その成果。<br>
+                ソースコードから読み解いて、数字にしてみましょう。
+              </p>
+              <div class="hero-oss-banner">
+                <strong>オープン工数見積 — Open Estimate</strong>
+                <span>「なんか結構つくった」を、根拠付きの数字にするOSSです。</span>
+              </div>
+              <div class="hero-actions">
+                <a href="#start" class="btn btn-primary">自分のソフトを測ってみる</a>
+                <a href="#sample" class="btn-link">どんな結果が出る？ →</a>
+              </div>
+              <p class="hero-note">
+                開発者向けα版 · 対応AI環境＋ローカルMCPで利用<br>
+                現在は機能規模の測定に対応。工数・参考金額への換算は公開準備中です。
+              </p>
+            </div>
+
+            <!-- ファーストビュー右側：測定結果の小さなカード -->
+            <div class="hero-card-container">
+              <article class="report-card" aria-label="ソフトウェア測定レポート抜粋サンプル">
+                <div class="card-header-bar">
+                  <div>
+                    <span class="card-badge">OPEN ESTIMATE REPORT</span>
+                    <h3 class="card-title">ソフトウェア測定レポート</h3>
+                  </div>
+                  <span class="card-meta-tag">表示サンプル</span>
+                </div>
+                <div class="card-cfp-display">
+                  <span class="cfp-label">機能規模</span>
+                  <span class="cfp-number">6</span>
+                  <span class="cfp-unit">CFP</span>
+                </div>
+                <div class="card-status">
+                  COMPLETE · 架空のアプリ · 未署名
+                </div>
+                <dl class="card-qa-list">
+                  <div class="qa-item">
+                    <dt>何を数えた？</dt>
+                    <dd>機能ごとの入力・出力・読み取り・書き込み</dd>
+                  </div>
+                  <div class="qa-item">
+                    <dt>何を根拠にした？</dt>
+                    <dd>対象ファイルと該当箇所（<code>src/notes.ts:1-50</code>）</dd>
+                  </div>
+                  <div class="qa-item">
+                    <dt>どこを推論した？</dt>
+                    <dd>AIが判断した箇所を明記（推論フラグ: 0件）</dd>
+                  </div>
+                </dl>
+                <a href="#sample" class="card-link-more" id="hero-open-details">
+                  ［測定の内訳を見る］↓
+                </a>
+              </article>
+            </div>
+          </div>
+        </div>
       </section>
-      <section id="approach" aria-labelledby="approach-title">
-        <h2 id="approach-title">AIの解釈と、機械の計算を分ける</h2>
-        <div class="steps">
-          <article>
-            <p class="step">01 / INTERPRET</p>
-            <h3>ソースを解釈する</h3>
-            <p>利用者側のAIが機能とデータの動きを識別し、参照箇所や不確実性を記録します。</p>
-          </article>
-          <article>
-            <p class="step">02 / MEASURE</p>
-            <h3>公開ルールで計数する</h3>
-            <p>COSMICに基づく機能モデルを検証し、同じ入力から同じ機能規模を算出します。</p>
-          </article>
-          <article>
-            <p class="step">03 / VERIFY · 開発予定</p>
-            <h3>発行の証跡を確認する</h3>
-            <p>評価記録への署名と公開履歴により、発行者と内容の同一性を確認できる仕組みを目指します。</p>
+
+      <!-- ② 共感：「これ、結構すごくない？」を数字にする -->
+      <section class="empathy-section" aria-labelledby="empathy-title">
+        <div class="container-narrow">
+          <h2 class="empathy-heading" id="empathy-title">
+            AIで作りました。<br>
+            <span class="sub">……で、これ、どれくらいすごいんでしょう。</span>
+          </h2>
+          <div class="empathy-body">
+            <p>
+              ログインも付いた。<br>
+              管理画面も動く。<br>
+              外部APIともつながった。
+            </p>
+            <p>
+              でも、人に説明すると「AIで作りました」の一言で終わってしまう。
+            </p>
+            <p class="empathy-highlight">
+              いや、もう少し褒められてもよくないですか。
+            </p>
+            <p>
+              オープン工数見積は、あなたのソフトウェアが実現している機能を読み解き、共通の物差しで測ります。
+            </p>
+            <p>
+              すごさの全部は測れません。<br>
+              でも、<strong>何をどれだけ作ったのかを説明する材料</strong>にはなります。
+            </p>
+          </div>
+          <div class="empathy-theme-box">
+            <p class="empathy-theme-text">「自慢するための数字にも、出典を。」</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ③ 結果サンプル：見積られると、こうなります -->
+      <section class="sample-section" id="sample" aria-labelledby="sample-title">
+        <div class="container">
+          <div class="section-header">
+            <h2 id="sample-title">見積られる側になると、<br>ちょっと楽しい。</h2>
+            <p>
+              数字だけ出して「以上です」にはしません。<br>
+              何を数えたのか、どこを読んだのか、どこがAIの判断なのかも残します。
+            </p>
+          </div>
+
+          <article class="sample-sheet" aria-label="測定結果サンプル詳細票">
+            <div class="sheet-header">
+              <div class="sheet-brand-group">
+                <span class="sheet-logo">OPEN ESTIMATE / ASSESSMENT REPORT</span>
+                <h3 class="sheet-title">ソフトウェア測定レポート</h3>
+              </div>
+              <div class="sheet-tag-list">
+                <span class="sheet-tag">表示サンプル</span>
+                <span class="sheet-tag">架空のアプリ（sample-notes-app）</span>
+                <span class="sheet-tag warning">未署名</span>
+              </div>
+            </div>
+
+            <div class="sheet-summary-grid">
+              <div class="summary-metric">
+                <span class="metric-title">機能規模（COSMIC Function Points）</span>
+                <div class="metric-val-wrap">
+                  <span class="big-number">6</span>
+                  <span class="unit">CFP</span>
+                </div>
+                <div style="margin-top: 8px;">
+                  <span class="card-status">完全性: COMPLETE（2/2 プロセス確定）</span>
+                </div>
+              </div>
+              <div class="summary-breakdown-list">
+                <div class="breakdown-row">
+                  <span class="breakdown-label">何を数えた？</span>
+                  <div class="breakdown-content">
+                    機能ごとの入力（Entry: 2）· 出力（Exit: 2）· 読取（Read: 1）· 書込（Write: 1）
+                  </div>
+                </div>
+                <div class="breakdown-row">
+                  <span class="breakdown-label">何を根拠にした？</span>
+                  <div class="breakdown-content">
+                    対象ファイルと該当箇所を記録（<code>src/notes.ts:1-50</code>）
+                  </div>
+                </div>
+                <div class="breakdown-row">
+                  <span class="breakdown-label">どこを推論した？</span>
+                  <div class="breakdown-content">
+                    AIが判断した箇所を明記（不確実な推論プロセス: 0件）
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 測定の内訳（開閉アコーディオン） -->
+            <details class="breakdown-accordion" id="accordion-breakdown">
+              <summary>
+                <span>［測定の内訳を見る］</span>
+                <span class="toggle-icon">▼</span>
+              </summary>
+              <div class="accordion-body">
+                <p style="margin: 0 0 12px; color: var(--text-muted);">
+                  以下はテストFixture（sample-notes-app）における実際の計数データです。各機能プロセスにおけるデータ移動（CFP）とソースコード根拠を記録しています。
+                </p>
+                <div style="overflow-x: auto;">
+                  <table class="process-table">
+                    <thead>
+                      <tr>
+                        <th>機能プロセス</th>
+                        <th>データ移動種別</th>
+                        <th>対象データグループ / ストア</th>
+                        <th>ソース根拠 (Evidence)</th>
+                        <th>計数</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td rowspan="3" style="font-weight: 700; vertical-align: top;">
+                          Create Note<br>
+                          <small style="color: var(--text-light); font-weight: 400;">メモの新規登録</small>
+                        </td>
+                        <td><span class="tag-badge tag-entry">Entry</span></td>
+                        <td>Note Data（ユーザー入力）</td>
+                        <td><code>src/notes.ts:1-25</code></td>
+                        <td>1 CFP</td>
+                      </tr>
+                      <tr>
+                        <td><span class="tag-badge tag-write">Write</span></td>
+                        <td>Notes Database（永続保存）</td>
+                        <td><code>src/notes.ts:1-25</code></td>
+                        <td>1 CFP</td>
+                      </tr>
+                      <tr>
+                        <td><span class="tag-badge tag-exit">Exit</span></td>
+                        <td>Note Response Data（実行結果）</td>
+                        <td><code>src/notes.ts:1-25</code></td>
+                        <td>1 CFP</td>
+                      </tr>
+                      <tr style="border-top: 2px solid var(--border-dark);">
+                        <td rowspan="3" style="font-weight: 700; vertical-align: top;">
+                          List Notes<br>
+                          <small style="color: var(--text-light); font-weight: 400;">メモの一覧取得</small>
+                        </td>
+                        <td><span class="tag-badge tag-entry">Entry</span></td>
+                        <td>List Request（一覧要求）</td>
+                        <td><code>src/notes.ts:26-50</code></td>
+                        <td>1 CFP</td>
+                      </tr>
+                      <tr>
+                        <td><span class="tag-badge tag-read">Read</span></td>
+                        <td>Notes Database（一覧読出）</td>
+                        <td><code>src/notes.ts:26-50</code></td>
+                        <td>1 CFP</td>
+                      </tr>
+                      <tr>
+                        <td><span class="tag-badge tag-exit">Exit</span></td>
+                        <td>Note Response Data（一覧返却）</td>
+                        <td><code>src/notes.ts:26-50</code></td>
+                        <td>1 CFP</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </details>
+
+            <div class="future-callout">
+              <h4>「人が作ったら何時間分？」まで、つなげていきます。</h4>
+              <p>
+                公開研究の開発実績による参考工数、米国の公的賃金統計による参考金額への換算を準備しています。<br>
+                金額は売値や市場価値ではなく、決められた条件での参考値です。
+              </p>
+            </div>
           </article>
         </div>
       </section>
-      <section class="status" id="status" aria-labelledby="status-title">
-        <p class="eyebrow">COMMUNITY / 開発中</p>
-        <h2 id="status-title">現在の提供状況</h2>
-        <p>現在は、ローカルMCPを通じたソースコードの読取・機能モデルの検証・機能規模の計数に対応しています。工数と金額の本番提供には、参照データの検証と承認が必要です。</p>
-        <p><strong>証明書の発行・公開台帳・Webでの証跡確認は、まだ提供していません。</strong>このサイトはプロジェクトの案内ページです。ソースコードや評価記録を入力・アップロードする画面はありません。</p>
-        <p>AIによる解釈には不確実性があります。機能規模の計数結果は、工数の実現性やソフトウェアの市場価値を保証するものではありません。</p>
+
+      <!-- ④ 導入：使い方。会議は不要です -->
+      <section class="usage-section" id="start" aria-labelledby="usage-title">
+        <div class="container">
+          <div class="section-header">
+            <h2 id="usage-title">使い方。会議は不要です。</h2>
+            <p>
+              プロジェクトの調整も見積依頼書も不要。AI環境にMCPを登録し、測定を頼むだけです。
+            </p>
+          </div>
+
+          <div class="steps-grid">
+            <article class="step-card">
+              <span class="step-number">01</span>
+              <h3>MCPを導入する。</h3>
+              <p>対応するAI環境（Claude Desktop、Cursor等）に、Open Estimateを追加します。</p>
+            </article>
+            <article class="step-card">
+              <span class="step-number">02</span>
+              <h3>自分のソフトを測らせる。</h3>
+              <p>対象リポジトリを指定して、AIに測定を依頼します。</p>
+            </article>
+            <article class="step-card">
+              <span class="step-number">03</span>
+              <h3>数字と内訳を見る。</h3>
+              <p>結果にニヤッとする。気になるところは、根拠を確認する。</p>
+            </article>
+          </div>
+
+          <!-- AIへの依頼文プロンプトボックス -->
+          <div class="prompt-box">
+            <div class="prompt-box-header">
+              <span class="prompt-box-title">AIへ送る依頼文の例</span>
+              <button class="copy-btn" id="copy-prompt-btn" type="button">依頼文をコピー</button>
+            </div>
+            <p class="prompt-text" id="prompt-content">
+              「このリポジトリをOpen Estimateで測定してください。機能規模と、数えた機能・根拠・除外範囲を教えてください。」
+            </p>
+          </div>
+
+          <!-- アクション -->
+          <div class="usage-cta-row">
+            <a href="https://github.com/mkisama94/open-estimate#readme" class="btn btn-primary" target="_blank" rel="noopener">
+              導入手順を見る（GitHub）
+            </a>
+            <p class="usage-disclaimer">
+              現在は開発者向けのローカルMCP版です。対応環境と設定手順をご確認ください。<br>
+              利用するAIサービスの料金は別途かかる場合があります。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⑤ 根拠：名前は軽いですが、中身は真面目です -->
+      <section class="mechanism-section" id="mechanism" aria-labelledby="mechanism-title">
+        <div class="container">
+          <div class="mechanism-lead">
+            <h2 id="mechanism-title">名前は軽いですが、<br>中身はわりと真面目です。</h2>
+            <p style="font-size: 1.08rem; color: var(--text-muted); line-height: 1.8;">
+              気分で「1,000万円！」とは言いません。<br>
+              AIがソースコードを読み解き、COSMICという機能規模の測定方法に沿って、数える対象を整理します。
+            </p>
+            <div class="mechanism-manifesto">
+              AIの判断は隠しません。<br>
+              数え方も隠しません。<br>
+              コードも隠しません。
+            </div>
+          </div>
+
+          <div class="pillars-grid">
+            <article class="pillar-card">
+              <h3>物差しがある</h3>
+              <p>
+                COSMICに基づく機能規模測定を採用します。コードの長さを、そのまま偉さに換算するサービスではありません。
+              </p>
+            </article>
+            <article class="pillar-card">
+              <h3>判断を追える</h3>
+              <p>
+                使用モデルの申告情報、数えた機能、ソースの根拠、推論した箇所を記録します。AIの判断が常に正しいと保証するものではありません。
+              </p>
+            </article>
+            <article class="pillar-card">
+              <h3>中身を読める</h3>
+              <p>
+                アルゴリズム、コード、方法論を公開します。参考工数の換算を提供する際には、採用した実績と集計方法も公開します。
+              </p>
+            </article>
+          </div>
+
+          <div class="mechanism-links">
+            <a href="https://github.com/mkisama94/open-estimate#cosmic%E6%A9%9F%E8%83%BD%E8%A6%8F%E6%A8%A1%E6%B8%AC%E5%AE%9A%E8%A6%8F%E6%A0%BC" target="_blank" rel="noopener" class="tag-link">
+              測定のしくみ（COSMIC規格） ↗
+            </a>
+            <a href="https://github.com/mkisama94/open-estimate#%E6%A7%8B%E9%80%A0%E5%AE%9A%E7%BE%A9%E3%81%A8%E6%A4%9C%E8%A8%BC" target="_blank" rel="noopener" class="tag-link">
+              方法論と参照データ ↗
+            </a>
+            <a href="https://github.com/mkisama94/open-estimate" target="_blank" rel="noopener" class="tag-link">
+              GitHub リポジトリ ↗
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⑥ FAQ：よくある、もっともな疑問 -->
+      <section class="faq-section" id="faq" aria-labelledby="faq-title">
+        <div class="container">
+          <div class="section-header">
+            <h2 id="faq-title">よくある、もっともな疑問</h2>
+            <p>用途の境界や気になる点についてお答えします。</p>
+          </div>
+
+          <div class="faq-list">
+            <details class="faq-item">
+              <summary>
+                <span>Q. これ、ジョークサイトですか？</span>
+                <span class="faq-icon">+</span>
+              </summary>
+              <div class="faq-answer">
+                <p>
+                  入口は少しそうです。測定は真面目に作っています。<br>
+                  「自分の作ったものを、もう少し説明しやすくしたい」という気持ちから始まったOSSです。
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary>
+                <span>Q. 数字が大きいほど、すごいソフトですか？</span>
+                <span class="faq-icon">+</span>
+              </summary>
+              <div class="faq-answer">
+                <p>
+                  そうとは限りません。測っているのは機能規模であって、面白さや使いやすさ、事業価値の全てではありません。<br>
+                  <strong>小さくて便利なソフトも、普通にすごいです。</strong>
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary>
+                <span>Q. ソースコードを公開しないと使えませんか？</span>
+                <span class="faq-icon">+</span>
+              </summary>
+              <div class="faq-answer">
+                <p>
+                  測定のために、ソースコードを一般公開する必要はありません。<br>
+                  ただし、解析する内容は利用するAIに渡ります。機密コードを扱う場合は、AIサービスの契約・データ取扱設定を確認してください。
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary>
+                <span>Q. 仕事の正式な見積書に使えますか？</span>
+                <span class="faq-icon">+</span>
+              </summary>
+              <div class="faq-answer">
+                <p>
+                  初期版は、完成済みソフトウェアを測って試すための開発者向けα版です。<br>
+                  プロジェクト全体の費用や契約価格を保証するものではありません。RFPからの見積は、次のフェーズで扱う予定です。
+                </p>
+              </div>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⑦ 最後のCTA：そのソフト、ちょっと測ってみませんか？ -->
+      <section class="cta-section" aria-labelledby="cta-title">
+        <div class="container">
+          <div class="cta-box">
+            <h2 id="cta-title">工数見積は、相変わらず嫌いです。</h2>
+            <p class="cta-lead">
+              <strong>でも、作ったものを振り返るための見積なら、<br>案外悪くないかもしれません。</strong>
+            </p>
+            <p class="cta-body">
+              週末に作ったアプリも。<br>
+              仕事の合間に育てたツールも。<br>
+              AIと格闘して、ようやく動いたあのソフトも。<br><br>
+              何をどれだけ作ったのか。<br>
+              ちょっと測ってみませんか？
+            </p>
+            <div class="cta-button-wrap">
+              <a href="#start" class="btn btn-primary btn-large">自分のソフトを測ってみる</a>
+            </div>
+            <p class="cta-feedback">
+              変な結果が出たら、教えてください。<br>
+              その違和感が、次の改善材料になります。<br>
+              <a href="https://github.com/mkisama94/open-estimate/issues" target="_blank" rel="noopener">GitHub Issues でフィードバックを送る →</a>
+            </p>
+          </div>
+        </div>
       </section>
     </main>
-    <footer>Open Estimate <span>AI interprets. Rules decide.</span></footer>
+
+    <!-- フッター -->
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-top">
+          <div class="footer-brand-col">
+            <p class="footer-brand-title">Open Estimate — オープン工数見積</p>
+            <p class="footer-tagline">AI interprets. Rules decide.</p>
+            <div class="footer-powered-badge">
+              <span class="label">powered by</span>
+              <a href="https://ai-orchestration.jp/" target="_blank" rel="noopener" class="footer-logo-card" title="AI Orchestration 企業AIの設計事務所">
+                <img src="./images/ai-orchestration-logo.png" alt="AI Orchestration 企業AIの設計事務所">
+              </a>
+            </div>
+          </div>
+
+          <div class="footer-links-col">
+            <div class="footer-nav-group">
+              <h4>メニュー</h4>
+              <ul>
+                <li><a href="#sample">結果サンプル</a></li>
+                <li><a href="#start">使い方</a></li>
+                <li><a href="#mechanism">測定のしくみ</a></li>
+                <li><a href="#faq">よくある質問</a></li>
+              </ul>
+            </div>
+            <div class="footer-nav-group">
+              <h4>プロジェクト</h4>
+              <ul>
+                <li><a href="https://github.com/mkisama94/open-estimate" target="_blank" rel="noopener">GitHub リポジトリ</a></li>
+                <li><a href="https://github.com/mkisama94/open-estimate/blob/main/README.md" target="_blank" rel="noopener">README ドキュメント</a></li>
+                <li><a href="https://github.com/mkisama94/open-estimate/issues" target="_blank" rel="noopener">Issues / 改善要望</a></li>
+              </ul>
+            </div>
+            <div class="footer-nav-group">
+              <h4>提供について</h4>
+              <ul>
+                <li><span>開発者向けα版 (M1)</span></li>
+                <li><span>ローカルMCP動作</span></li>
+                <li><span>証明書・台帳は準備中</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <div>
+            &copy; 2026 Open Estimate contributors · powered by <a href="https://ai-orchestration.jp/" target="_blank" rel="noopener" style="color: #9da6a0;">AI Orchestration</a>
+          </div>
+          <div>
+            本サイトはプロジェクトの案内ページです。ソースコードのアップロードや保存は行いません。
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- コピートースト -->
+    <div class="toast-msg" id="copy-toast" role="status" aria-live="polite">依頼文をコピーしました！</div>
+
+    <!-- インタラクション用スクリプト -->
+    <script>
+      (function() {
+        // コピー機能
+        const copyBtn = document.getElementById('copy-prompt-btn');
+        const promptContent = document.getElementById('prompt-content');
+        const toast = document.getElementById('copy-toast');
+        let toastTimer = null;
+
+        if (copyBtn && promptContent) {
+          copyBtn.addEventListener('click', async function() {
+            const rawText = promptContent.textContent.trim().replace(/^「|」$/g, '');
+            try {
+              await navigator.clipboard.writeText(rawText);
+              copyBtn.textContent = 'コピー完了 ✓';
+              if (toast) {
+                toast.classList.add('show');
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => {
+                  toast.classList.remove('show');
+                }, 2400);
+              }
+              setTimeout(() => {
+                copyBtn.textContent = '依頼文をコピー';
+              }, 2000);
+            } catch (e) {
+              console.error('クリップボードコピーに失敗しました', e);
+            }
+          });
+        }
+
+        // ヒーローカードの内訳リンクを押した際にアコーディオンを開く
+        const heroOpenDetails = document.getElementById('hero-open-details');
+        const accordion = document.getElementById('accordion-breakdown');
+        if (heroOpenDetails && accordion) {
+          heroOpenDetails.addEventListener('click', function() {
+            accordion.open = true;
+          });
+        }
+      })();
+    </script>
   </body>
 </html>
