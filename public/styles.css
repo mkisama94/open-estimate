@@ -273,7 +273,7 @@ a:focus-visible, button:focus-visible {
   border-left: 4px solid var(--text-main);
   padding: 14px 18px;
   border-radius: var(--radius-sm);
-  margin-bottom: 32px;
+  margin-bottom: 20px;
   font-size: 0.95rem;
 }
 
@@ -286,6 +286,13 @@ a:focus-visible, button:focus-visible {
 
 .hero-oss-banner span {
   color: var(--text-muted);
+}
+
+.hero-plugin-desc {
+  font-size: 1.02rem;
+  line-height: 1.75;
+  color: var(--text-muted);
+  margin: 0 0 28px;
 }
 
 .hero-actions {
