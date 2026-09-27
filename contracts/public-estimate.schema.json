@@ -1,0 +1,317 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-estimate.org/schemas/public/v1/public-estimate.schema.json",
+  "title": "Open Estimate Public Estimate Schema (OES-SHARE-0.1.0)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "display_version",
+    "share_id",
+    "certificate_id",
+    "issued_at",
+    "published_at",
+    "metadata",
+    "presentation",
+    "measurement",
+    "effort_scope_id",
+    "assurance",
+    "model_label",
+    "conversion",
+    "basis",
+    "limitation_codes"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "open-estimate/public-estimate/v1"
+    },
+    "display_version": {
+      "type": "string",
+      "const": "oes-ja-result/0.1.0"
+    },
+    "share_id": {
+      "type": "string",
+      "pattern": "^sh_[a-f0-9]{32}$",
+      "description": "Public share ID prefix sh_ followed by 16 bytes lowercase hex (32 characters)."
+    },
+    "certificate_id": {
+      "type": "string",
+      "description": "Identifier of the source certificate."
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the original certificate was issued (UTC)."
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when this public summary was published (UTC)."
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["app_name", "description", "publisher_label", "app_url", "include_model_label"],
+      "properties": {
+        "app_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Public display name of the application (user declared)."
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 240,
+          "description": "Public description or summary of the application (user declared)."
+        },
+        "publisher_label": {
+          "type": ["string", "null"],
+          "maxLength": 60,
+          "description": "Optional publisher or author display name (user declared)."
+        },
+        "app_url": {
+          "type": ["string", "null"],
+          "maxLength": 2048,
+          "pattern": "^https://[a-zA-Z0-9.-]+(?:/[^\\s]*)?$",
+          "description": "Optional HTTPS URL to the public application."
+        },
+        "include_model_label": {
+          "type": "boolean",
+          "description": "Whether the user opted to disclose the assessment model name."
+        }
+      }
+    },
+    "presentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hours_per_day", "locale", "display_currency"],
+      "properties": {
+        "hours_per_day": {
+          "type": "integer",
+          "const": 8,
+          "description": "Fixed 8 hours per person-day presentation standard."
+        },
+        "locale": {
+          "type": "string",
+          "const": "ja-JP"
+        },
+        "display_currency": {
+          "type": "string",
+          "const": "JPY"
+        }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "cfp",
+        "counts",
+        "inferred_movement_count",
+        "excluded_component_count"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["COMPLETE", "PARTIAL", "UNSUPPORTED", "INCOMPLETE"]
+        },
+        "cfp": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["entry", "exit", "read", "write", "total_processes", "accepted_processes"],
+          "properties": {
+            "entry": { "type": "integer", "minimum": 0 },
+            "exit": { "type": "integer", "minimum": 0 },
+            "read": { "type": "integer", "minimum": 0 },
+            "write": { "type": "integer", "minimum": 0 },
+            "total_processes": { "type": "integer", "minimum": 0 },
+            "accepted_processes": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "inferred_movement_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of data movements involving AI inference."
+        },
+        "excluded_component_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of components excluded from the measurement scope."
+        }
+      }
+    },
+    "effort_scope_id": {
+      "type": "string",
+      "description": "Identifier of the effort scope definition (standard development scope)."
+    },
+    "assurance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assessment_class", "context_isolation", "semantic_assessment"],
+      "properties": {
+        "assessment_class": {
+          "type": "string",
+          "const": "COMMUNITY"
+        },
+        "context_isolation": {
+          "type": "string",
+          "const": "not_enforced"
+        },
+        "semantic_assessment": {
+          "type": "string",
+          "const": "NOT_INDEPENDENTLY_VERIFIED"
+        }
+      }
+    },
+    "model_label": {
+      "type": ["string", "null"],
+      "description": "Self-reported AI model name if include_model_label is true, otherwise null."
+    },
+    "conversion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["effort", "usd", "local"],
+      "properties": {
+        "effort": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "hours", "days"],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["AVAILABLE", "BENCHMARK_UNAVAILABLE", "OUTSIDE_REFERENCE_RANGE", "UNSUPPORTED"]
+            },
+            "hours": {
+              "type": ["object", "null"],
+              "additionalProperties": false,
+              "required": ["p25", "median", "p75"],
+              "properties": {
+                "p25": { "type": "string" },
+                "median": { "type": "string" },
+                "p75": { "type": "string" }
+              }
+            },
+            "days": {
+              "type": ["object", "null"],
+              "additionalProperties": false,
+              "required": ["p25", "median", "p75"],
+              "properties": {
+                "p25": { "type": "string" },
+                "median": { "type": "string" },
+                "p75": { "type": "string" }
+              }
+            }
+          }
+        },
+        "usd": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "amounts"],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["AVAILABLE", "WAGE_UNAVAILABLE", "UNSUPPORTED"]
+            },
+            "amounts": {
+              "type": ["object", "null"],
+              "additionalProperties": false,
+              "required": ["p25", "median", "p75"],
+              "properties": {
+                "p25": { "type": "string" },
+                "median": { "type": "string" },
+                "p75": { "type": "string" }
+              }
+            }
+          }
+        },
+        "local": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "currency", "currency_per_usd", "amounts"],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["AVAILABLE", "FX_UNAVAILABLE", "FX_STALE", "UNSUPPORTED"]
+            },
+            "currency": {
+              "type": "string",
+              "const": "JPY"
+            },
+            "currency_per_usd": {
+              "type": ["string", "null"]
+            },
+            "amounts": {
+              "type": ["object", "null"],
+              "additionalProperties": false,
+              "required": ["p25", "median", "p75"],
+              "properties": {
+                "p25": { "type": "string" },
+                "median": { "type": "string" },
+                "p75": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["benchmark", "wage", "fx"],
+      "properties": {
+        "benchmark": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["profile_id", "source", "sample_size", "hours_per_cfp"],
+          "properties": {
+            "profile_id": { "type": "string" },
+            "source": { "type": "string" },
+            "sample_size": { "type": "integer", "minimum": 1 },
+            "hours_per_cfp": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["p25", "median", "p75"],
+              "properties": {
+                "p25": { "type": "string" },
+                "median": { "type": "string" },
+                "p75": { "type": "string" }
+              }
+            }
+          }
+        },
+        "wage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["profile_id", "source", "hourly_wage_usd", "period"],
+          "properties": {
+            "profile_id": { "type": "string" },
+            "source": { "type": "string" },
+            "hourly_wage_usd": { "type": "string" },
+            "period": { "type": ["string", "null"] }
+          }
+        },
+        "fx": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["currency", "rate", "observed_at", "source"],
+          "properties": {
+            "currency": { "type": "string" },
+            "rate": { "type": ["string", "null"] },
+            "observed_at": { "type": ["string", "null"] },
+            "source": { "type": "string" }
+          }
+        }
+      }
+    },
+    "limitation_codes": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

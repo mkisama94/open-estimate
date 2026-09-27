@@ -1,0 +1,1943 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>つくログ｜45人日相当の工数換算 — Open Estimate</title>
+    <meta name="description" content="「つくログ」の工数換算レポート。45人日相当（1人日＝8人時、参照実績による換算）。参考労務換算額 約270万円（米国公的賃金統計による参考額・市場価値ではありません）。">
+    <meta name="robots" content="noindex,nofollow">
+    <link rel="canonical" href="https://open-estimate.ai-orchestration.jp/e/sh_a1b2c3d4e5f60718293a4b5c6d7e8f90">
+
+    <!-- Open Graph Protocol (OGP) -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Open Estimate">
+    <meta property="og:title" content="つくログ｜45人日相当の工数換算 — Open Estimate">
+    <meta property="og:description" content="「つくログ」の工数換算レポート。45人日相当（1人日＝8人時）。参考労務換算額 約270万円（市場価値ではありません）。">
+    <meta property="og:url" content="https://open-estimate.ai-orchestration.jp/e/sh_a1b2c3d4e5f60718293a4b5c6d7e8f90">
+    <meta property="og:image" content="https://open-estimate.ai-orchestration.jp/og/e/sh_a1b2c3d4e5f60718293a4b5c6d7e8f90.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="つくログの工数換算レポートカード画像。参照開発工数 45人日相当、参考労務換算額 約270万円。">
+    <meta property="og:locale" content="ja_JP">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="つくログ｜45人日相当の工数換算 — Open Estimate">
+    <meta name="twitter:description" content="「つくログ」の工数換算レポート。45人日相当（1人日＝8人時）。参考労務換算額 約270万円（市場価値ではありません）。">
+    <meta name="twitter:image" content="https://open-estimate.ai-orchestration.jp/og/e/sh_a1b2c3d4e5f60718293a4b5c6d7e8f90.png">
+
+    <style>
+      :root {
+        --bg-paper: #f5f4ee;
+        --bg-subtle: #eeede5;
+        --bg-card: #ffffff;
+        --text-main: #17201d;
+        --text-muted: #4e5652;
+        --text-light: #737c77;
+        --green-primary: #294e3b;
+        --green-dark: #1b3528;
+        --green-soft: #eaf2ed;
+        --yellow-badge: #f4df63;
+        --yellow-badge-text: #17201d;
+        --yellow-warning: #fff3cd;
+        --yellow-warning-border: #ffeeba;
+        --yellow-warning-text: #856404;
+        --red-danger: #c0392b;
+        --red-soft: #fdf2f2;
+        --red-border: #f5c6cb;
+        --border-color: #e2dfd5;
+        --border-dark: #cbc7b7;
+        --accent-blue: #0b57d0;
+        --accent-hover: #0842a0;
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 16px;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+        --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 4px rgba(0, 0, 0, 0.02);
+        --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "BIZ UDPGothic", Meiryo, sans-serif;
+        --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+      }
+
+      *, *::before, *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: var(--font-sans);
+        background-color: var(--bg-paper);
+        color: var(--text-main);
+        line-height: 1.8;
+        font-size: 16px;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: var(--accent-blue);
+        text-decoration: none;
+        transition: color 0.15s ease;
+      }
+
+      a:hover {
+        color: var(--accent-hover);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+        outline: 2px solid var(--accent-blue);
+        outline-offset: 3px;
+      }
+
+      .container {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 32px;
+      }
+
+      /* モック専用コントロールバー（本番共有時には非表示） */
+      .mock-control-bar {
+        background-color: #212529;
+        color: #f8f9fa;
+        padding: 10px 24px;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      }
+
+      .mock-control-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+      }
+
+      .mock-tag {
+        background: #f4df63;
+        color: #17201d;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.72rem;
+        font-weight: 800;
+      }
+
+      .mock-control-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .mock-select-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .mock-select {
+        background: #343a40;
+        color: #ffffff;
+        border: 1px solid #495057;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 0.82rem;
+        cursor: pointer;
+      }
+
+      .btn-mock-flow {
+        background: #f4df63;
+        color: #17201d;
+        border: none;
+        padding: 5px 12px;
+        border-radius: 4px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: opacity 0.15s ease;
+      }
+
+      .btn-mock-flow:hover {
+        opacity: 0.88;
+      }
+
+      /* V-01 ヘッダー */
+      .site-header {
+        background-color: rgba(245, 244, 238, 0.95);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--border-color);
+        padding: 16px 0;
+      }
+
+      .header-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      .header-brand-group {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+
+      .header-brand {
+        font-size: 1.25rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: var(--text-main);
+        text-decoration: none;
+      }
+
+      .header-subbrand {
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .badge-sample {
+        background-color: var(--yellow-badge);
+        color: var(--yellow-badge-text);
+        padding: 5px 12px;
+        border-radius: var(--radius-sm);
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+      }
+
+      .badge-withdrawn {
+        background-color: #6c757d;
+        color: #ffffff;
+        padding: 5px 12px;
+        border-radius: var(--radius-sm);
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .badge-revoked {
+        background-color: var(--red-danger);
+        color: #ffffff;
+        padding: 5px 12px;
+        border-radius: var(--radius-sm);
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      /* メインコンテンツ */
+      main {
+        padding: 40px 0 80px;
+      }
+
+      /* V-02 アプリ紹介 */
+      .app-intro-section {
+        margin-bottom: 24px;
+      }
+
+      .app-title {
+        font-size: clamp(2.2rem, 5vw, 3rem);
+        font-weight: 900;
+        line-height: 1.2;
+        letter-spacing: -0.03em;
+        margin: 0 0 10px;
+        color: var(--text-main);
+      }
+
+      .app-desc {
+        font-size: 1.15rem;
+        color: var(--text-muted);
+        margin: 0 0 16px;
+        line-height: 1.6;
+      }
+
+      .app-meta-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        font-size: 0.88rem;
+        color: var(--text-light);
+      }
+
+      .meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .meta-disclaimer {
+        font-size: 0.78rem;
+        color: var(--text-light);
+        margin-top: 8px;
+      }
+
+      /* V-03 状態アラート */
+      .state-alert {
+        padding: 12px 18px;
+        border-radius: var(--radius-md);
+        margin-bottom: 24px;
+        font-size: 0.92rem;
+        line-height: 1.5;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .state-alert-warning {
+        background-color: var(--yellow-warning);
+        border: 1px solid var(--yellow-warning-border);
+        color: var(--yellow-warning-text);
+      }
+
+      .state-alert-danger {
+        background-color: var(--red-soft);
+        border: 1px solid var(--red-border);
+        color: var(--red-danger);
+      }
+
+      /* V-04 主結果カード（添付画像デザインの完全再現） */
+      .hero-result-card {
+        background-color: var(--bg-card);
+        border: 1px solid var(--border-dark);
+        border-radius: var(--radius-lg);
+        padding: 40px 48px;
+        box-shadow: var(--shadow-card);
+        margin-bottom: 16px;
+        position: relative;
+      }
+
+      .hero-columns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 48px;
+        align-items: start;
+      }
+
+      .hero-col-left {
+        padding-right: 24px;
+      }
+
+      .hero-col-right {
+        padding-left: 24px;
+        border-left: 1px solid var(--border-color);
+      }
+
+      .metric-label {
+        font-size: 0.98rem;
+        font-weight: 700;
+        color: var(--text-light);
+        margin-bottom: 12px;
+      }
+
+      .hero-metric-display {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+      }
+
+      /* 人日相当（深緑・巨大数字） */
+      .person-days-number {
+        font-size: clamp(4.5rem, 8vw, 6.2rem);
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        color: var(--green-primary);
+        font-feature-settings: "palt" 1;
+      }
+
+      .person-days-unit {
+        font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+        font-weight: 800;
+        color: var(--green-primary);
+      }
+
+      .metric-subinfo {
+        font-size: 0.98rem;
+        color: var(--text-muted);
+        line-height: 1.5;
+      }
+
+      /* 参考労務換算額 */
+      .jpy-prefix {
+        font-size: clamp(1.3rem, 2.2vw, 1.7rem);
+        font-weight: 800;
+        color: var(--text-main);
+      }
+
+      .jpy-number {
+        font-size: clamp(3.8rem, 6.8vw, 5.2rem);
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: -0.03em;
+        color: var(--text-main);
+      }
+
+      .jpy-unit {
+        font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+        font-weight: 800;
+        color: var(--text-main);
+      }
+
+      .hero-card-divider {
+        height: 1px;
+        background-color: var(--border-color);
+        margin: 32px 0 20px;
+      }
+
+      .hero-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        font-size: 0.92rem;
+        color: var(--text-light);
+      }
+
+      .hero-disclaimer-box {
+        font-size: 0.85rem;
+        color: var(--text-light);
+        margin-bottom: 40px;
+        padding: 0 4px;
+        line-height: 1.6;
+      }
+
+      /* V-05 ばらつき（四分位換算幅） */
+      .section-card {
+        background-color: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 32px 36px;
+        margin-bottom: 32px;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .section-title {
+        font-size: 1.25rem;
+        font-weight: 800;
+        margin: 0 0 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text-main);
+      }
+
+      .section-lead {
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        margin: 0 0 24px;
+        line-height: 1.7;
+      }
+
+      .quartile-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+
+      .quartile-item {
+        background: var(--bg-paper);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 16px 20px;
+        text-align: center;
+      }
+
+      .quartile-item.is-median {
+        background: var(--green-soft);
+        border-color: #b9d8c6;
+      }
+
+      .quartile-label {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--text-light);
+        margin-bottom: 6px;
+      }
+
+      .quartile-val {
+        font-size: 1.5rem;
+        font-weight: 900;
+        color: var(--text-main);
+        margin-bottom: 4px;
+      }
+
+      .quartile-item.is-median .quartile-val {
+        color: var(--green-primary);
+      }
+
+      .quartile-sub {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+
+      .distribution-bar {
+        position: relative;
+        height: 12px;
+        background: #e9ecef;
+        border-radius: 6px;
+        margin: 28px 0 12px;
+      }
+
+      .distribution-bar-range {
+        position: absolute;
+        left: 20%;
+        width: 60%;
+        height: 100%;
+        background: #b7e4c7;
+        border-radius: 6px;
+      }
+
+      .distribution-bar-median {
+        position: absolute;
+        left: 45%;
+        top: -6px;
+        width: 4px;
+        height: 24px;
+        background: var(--green-primary);
+        border-radius: 2px;
+      }
+
+      /* V-06 共有アクション */
+      .share-actions-card {
+        background: var(--bg-card);
+        border: 2px solid var(--green-primary);
+        border-radius: var(--radius-lg);
+        padding: 32px 36px;
+        margin-bottom: 32px;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .share-btn-group {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 22px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        border-radius: var(--radius-md);
+        border: none;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        text-decoration: none !important;
+        min-height: 46px;
+      }
+
+      .btn-primary {
+        background-color: var(--green-primary);
+        color: #ffffff;
+      }
+
+      .btn-primary:hover {
+        background-color: var(--green-dark);
+        transform: translateY(-1px);
+      }
+
+      .btn-secondary {
+        background-color: var(--bg-paper);
+        color: var(--text-main);
+        border: 1px solid var(--border-dark);
+      }
+
+      .btn-secondary:hover {
+        background-color: var(--bg-subtle);
+      }
+
+      .share-text-preview {
+        background: var(--bg-paper);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 16px 20px;
+        font-size: 0.88rem;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        color: var(--text-muted);
+        position: relative;
+      }
+
+      /* V-07 計算の流れ */
+      .flow-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .flow-step-card {
+        background: var(--bg-paper);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 18px;
+        position: relative;
+      }
+
+      .flow-step-num {
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: var(--text-light);
+        margin-bottom: 6px;
+      }
+
+      .flow-step-title {
+        font-size: 0.95rem;
+        font-weight: 800;
+        margin-bottom: 6px;
+        color: var(--text-main);
+      }
+
+      .flow-step-value {
+        font-size: 1.15rem;
+        font-weight: 900;
+        color: var(--green-primary);
+        margin-bottom: 4px;
+      }
+
+      .flow-step-desc {
+        font-size: 0.78rem;
+        color: var(--text-light);
+        line-height: 1.4;
+      }
+
+      /* V-08 参照条件（detailsアコーディオン） */
+      .accordion-details {
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        background: var(--bg-paper);
+        overflow: hidden;
+        margin-bottom: 24px;
+      }
+
+      .accordion-details summary {
+        padding: 16px 20px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #ffffff;
+        border-bottom: 1px solid transparent;
+      }
+
+      .accordion-details[open] summary {
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .accordion-details summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .accordion-body {
+        padding: 24px;
+        font-size: 0.92rem;
+      }
+
+      .details-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .details-table th, .details-table td {
+        padding: 10px 14px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .details-table th {
+        font-size: 0.82rem;
+        color: var(--text-light);
+        width: 30%;
+        background: var(--bg-subtle);
+      }
+
+      .details-table td {
+        font-size: 0.88rem;
+        color: var(--text-main);
+      }
+
+      /* V-09 対象作業の範囲 */
+      .scope-comparison-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+
+      .scope-card {
+        border-radius: var(--radius-md);
+        padding: 24px;
+      }
+
+      .scope-card-included {
+        background: var(--green-soft);
+        border: 1px solid #b7e4c7;
+      }
+
+      .scope-card-excluded {
+        background: #fdf6ec;
+        border: 1px solid #fae1a0;
+      }
+
+      .scope-card h4 {
+        margin: 0 0 16px;
+        font-size: 1rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .scope-card-included h4 { color: #1b5e20; }
+      .scope-card-excluded h4 { color: #8c6400; }
+
+      .scope-list {
+        margin: 0;
+        padding-left: 20px;
+        font-size: 0.9rem;
+        line-height: 1.8;
+      }
+
+      /* V-10 CFP集計 */
+      .cfp-counts-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      .cfp-count-card {
+        background: var(--bg-paper);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 16px;
+        text-align: center;
+      }
+
+      .cfp-tag {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        font-weight: 800;
+        padding: 2px 8px;
+        border-radius: 4px;
+        display: inline-block;
+        margin-bottom: 8px;
+      }
+
+      .tag-entry { background: #e3f2fd; color: #0d47a1; }
+      .tag-exit { background: #fce4ec; color: #880e4f; }
+      .tag-read { background: #e8f5e9; color: #1b5e20; }
+      .tag-write { background: #fff3e0; color: #e65100; }
+
+      .cfp-count-val {
+        font-family: var(--font-mono);
+        font-size: 1.8rem;
+        font-weight: 900;
+        color: var(--text-main);
+      }
+
+      /* V-11 評価・署名・検証 */
+      .verification-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .verification-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        font-size: 0.9rem;
+        border-bottom: 1px dashed var(--border-color);
+        padding-bottom: 10px;
+      }
+
+      .verification-label {
+        min-width: 180px;
+        font-weight: 700;
+        color: var(--text-light);
+      }
+
+      .verification-val {
+        color: var(--text-main);
+        font-weight: 600;
+      }
+
+      /* V-12 導入CTA */
+      .cta-card {
+        background: linear-gradient(135deg, var(--green-primary), var(--green-dark));
+        color: #ffffff;
+        border-radius: var(--radius-lg);
+        padding: 48px;
+        text-align: center;
+        margin-top: 48px;
+      }
+
+      .cta-title {
+        font-size: clamp(1.8rem, 4vw, 2.3rem);
+        font-weight: 900;
+        margin: 0 0 16px;
+      }
+
+      .cta-lead {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin: 0 0 28px;
+        line-height: 1.7;
+      }
+
+      .btn-cta {
+        background: #ffffff;
+        color: var(--green-dark);
+        font-size: 1.1rem;
+        padding: 14px 36px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+      }
+
+      .btn-cta:hover {
+        background: #f8f9fa;
+        color: var(--green-dark);
+        transform: translateY(-2px);
+      }
+
+      /* V-13 フッター */
+      .site-footer {
+        border-top: 1px solid var(--border-color);
+        padding: 40px 0 60px;
+        font-size: 0.85rem;
+        color: var(--text-light);
+        margin-top: 60px;
+      }
+
+      .footer-inner {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 24px;
+      }
+
+      .footer-brand {
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--text-main);
+        margin-bottom: 6px;
+      }
+
+      /* モバイル下部固定共有バー */
+      .mobile-share-bar {
+        display: none;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(8px);
+        border-top: 1px solid var(--border-dark);
+        padding: 10px 16px;
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
+        z-index: 900;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.06);
+      }
+
+      .mobile-share-bar-inner {
+        display: flex;
+        gap: 10px;
+      }
+
+      .mobile-share-bar-inner .btn {
+        flex: 1;
+        padding: 10px 12px;
+        font-size: 0.88rem;
+      }
+
+      /* トースト通知 */
+      .toast-msg {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%) translateY(40px);
+        background: #17201d;
+        color: #ffffff;
+        padding: 12px 24px;
+        border-radius: var(--radius-md);
+        font-size: 0.92rem;
+        font-weight: 600;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        z-index: 2000;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      }
+
+      .toast-msg.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      /* 公開確認モーダル (UC-01) */
+      .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1500;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        padding: 20px;
+      }
+
+      .modal-backdrop.is-open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .modal-card {
+        background: #ffffff;
+        border-radius: var(--radius-lg);
+        width: 100%;
+        max-width: 680px;
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 32px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+        position: relative;
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .modal-title {
+        font-size: 1.3rem;
+        font-weight: 800;
+        margin: 0;
+      }
+
+      .modal-close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-light);
+        padding: 4px;
+        line-height: 1;
+      }
+
+      .consent-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin: 24px 0;
+      }
+
+      .consent-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        font-size: 0.92rem;
+        line-height: 1.6;
+        cursor: pointer;
+      }
+
+      .consent-label input[type="checkbox"] {
+        margin-top: 4px;
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+      }
+
+      /* 撤回済み表示 (WITHDRAWN) */
+      .withdrawn-view {
+        display: none;
+        text-align: center;
+        padding: 80px 20px;
+        background: #ffffff;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+      }
+
+      .withdrawn-code {
+        font-family: var(--font-mono);
+        font-size: 3rem;
+        font-weight: 900;
+        color: var(--text-light);
+        margin-bottom: 12px;
+      }
+
+      .withdrawn-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin-bottom: 16px;
+      }
+
+      .withdrawn-desc {
+        font-size: 1rem;
+        color: var(--text-muted);
+        max-width: 520px;
+        margin: 0 auto;
+        line-height: 1.8;
+      }
+
+      /* レスポンシブ対応 */
+      @media (max-width: 768px) {
+        .container {
+          padding: 0 20px;
+        }
+
+        .hero-result-card {
+          padding: 28px 24px;
+        }
+
+        .hero-columns {
+          grid-template-columns: 1fr;
+          gap: 32px;
+        }
+
+        .hero-col-left {
+          padding-right: 0;
+          padding-bottom: 24px;
+          border-bottom: 1px solid var(--border-color);
+        }
+
+        .hero-col-right {
+          padding-left: 0;
+          border-left: none;
+        }
+
+        .quartile-grid, .flow-grid, .cfp-counts-grid, .scope-comparison-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .mobile-share-bar {
+          display: block;
+        }
+
+        body {
+          padding-bottom: 70px;
+        }
+      }
+
+      /* 印刷スタイル (@media print) */
+      @media print {
+        body {
+          background: #ffffff !important;
+          color: #000000 !important;
+          font-size: 12pt;
+          line-height: 1.5;
+        }
+
+        .mock-control-bar,
+        .share-actions-card,
+        .mobile-share-bar,
+        .btn,
+        .toast-msg,
+        .modal-backdrop,
+        .cta-card,
+        .site-header nav,
+        #hero-actions {
+          display: none !important;
+        }
+
+        .hero-result-card {
+          box-shadow: none !important;
+          border: 1px solid #000000 !important;
+          page-break-inside: avoid;
+          margin-bottom: 20px;
+          padding: 20px !important;
+        }
+
+        .section-card {
+          box-shadow: none !important;
+          border: 1px solid #cccccc !important;
+          page-break-inside: avoid;
+        }
+
+        .accordion-details {
+          border: 1px solid #cccccc !important;
+        }
+
+        .accordion-details[open] summary, .accordion-details summary {
+          background: transparent !important;
+        }
+
+        .person-days-number {
+          color: #000000 !important;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- モック専用コントロールバー（状態切り替え・公開フローテスト） -->
+    <aside class="mock-control-bar" aria-label="モック表示検証コントロール">
+      <div class="mock-control-title">
+        <span class="mock-tag">MOCK CONTROL</span>
+        <span>見積詳細・SNS共有 情報構造検証（OES-SHARE-0.1.0）</span>
+      </div>
+      <div class="mock-control-actions">
+        <label class="mock-select-label" for="mock-state-select">
+          表示状態:
+          <select id="mock-state-select" class="mock-select">
+            <option value="available">1. 正常・換算あり（つくログ 45人日/約270万円）</option>
+            <option value="partial">2. PARTIAL（部分測定・警告表示）</option>
+            <option value="benchmark_unavailable">3. benchmark不足（CFPのみ・工数未提供）</option>
+            <option value="wage_unavailable">4. wage不足（人日のみ・金額未提供）</option>
+            <option value="unsigned">5. 未署名（ローカルプレビュー／デモ）</option>
+            <option value="withdrawn">6. WITHDRAWN（公開撤回済み・410 Gone）</option>
+            <option value="revoked">7. REVOKED（元証明書失効表示）</option>
+          </select>
+        </label>
+        <button type="button" class="btn-mock-flow" id="btn-open-confirm-modal">公開確認フローを見る</button>
+      </div>
+    </aside>
+
+    <!-- V-01 ヘッダー -->
+    <header class="site-header">
+      <div class="container header-inner">
+        <div class="header-brand-group">
+          <a class="header-brand" href="/" aria-label="Open Estimate トップへ">Open Estimate</a>
+          <span class="header-subbrand">/ 公開見積レポート</span>
+        </div>
+        <div class="header-right">
+          <span class="badge-sample" id="header-status-badge">SAMPLE · 架空値 · 未署名</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="container">
+        <!-- 410 WITHDRAWN 表示用コンテナ（撤回選択時のみ表示） -->
+        <section class="withdrawn-view" id="view-withdrawn" aria-live="polite">
+          <div class="withdrawn-code">410</div>
+          <h1 class="withdrawn-title">この公開見積レポートは撤回されました</h1>
+          <p class="withdrawn-desc">
+            公開者による明示的な撤回操作が行われたため、レポートの配信を終了しました。<br>
+            安全のため、アプリケーション名・工数・参考金額等の数値データは返却されません。
+          </p>
+        </section>
+
+        <!-- 通常表示エリア -->
+        <div id="view-main">
+          <!-- V-02 アプリ紹介 -->
+          <section class="app-intro-section" aria-labelledby="app-heading">
+            <h1 class="app-title" id="app-heading">つくログ</h1>
+            <p class="app-desc" id="app-desc">つくったものに、ちょっと誇れる数字を。</p>
+            <div class="app-meta-row">
+              <span class="meta-item">公開者: <strong id="app-publisher">@developer</strong>（自己申告）</span>
+              <span>·</span>
+              <span class="meta-item">測定日: 2026年9月27日</span>
+              <span>·</span>
+              <span class="meta-item">
+                <a href="https://example.com/tsukulog" target="_blank" rel="noopener noreferrer nofollow ugc" id="app-url-link">
+                  アプリ公開URL ↗
+                </a>
+              </span>
+            </div>
+            <p class="meta-disclaimer">※ アプリ名・概要・URLは公開者の自己申告であり、権利関係やアプリ作者本人であることを検証したものではありません。</p>
+          </section>
+
+          <!-- V-03 状態アラート（動的に切り替え） -->
+          <div id="state-alert-container" style="display: none;"></div>
+
+          <!-- V-04 主結果カード（添付画像デザインの完全再現） -->
+          <section class="hero-result-card" aria-label="主測定・換算結果">
+            <div class="hero-columns">
+              <!-- 左カラム：参照開発工数（人日相当） -->
+              <div class="hero-col-left">
+                <div class="metric-label">参照開発工数</div>
+                <div class="hero-metric-display">
+                  <span class="person-days-number" id="hero-days-val">45</span>
+                  <span class="person-days-unit" id="hero-days-unit">人日相当</span>
+                </div>
+                <div class="metric-subinfo" id="hero-days-sub">
+                  360 人時 ／ 1人日=8人時換算
+                </div>
+              </div>
+
+              <!-- 右カラム：参考労務換算額 -->
+              <div class="hero-col-right">
+                <div class="metric-label">参考労務換算額</div>
+                <div class="hero-metric-display">
+                  <span class="jpy-prefix" id="hero-jpy-prefix">約</span>
+                  <span class="jpy-number" id="hero-jpy-val">270</span>
+                  <span class="jpy-unit" id="hero-jpy-unit">万円</span>
+                </div>
+                <div class="metric-subinfo" id="hero-jpy-sub">
+                  USD 18,000 ／ 市場価値ではありません
+                </div>
+              </div>
+            </div>
+
+            <div class="hero-card-divider"></div>
+
+            <div class="hero-card-footer">
+              <div id="hero-footer-left">
+                <span id="hero-cfp-val">120</span> CFP · Community · AIによる測定
+              </div>
+              <div id="hero-footer-right">
+                架空の参照比率・時給・為替による表示例
+              </div>
+            </div>
+          </section>
+
+          <p class="hero-disclaimer-box">
+            ※ 参考労務換算額は、ソフトウェアの売却価格、市場価値、または請負契約価格ではありません。公開研究実績および米国公的賃金統計に基づき、標準的な開発作業に要する労務費用を機械的に換算した参考値です。
+          </p>
+
+          <!-- V-06 共有アクション -->
+          <section class="share-actions-card" aria-labelledby="share-heading">
+            <h2 class="section-title" id="share-heading">この結果を共有する</h2>
+            <p class="section-lead">
+              SNSやチャットに貼り付けて成果を伝えることができます。本ページは公開要約のみを掲載しており、ソースコード原文やリポジトリの内部情報は含まれません。
+            </p>
+            <div class="share-btn-group">
+              <button type="button" class="btn btn-primary" id="btn-copy-url">
+                <span>🔗</span> URLをコピー
+              </button>
+              <button type="button" class="btn btn-secondary" id="btn-native-share">
+                <span>📤</span> 端末で共有
+              </button>
+              <button type="button" class="btn btn-secondary" id="btn-copy-share-text">
+                <span>📋</span> 共有文をコピー
+              </button>
+              <button type="button" class="btn btn-secondary" id="btn-print">
+                <span>🖨️</span> レポートを印刷
+              </button>
+            </div>
+            <div>
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-light); display: block; margin-bottom: 6px;">SNS共有文プレビュー</span>
+              <div class="share-text-preview" id="share-text-preview-box"></div>
+            </div>
+          </section>
+
+          <!-- V-05 ばらつき（四分位換算幅） -->
+          <section class="section-card" id="section-quartiles" aria-labelledby="quartile-heading">
+            <h2 class="section-title" id="quartile-heading">工数換算のばらつき（参照実績の分布）</h2>
+            <p class="section-lead">
+              ソフトウェア開発の実績データには幅があります。本換算では中央値（median）を代表値とし、第1四分位（p25）から第3四分位（p75）の換算幅を併記しています。
+            </p>
+            <div class="quartile-grid">
+              <div class="quartile-item">
+                <div class="quartile-label">第1四分位 (p25 / 短期)</div>
+                <div class="quartile-val" id="q-p25-days">30 人日相当</div>
+                <div class="quartile-sub" id="q-p25-sub">240 人時 · 約180万円</div>
+              </div>
+              <div class="quartile-item is-median">
+                <div class="quartile-label">中央値 (median / 主結果)</div>
+                <div class="quartile-val" id="q-med-days">45 人日相当</div>
+                <div class="quartile-sub" id="q-med-sub">360 人時 · 約270万円</div>
+              </div>
+              <div class="quartile-item">
+                <div class="quartile-label">第3四分位 (p75 / 長期)</div>
+                <div class="quartile-val" id="q-p75-days">75 人日相当</div>
+                <div class="quartile-sub" id="q-p75-sub">600 人時 · 約450万円</div>
+              </div>
+            </div>
+            <div class="distribution-bar" aria-hidden="true">
+              <div class="distribution-bar-range"></div>
+              <div class="distribution-bar-median"></div>
+            </div>
+            <p style="font-size: 0.82rem; color: var(--text-light); margin: 8px 0 0;">
+              ※ 四分位は参照データ群（過去のWeb/API開発実績）における分布幅であり、対象案件がこの期間内に完成することを保証する予測区間ではありません。
+            </p>
+          </section>
+
+          <!-- V-07 計算の流れ -->
+          <section class="section-card" aria-labelledby="flow-heading">
+            <h2 class="section-title" id="flow-heading">計算の流れ（算定の透明性）</h2>
+            <p class="section-lead">
+              Open Estimate は主観的な係数や非公開アルゴリズムを用いません。COSMIC規格による機能規模から、公開統計データを用いて機械的に換算します。
+            </p>
+            <div class="flow-grid">
+              <div class="flow-step-card">
+                <div class="flow-step-num">STEP 01</div>
+                <div class="flow-step-title">機能規模測定</div>
+                <div class="flow-step-value" id="flow-cfp">120 CFP</div>
+                <div class="flow-step-desc">COSMIC規格に基づく入力・出力・読取・書込の合計</div>
+              </div>
+              <div class="flow-step-card">
+                <div class="flow-step-num">STEP 02</div>
+                <div class="flow-step-title">参照実績工数</div>
+                <div class="flow-step-value" id="flow-hours">360 人時</div>
+                <div class="flow-step-desc">× 3.0 人時/CFP（実績中央値）＝ 45 人日相当</div>
+              </div>
+              <div class="flow-step-card">
+                <div class="flow-step-num">STEP 03</div>
+                <div class="flow-step-title">米ドル換算</div>
+                <div class="flow-step-value" id="flow-usd">USD 18,000</div>
+                <div class="flow-step-desc">× $50.00 / 人時（米国BLS公的賃金統計中央値）</div>
+              </div>
+              <div class="flow-step-card">
+                <div class="flow-step-num">STEP 04</div>
+                <div class="flow-step-title">参考円換算</div>
+                <div class="flow-step-value" id="flow-jpy">約270 万円</div>
+                <div class="flow-step-desc">× 150.00 JPY/USD（発行時点の公的為替レート）</div>
+              </div>
+            </div>
+            <p style="font-size: 0.82rem; color: var(--text-light); margin: 0;">
+              ※ すべて発行時点の固定値です。閲覧時の為替や経済条件によって自動更新されることはありません。
+            </p>
+          </section>
+
+          <!-- V-08 参照条件（details アコーディオン） -->
+          <details class="accordion-details" id="accordion-basis">
+            <summary>
+              <span>算定の根拠と参照条件の詳細</span>
+              <span class="toggle-icon">▼</span>
+            </summary>
+            <div class="accordion-body">
+              <table class="details-table">
+                <tbody>
+                  <tr>
+                    <th>工数実績プロファイル</th>
+                    <td>
+                      <code>oes-test-benchmark-v1</code>（オープンソースWeb/API開発実績データセット、標本数: 10件、適合範囲: 1〜500 CFP）
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>参考賃金データ</th>
+                    <td>
+                      米国労働統計局（BLS）OEWS SOC 15-1252（Software Developers）全国時給中央値 $50.00 / 人時（対象期間: 2025-05）
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>為替レート</th>
+                    <td>
+                      1 USD ＝ 150.00 JPY（公的基準為替レート、観測日: 2026-09-25）
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>人日換算規約</th>
+                    <td>
+                      1人日 ＝ 8人時（日本の標準開発換算、システム内部正本は人時として保持）
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>表示規約版</th>
+                    <td>
+                      <code>oes-ja-result/0.1.0</code>（仕様ID: OES-SHARE-0.1.0-draft.1）
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+
+          <!-- V-09 対象作業の範囲 -->
+          <section class="section-card" aria-labelledby="scope-heading">
+            <h2 class="section-title" id="scope-heading">開発工数の対象範囲</h2>
+            <p class="section-lead">
+              本換算が対象としているのは、実装・検証等の直接的な開発作業です。ビジネス企画や運用保守などの間接作業は含まれません。
+            </p>
+            <div class="scope-comparison-grid">
+              <div class="scope-card scope-card-included">
+                <h4>✓ 本工数に含まれる標準作業</h4>
+                <ul class="scope-list">
+                  <li>詳細設計（データモデル・API・機能構造の設計）</li>
+                  <li>プログラミング・コーディング・機能実装</li>
+                  <li>単体テスト・機能結合検証・デバッグ</li>
+                </ul>
+              </div>
+              <div class="scope-card scope-card-excluded">
+                <h4>✗ 本工数に含まれない作業（対象外）</h4>
+                <ul class="scope-list">
+                  <li>要件定義・ビジネス企画・仕様調整・ステークホルダー折衝</li>
+                  <li>プロジェクト管理・進行管理・会議・調整コスト</li>
+                  <li>デザイン・UI/UX検討・ブランド素材制作</li>
+                  <li>インフラ構築・クラウド環境設定・CI/CD整備・運用保守</li>
+                  <li>待ち時間・手戻り・不確定要素に対するバッファ</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- V-10 CFP集計 -->
+          <section class="section-card" aria-labelledby="cfp-heading">
+            <h2 class="section-title" id="cfp-heading">COSMIC機能規模測定の内訳</h2>
+            <p class="section-lead">
+              対象リポジトリから識別されたデータ移動（Entry: 入力, Exit: 出力, Read: 読取, Write: 書込）の集計結果です。
+            </p>
+            <div class="cfp-counts-grid">
+              <div class="cfp-count-card">
+                <span class="cfp-tag tag-entry">Entry (入力)</span>
+                <div class="cfp-count-val" id="cfp-entry">35</div>
+                <div style="font-size: 0.8rem; color: var(--text-light);">CFP</div>
+              </div>
+              <div class="cfp-count-card">
+                <span class="cfp-tag tag-exit">Exit (出力)</span>
+                <div class="cfp-count-val" id="cfp-exit">45</div>
+                <div style="font-size: 0.8rem; color: var(--text-light);">CFP</div>
+              </div>
+              <div class="cfp-count-card">
+                <span class="cfp-tag tag-read">Read (読取)</span>
+                <div class="cfp-count-val" id="cfp-read">25</div>
+                <div style="font-size: 0.8rem; color: var(--text-light);">CFP</div>
+              </div>
+              <div class="cfp-count-card">
+                <span class="cfp-tag tag-write">Write (書込)</span>
+                <div class="cfp-count-val" id="cfp-write">15</div>
+                <div style="font-size: 0.8rem; color: var(--text-light);">CFP</div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 24px; flex-wrap: wrap; font-size: 0.9rem; color: var(--text-muted); padding-top: 12px; border-top: 1px dashed var(--border-color);">
+              <span>機能プロセス総数: <strong id="cfp-proc-total">24</strong> プロセス</span>
+              <span>確定プロセス: <strong id="cfp-proc-accepted">24</strong></span>
+              <span>推論を含むデータ移動: <strong id="cfp-inferred">0</strong> 件</span>
+              <span>除外コンポーネント: <strong>2</strong> 件</span>
+            </div>
+            <p style="font-size: 0.82rem; color: var(--text-light); margin-top: 14px;">
+              ※ ソースコード原文やリポジトリの内部パス等の機密情報は公開されません。本ページでは集計された統計件数のみを公開しています。
+            </p>
+          </section>
+
+          <!-- V-11 評価・署名・検証情報 -->
+          <section class="section-card" aria-labelledby="verify-heading">
+            <h2 class="section-title" id="verify-heading">評価および署名・証跡情報</h2>
+            <div class="verification-list">
+              <div class="verification-item">
+                <div class="verification-label">使用AIモデル（申告）</div>
+                <div class="verification-val" id="verify-model">Claude 3.5 Sonnet（公開者自己申告・第三者による独立確認なし）</div>
+              </div>
+              <div class="verification-item">
+                <div class="verification-label">評価アシュアランス</div>
+                <div class="verification-val">Community（AIによる機能モデル復元・未独立審査）</div>
+              </div>
+              <div class="verification-item">
+                <div class="verification-label">元証明書ID</div>
+                <div class="verification-val">
+                  <code>cert_01h9y2p4k8m9a7b6c5d4e3f2</code>
+                </div>
+              </div>
+              <div class="verification-item">
+                <div class="verification-label">公開要約署名</div>
+                <div class="verification-val" id="verify-signature">
+                  Ed25519 署名済み（公開鍵ID: <code>key_oes_pub_2026_01</code>）
+                </div>
+              </div>
+              <div class="verification-item">
+                <div class="verification-label">公開状態 (Live Status)</div>
+                <div class="verification-val" id="verify-status">VALID（有効な公開レポート）</div>
+              </div>
+            </div>
+            <p style="font-size: 0.82rem; color: var(--text-light); margin-top: 16px;">
+              ※ 暗号署名は「Open Estimate の発行者がこの公開要約を発行したこと」を証明するものであり、AIによる解釈の完全性やソフトウェアの品質・市場価格を保証するものではありません。
+            </p>
+          </section>
+
+          <!-- V-12 導入CTA -->
+          <section class="cta-card" aria-labelledby="cta-heading">
+            <h2 class="cta-title" id="cta-heading">今度は、あなたのソフトも。</h2>
+            <p class="cta-lead">
+              週末に作ったアプリも、仕事の合間に育てたツールも。<br>
+              AIと書いたそのコード、共通の物差しで測ってみませんか？
+            </p>
+            <a href="/#start" class="btn btn-cta">自分のソフトを測ってみる</a>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <!-- V-13 フッター -->
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <div>
+          <div class="footer-brand">Open Estimate — オープン工数見積</div>
+          <div>AI interprets. Rules decide.</div>
+          <div style="margin-top: 8px;">
+            &copy; 2026 Open Estimate contributors · powered by <a href="https://ai-orchestration.jp/" target="_blank" rel="noopener">AI Orchestration</a>
+          </div>
+        </div>
+        <div>
+          <div style="font-weight: 700; margin-bottom: 6px; color: var(--text-main);">データ取扱・免責</div>
+          <div>本サービスは公開要約のみを配信し、ソースコード原本の保管や公開は行いません。</div>
+          <div style="margin-top: 4px;">
+            不審なレポートの報告・お問い合わせ: <a href="https://github.com/mkisama94/open-estimate/issues" target="_blank" rel="noopener">GitHub Issues ↗</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- モバイル固定下部バー -->
+    <div class="mobile-share-bar" aria-label="モバイル用共有メニュー">
+      <div class="mobile-share-bar-inner">
+        <button type="button" class="btn btn-primary" id="mobile-copy-btn">
+          <span>🔗</span> URLコピー
+        </button>
+        <button type="button" class="btn btn-secondary" id="mobile-share-btn">
+          <span>📤</span> 共有
+        </button>
+      </div>
+    </div>
+
+    <!-- コピートースト -->
+    <div class="toast-msg" id="copy-toast" role="status" aria-live="polite">URLをコピーしました！</div>
+
+    <!-- UC-01 公開確認プレビューモーダル（本番公開前UX確認用） -->
+    <div class="modal-backdrop" id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="modal-heading">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title" id="modal-heading">公開内容の確認と同意</h3>
+          <button type="button" class="modal-close-btn" id="modal-close-btn" aria-label="閉じる">×</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size: 0.95rem; color: var(--text-muted); line-height: 1.6;">
+            以下の要約内容をパーマリンクおよびSNSカードとして公開します。公開前に内容と注意事項をご確認ください。
+          </p>
+
+          <div style="background: var(--bg-paper); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin: 16px 0; font-size: 0.9rem;">
+            <div><strong>公開アプリ名:</strong> つくログ</div>
+            <div><strong>公開概要:</strong> つくったものに、ちょっと誇れる数字を。</div>
+            <div><strong>主結果:</strong> 45 人日相当（360人時） / 参考労務額: 約270万円</div>
+            <div><strong>公開される項目:</strong> CFP集計値、参照条件、証明書ID、発行日時</div>
+            <div style="color: var(--red-danger); font-size: 0.82rem; margin-top: 6px;">
+              <strong>非公開情報:</strong> ソースコード本文、ファイルパス、リポジトリURL、コミット情報、詳細機能名は公開されません。
+            </div>
+          </div>
+
+          <div class="consent-list">
+            <label class="consent-label">
+              <input type="checkbox" id="consent-1">
+              <span><strong>公開要約とSNSカード掲載への同意:</strong> 上記の公開用アプリ名、概要、人日相当、参考労務額、および測定根拠がインターネット上に公開され、SNSカードとしてプレビューされることに同意します。</span>
+            </label>
+            <label class="consent-label">
+              <input type="checkbox" id="consent-2">
+              <span><strong>公開権限・秘密情報の不存在確認:</strong> 私は本ソフトウェアに関する公開権限を有しており、公開内容に第三者の機密情報、個人情報、または不適切な内容が含まれていないことを確認しました。</span>
+            </label>
+            <label class="consent-label">
+              <input type="checkbox" id="consent-3">
+              <span><strong>保存および外部キャッシュの回収不能への同意:</strong> 公開要約は撤回操作を行うまで配信元に保存されること、ならびに外部SNSや第三者が取得・キャッシュ・複製した情報を完全に回収・削除できない限界を理解し同意します。</span>
+            </label>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+            <button type="button" class="btn btn-secondary" id="modal-cancel-btn">キャンセル</button>
+            <button type="button" class="btn btn-primary" id="modal-submit-btn" disabled>
+              確認して公開URLを発行する
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- クリップボードフォールバック用隠しテキストエリア -->
+    <textarea id="hidden-clipboard" style="position: absolute; left: -9999px;" aria-hidden="true"></textarea>
+
+    <!-- クライアントサイドスクリプト -->
+    <script>
+      (function() {
+        const canonicalUrl = "https://open-estimate.ai-orchestration.jp/e/sh_a1b2c3d4e5f60718293a4b5c6d7e8f90";
+
+        // モック状態データ
+        const mockStates = {
+          available: {
+            badge: "SAMPLE · 架空値 · 未署名",
+            badgeClass: "badge-sample",
+            daysVal: "45",
+            daysUnit: "人日相当",
+            daysSub: "360 人時 ／ 1人日=8人時換算",
+            jpyPrefix: "約",
+            jpyVal: "270",
+            jpyUnit: "万円",
+            jpySub: "USD 18,000 ／ 市場価値ではありません",
+            cfpVal: "120",
+            statusAlert: null,
+            showQuartiles: true,
+            isWithdrawn: false
+          },
+          partial: {
+            badge: "SAMPLE · 部分測定",
+            badgeClass: "badge-sample",
+            daysVal: "18",
+            daysUnit: "人日相当",
+            daysSub: "144 人時 ／ 1人日=8人時換算",
+            jpyPrefix: "約",
+            jpyVal: "108",
+            jpyUnit: "万円",
+            jpySub: "USD 7,200 ／ 市場価値ではありません",
+            cfpVal: "48",
+            statusAlert: {
+              type: "warning",
+              html: "<strong>【部分測定】</strong> 本レポートはリポジトリ内の一部の機能構成要素のみを対象としています。未測定のモジュールが存在するため、システム全体の規模・工数ではありません。"
+            },
+            showQuartiles: true,
+            isWithdrawn: false
+          },
+          benchmark_unavailable: {
+            badge: "SAMPLE · 工数未提供",
+            badgeClass: "badge-sample",
+            daysVal: "—",
+            daysUnit: "換算未提供",
+            daysSub: "適合する参照工数プロファイルが存在しません",
+            jpyPrefix: "",
+            jpyVal: "—",
+            jpyUnit: "",
+            jpySub: "工数未確定のため金額換算なし",
+            cfpVal: "120",
+            statusAlert: {
+              type: "warning",
+              html: "<strong>【工数換算未提供】</strong> 機能規模（120 CFP）の計数は完了していますが、該当する業務領域・言語の承認済み参照工数プロファイルが未登録のため、人日および参考金額の換算は提供されません。"
+            },
+            showQuartiles: false,
+            isWithdrawn: false
+          },
+          wage_unavailable: {
+            badge: "SAMPLE · 金額未提供",
+            badgeClass: "badge-sample",
+            daysVal: "45",
+            daysUnit: "人日相当",
+            daysSub: "360 人時 ／ 1人日=8人時換算",
+            jpyPrefix: "",
+            jpyVal: "—",
+            jpyUnit: "",
+            jpySub: "公的参考賃金データ未登録のため金額提供なし",
+            cfpVal: "120",
+            statusAlert: {
+              type: "warning",
+              html: "<strong>【参考金額未提供】</strong> 人日換算（45人日相当）は有効ですが、適用可能な公的賃金統計（BLS）の承認データが不在のため、金額への換算は提供されません。"
+            },
+            showQuartiles: true,
+            isWithdrawn: false
+          },
+          unsigned: {
+            badge: "SAMPLE · 架空値 · 未署名",
+            badgeClass: "badge-sample",
+            daysVal: "45",
+            daysUnit: "人日相当",
+            daysSub: "360 人時 ／ 1人日=8人時換算",
+            jpyPrefix: "約",
+            jpyVal: "270",
+            jpyUnit: "万円",
+            jpySub: "USD 18,000 ／ 市場価値ではありません",
+            cfpVal: "120",
+            statusAlert: null,
+            showQuartiles: true,
+            isWithdrawn: false
+          },
+          withdrawn: {
+            badge: "公開撤回済み",
+            badgeClass: "badge-withdrawn",
+            isWithdrawn: true
+          },
+          revoked: {
+            badge: "証明書失効 (REVOKED)",
+            badgeClass: "badge-revoked",
+            daysVal: "—",
+            daysUnit: "失効",
+            daysSub: "元証明書の失効により数値を表示できません",
+            jpyPrefix: "",
+            jpyVal: "—",
+            jpyUnit: "",
+            jpySub: "失効",
+            cfpVal: "—",
+            statusAlert: {
+              type: "danger",
+              html: "<strong>【証明書失効】</strong> 元となる証明書または署名鍵が失効（REVOKED）したため、本レポートの数値は無効となりました。詳細数値は表示されません。"
+            },
+            showQuartiles: false,
+            isWithdrawn: false
+          }
+        };
+
+        // UI要素
+        const stateSelect = document.getElementById("mock-state-select");
+        const statusBadge = document.getElementById("header-status-badge");
+        const alertContainer = document.getElementById("state-alert-container");
+        const viewMain = document.getElementById("view-main");
+        const viewWithdrawn = document.getElementById("view-withdrawn");
+
+        const daysVal = document.getElementById("hero-days-val");
+        const daysUnit = document.getElementById("hero-days-unit");
+        const daysSub = document.getElementById("hero-days-sub");
+        const jpyPrefix = document.getElementById("hero-jpy-prefix");
+        const jpyVal = document.getElementById("hero-jpy-val");
+        const jpyUnit = document.getElementById("hero-jpy-unit");
+        const jpySub = document.getElementById("hero-jpy-sub");
+        const cfpVal = document.getElementById("hero-cfp-val");
+        const sectionQuartiles = document.getElementById("section-quartiles");
+        const sharePreviewBox = document.getElementById("share-text-preview-box");
+        const toast = document.getElementById("copy-toast");
+        let toastTimer = null;
+
+        function showToast(msg) {
+          if (!toast) return;
+          toast.textContent = msg;
+          toast.classList.add("show");
+          clearTimeout(toastTimer);
+          toastTimer = setTimeout(() => {
+            toast.classList.remove("show");
+          }, 2400);
+        }
+
+        // 状態反映関数
+        function applyState(key) {
+          const s = mockStates[key] || mockStates.available;
+
+          if (s.isWithdrawn) {
+            viewMain.style.display = "none";
+            viewWithdrawn.style.display = "block";
+            statusBadge.className = s.badgeClass;
+            statusBadge.textContent = s.badge;
+            return;
+          }
+
+          viewMain.style.display = "block";
+          viewWithdrawn.style.display = "none";
+
+          statusBadge.className = s.badgeClass;
+          statusBadge.textContent = s.badge;
+
+          daysVal.textContent = s.daysVal;
+          daysUnit.textContent = s.daysUnit;
+          daysSub.textContent = s.daysSub;
+
+          jpyPrefix.textContent = s.jpyPrefix;
+          jpyVal.textContent = s.jpyVal;
+          jpyUnit.textContent = s.jpyUnit;
+          jpySub.textContent = s.jpySub;
+
+          cfpVal.textContent = s.cfpVal;
+
+          if (s.statusAlert) {
+            alertContainer.style.display = "block";
+            alertContainer.className = "state-alert state-alert-" + s.statusAlert.type;
+            alertContainer.innerHTML = s.statusAlert.html;
+          } else {
+            alertContainer.style.display = "none";
+            alertContainer.innerHTML = "";
+          }
+
+          if (sectionQuartiles) {
+            sectionQuartiles.style.display = s.showQuartiles ? "block" : "none";
+          }
+
+          updateShareText(key);
+        }
+
+        function updateShareText(key) {
+          const s = mockStates[key] || mockStates.available;
+          let daysLine = "";
+          if (key === "partial") {
+            daysLine = "【部分測定】18人日相当（1人日＝8人時、参照実績による換算）。";
+          } else if (key === "benchmark_unavailable") {
+            daysLine = "120 CFP（人日換算未提供）。";
+          } else if (key === "wage_unavailable") {
+            daysLine = "45人日相当（1人日＝8人時、参照実績による換算）。";
+          } else if (key === "revoked") {
+            daysLine = "（証明書失効のため数値非表示）";
+          } else {
+            daysLine = "45人日相当（1人日＝8人時、参照実績による換算）。";
+          }
+
+          let amountLine = "";
+          if (key === "available" || key === "unsigned") {
+            amountLine = "参考労務換算額 約270万円。市場価値ではありません。\n";
+          } else if (key === "partial") {
+            amountLine = "参考労務換算額 約108万円。市場価値ではありません。\n";
+          }
+
+          const shareText = `「つくログ」の工数換算レポート。\n${daysLine}\n${amountLine}${canonicalUrl}\n#OpenEstimate`;
+          if (sharePreviewBox) {
+            sharePreviewBox.textContent = shareText;
+          }
+        }
+
+        if (stateSelect) {
+          stateSelect.addEventListener("change", function(e) {
+            applyState(e.target.value);
+          });
+        }
+
+        // クリップボードコピー処理
+        async function copyToClipboard(text, successMsg) {
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              await navigator.clipboard.writeText(text);
+              showToast(successMsg);
+              return;
+            }
+          } catch (err) {
+            console.warn("Clipboard API failed, fallback to textarea", err);
+          }
+
+          // フォールバック
+          const ta = document.getElementById("hidden-clipboard");
+          if (ta) {
+            ta.value = text;
+            ta.select();
+            document.execCommand("copy");
+            showToast(successMsg);
+          }
+        }
+
+        // コピー・共有ボタン
+        const btnCopyUrl = document.getElementById("btn-copy-url");
+        const mobileCopyBtn = document.getElementById("mobile-copy-btn");
+        const btnCopyShareText = document.getElementById("btn-copy-share-text");
+        const btnNativeShare = document.getElementById("btn-native-share");
+        const mobileShareBtn = document.getElementById("mobile-share-btn");
+        const btnPrint = document.getElementById("btn-print");
+
+        if (btnCopyUrl) {
+          btnCopyUrl.addEventListener("click", () => copyToClipboard(canonicalUrl, "共有URLをコピーしました！"));
+        }
+        if (mobileCopyBtn) {
+          mobileCopyBtn.addEventListener("click", () => copyToClipboard(canonicalUrl, "共有URLをコピーしました！"));
+        }
+        if (btnCopyShareText) {
+          btnCopyShareText.addEventListener("click", () => {
+            const text = sharePreviewBox ? sharePreviewBox.textContent : canonicalUrl;
+            copyToClipboard(text, "SNS共有文をコピーしました！");
+          });
+        }
+
+        // Web Share API
+        async function triggerNativeShare() {
+          const text = sharePreviewBox ? sharePreviewBox.textContent : "";
+          if (navigator.share) {
+            try {
+              await navigator.share({
+                title: "つくログ｜45人日相当の工数換算 — Open Estimate",
+                text: text,
+                url: canonicalUrl
+              });
+            } catch (err) {
+              if (err.name !== "AbortError") {
+                copyToClipboard(text, "共有文をコピーしました！");
+              }
+            }
+          } else {
+            copyToClipboard(text, "端末共有非対応のため共有文をコピーしました！");
+          }
+        }
+
+        if (btnNativeShare) btnNativeShare.addEventListener("click", triggerNativeShare);
+        if (mobileShareBtn) mobileShareBtn.addEventListener("click", triggerNativeShare);
+
+        // 印刷
+        if (btnPrint) {
+          btnPrint.addEventListener("click", () => window.print());
+        }
+
+        // 印刷時のアコーディオン自動展開
+        const accordion = document.getElementById("accordion-basis");
+        let wasOpenBeforePrint = false;
+        window.addEventListener("beforeprint", () => {
+          if (accordion) {
+            wasOpenBeforePrint = accordion.open;
+            accordion.open = true;
+          }
+        });
+        window.addEventListener("afterprint", () => {
+          if (accordion) {
+            accordion.open = wasOpenBeforePrint;
+          }
+        });
+
+        // 公開確認フローモーダル (UC-01)
+        const modal = document.getElementById("confirm-modal");
+        const btnOpenModal = document.getElementById("btn-open-confirm-modal");
+        const btnCloseModal = document.getElementById("modal-close-btn");
+        const btnCancelModal = document.getElementById("modal-cancel-btn");
+        const btnSubmitModal = document.getElementById("modal-submit-btn");
+        const c1 = document.getElementById("consent-1");
+        const c2 = document.getElementById("consent-2");
+        const c3 = document.getElementById("consent-3");
+
+        function updateModalSubmitState() {
+          if (btnSubmitModal) {
+            btnSubmitModal.disabled = !(c1.checked && c2.checked && c3.checked);
+          }
+        }
+
+        [c1, c2, c3].forEach(c => {
+          if (c) c.addEventListener("change", updateModalSubmitState);
+        });
+
+        function openModal() {
+          if (modal) {
+            modal.classList.add("is-open");
+            if (c1) c1.checked = false;
+            if (c2) c2.checked = false;
+            if (c3) c3.checked = false;
+            updateModalSubmitState();
+            if (btnCloseModal) btnCloseModal.focus();
+          }
+        }
+
+        function closeModal() {
+          if (modal) {
+            modal.classList.remove("is-open");
+            if (btnOpenModal) btnOpenModal.focus();
+          }
+        }
+
+        if (btnOpenModal) btnOpenModal.addEventListener("click", openModal);
+        if (btnCloseModal) btnCloseModal.addEventListener("click", closeModal);
+        if (btnCancelModal) btnCancelModal.addEventListener("click", closeModal);
+
+        if (btnSubmitModal) {
+          btnSubmitModal.addEventListener("click", () => {
+            closeModal();
+            showToast("【モック体験】公開URLが発行され、SNS共有が有効化されました！");
+          });
+        }
+
+        // モーダルのEscapeキー閉じ
+        window.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && modal && modal.classList.contains("is-open")) {
+            closeModal();
+          }
+        });
+
+        // 初期化
+        applyState("available");
+      })();
+    </script>
+  </body>
+</html>

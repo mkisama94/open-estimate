@@ -1,0 +1,102 @@
+{
+  "schema_version": "open-estimate/public-estimate/v1",
+  "display_version": "oes-ja-result/0.1.0",
+  "share_id": "sh_a1b2c3d4e5f60718293a4b5c6d7e8f90",
+  "certificate_id": "cert_01h9y2p4k8m9a7b6c5d4e3f2",
+  "issued_at": "2026-09-27T10:00:00Z",
+  "published_at": "2026-09-27T10:15:00Z",
+  "metadata": {
+    "app_name": "つくログ",
+    "description": "つくったものに、ちょっと誇れる数字を。",
+    "publisher_label": "@developer",
+    "app_url": "https://example.com/tsukulog",
+    "include_model_label": true
+  },
+  "presentation": {
+    "hours_per_day": 8,
+    "locale": "ja-JP",
+    "display_currency": "JPY"
+  },
+  "measurement": {
+    "status": "COMPLETE",
+    "cfp": 120,
+    "counts": {
+      "entry": 35,
+      "exit": 45,
+      "read": 25,
+      "write": 15,
+      "total_processes": 24,
+      "accepted_processes": 24
+    },
+    "inferred_movement_count": 0,
+    "excluded_component_count": 2
+  },
+  "effort_scope_id": "oes-standard-dev-v1",
+  "assurance": {
+    "assessment_class": "COMMUNITY",
+    "context_isolation": "not_enforced",
+    "semantic_assessment": "NOT_INDEPENDENTLY_VERIFIED"
+  },
+  "model_label": "Claude 3.5 Sonnet",
+  "conversion": {
+    "effort": {
+      "status": "AVAILABLE",
+      "hours": {
+        "p25": "240",
+        "median": "360",
+        "p75": "600"
+      },
+      "days": {
+        "p25": "30",
+        "median": "45",
+        "p75": "75"
+      }
+    },
+    "usd": {
+      "status": "AVAILABLE",
+      "amounts": {
+        "p25": "12000",
+        "median": "18000",
+        "p75": "30000"
+      }
+    },
+    "local": {
+      "status": "AVAILABLE",
+      "currency": "JPY",
+      "currency_per_usd": "150",
+      "amounts": {
+        "p25": "1800000",
+        "median": "2700000",
+        "p75": "4500000"
+      }
+    }
+  },
+  "basis": {
+    "benchmark": {
+      "profile_id": "oes-test-benchmark-v1",
+      "source": "Open Source Web/API Benchmark Dataset",
+      "sample_size": 10,
+      "hours_per_cfp": {
+        "p25": "2",
+        "median": "3",
+        "p75": "5"
+      }
+    },
+    "wage": {
+      "profile_id": "oes-test-wage-v1",
+      "source": "U.S. Bureau of Labor Statistics (BLS) OEWS SOC 15-1252",
+      "hourly_wage_usd": "50",
+      "period": "2025-05"
+    },
+    "fx": {
+      "currency": "JPY",
+      "rate": "150",
+      "observed_at": "2026-09-25T00:00:00Z",
+      "source": "Official Daily FX Reference"
+    }
+  },
+  "limitation_codes": [
+    "COMMUNITY_ASSESSMENT",
+    "STANDARD_DEV_SCOPE_ONLY"
+  ]
+}
