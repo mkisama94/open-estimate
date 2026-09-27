@@ -15,10 +15,13 @@
     "presentation",
     "measurement",
     "effort_scope_id",
+    "effort_scope_name",
+    "rules_and_standards",
     "assurance",
     "model_label",
     "conversion",
     "basis",
+    "verification_links",
     "limitation_codes"
   ],
   "properties": {
@@ -52,7 +55,16 @@
     "metadata": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["app_name", "description", "publisher_label", "app_url", "include_model_label"],
+      "required": [
+        "app_name",
+        "description",
+        "publisher_label",
+        "app_url",
+        "include_model_label",
+        "scope_description",
+        "unmeasured_description",
+        "result_scope_statement"
+      ],
       "properties": {
         "app_name": {
           "type": "string",
@@ -79,18 +91,34 @@
         "include_model_label": {
           "type": "boolean",
           "description": "Whether the user opted to disclose the assessment model name."
+        },
+        "scope_description": {
+          "type": "string",
+          "description": "Description of the target software scope measured in this report."
+        },
+        "unmeasured_description": {
+          "type": ["string", "null"],
+          "description": "Description of unmeasured, unanalyzed, or excluded components."
+        },
+        "result_scope_statement": {
+          "type": "string",
+          "description": "Statement clarifying that results apply only to the measured scope."
         }
       }
     },
     "presentation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["hours_per_day", "locale", "display_currency"],
+      "required": ["hours_per_day", "convention_label", "locale", "display_currency"],
       "properties": {
         "hours_per_day": {
           "type": "integer",
           "const": 8,
           "description": "Fixed 8 hours per person-day presentation standard."
+        },
+        "convention_label": {
+          "type": "string",
+          "description": "Label describing the convention, e.g. 'OESの表示規約 (1人日＝8人時)'."
         },
         "locale": {
           "type": "string",
@@ -110,7 +138,8 @@
         "cfp",
         "counts",
         "inferred_movement_count",
-        "excluded_component_count"
+        "excluded_component_count",
+        "unread_file_count"
       ],
       "properties": {
         "status": {
@@ -124,14 +153,23 @@
         "counts": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["entry", "exit", "read", "write", "total_processes", "accepted_processes"],
+          "required": [
+            "entry",
+            "exit",
+            "read",
+            "write",
+            "total_processes",
+            "accepted_processes",
+            "unresolved_processes"
+          ],
           "properties": {
             "entry": { "type": "integer", "minimum": 0 },
             "exit": { "type": "integer", "minimum": 0 },
             "read": { "type": "integer", "minimum": 0 },
             "write": { "type": "integer", "minimum": 0 },
             "total_processes": { "type": "integer", "minimum": 0 },
-            "accepted_processes": { "type": "integer", "minimum": 0 }
+            "accepted_processes": { "type": "integer", "minimum": 0 },
+            "unresolved_processes": { "type": "integer", "minimum": 0 }
           }
         },
         "inferred_movement_count": {
@@ -143,6 +181,11 @@
           "type": "integer",
           "minimum": 0,
           "description": "Number of components excluded from the measurement scope."
+        },
+        "unread_file_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of files left unread or unanalyzed."
         }
       }
     },
@@ -150,10 +193,24 @@
       "type": "string",
       "description": "Identifier of the effort scope definition (standard development scope)."
     },
+    "effort_scope_name": {
+      "type": "string",
+      "description": "Human-readable name and version of the effort scope definition, e.g. 'OES標準開発作業定義 第1版'."
+    },
+    "rules_and_standards": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["measurement_standard", "display_rule_version", "schema_version"],
+      "properties": {
+        "measurement_standard": { "type": "string" },
+        "display_rule_version": { "type": "string" },
+        "schema_version": { "type": "string" }
+      }
+    },
     "assurance": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["assessment_class", "context_isolation", "semantic_assessment"],
+      "required": ["assessment_class", "context_isolation", "context_isolation_note", "semantic_assessment"],
       "properties": {
         "assessment_class": {
           "type": "string",
@@ -162,6 +219,10 @@
         "context_isolation": {
           "type": "string",
           "const": "not_enforced"
+        },
+        "context_isolation_note": {
+          "type": "string",
+          "description": "Clarification that conversation context isolation was not technically enforced."
         },
         "semantic_assessment": {
           "type": "string",
@@ -268,10 +329,25 @@
         "benchmark": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["profile_id", "source", "sample_size", "hours_per_cfp"],
+          "required": [
+            "profile_id",
+            "profile_version",
+            "source",
+            "source_url",
+            "period",
+            "domain",
+            "methodology",
+            "sample_size",
+            "hours_per_cfp"
+          ],
           "properties": {
             "profile_id": { "type": "string" },
+            "profile_version": { "type": "string" },
             "source": { "type": "string" },
+            "source_url": { "type": ["string", "null"] },
+            "period": { "type": "string" },
+            "domain": { "type": "string" },
+            "methodology": { "type": "string" },
             "sample_size": { "type": "integer", "minimum": 1 },
             "hours_per_cfp": {
               "type": "object",
@@ -288,10 +364,23 @@
         "wage": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["profile_id", "source", "hourly_wage_usd", "period"],
+          "required": [
+            "profile_id",
+            "source",
+            "source_url",
+            "occupation",
+            "region",
+            "metric",
+            "hourly_wage_usd",
+            "period"
+          ],
           "properties": {
             "profile_id": { "type": "string" },
             "source": { "type": "string" },
+            "source_url": { "type": ["string", "null"] },
+            "occupation": { "type": "string" },
+            "region": { "type": "string" },
+            "metric": { "type": "string" },
             "hourly_wage_usd": { "type": "string" },
             "period": { "type": ["string", "null"] }
           }
@@ -299,14 +388,34 @@
         "fx": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["currency", "rate", "observed_at", "source"],
+          "required": [
+            "currency",
+            "rate",
+            "currency_pair",
+            "observed_at",
+            "published_at",
+            "source",
+            "source_url"
+          ],
           "properties": {
             "currency": { "type": "string" },
             "rate": { "type": ["string", "null"] },
+            "currency_pair": { "type": "string" },
             "observed_at": { "type": ["string", "null"] },
-            "source": { "type": "string" }
+            "published_at": { "type": ["string", "null"] },
+            "source": { "type": "string" },
+            "source_url": { "type": ["string", "null"] }
           }
         }
+      }
+    },
+    "verification_links": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["certificate_verify_url", "public_envelope_url"],
+      "properties": {
+        "certificate_verify_url": { "type": "string" },
+        "public_envelope_url": { "type": "string" }
       }
     },
     "limitation_codes": {

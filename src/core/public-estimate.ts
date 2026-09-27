@@ -25,9 +25,13 @@ export interface PublicEstimatePayload {
     publisher_label: string | null;
     app_url: string | null;
     include_model_label: boolean;
+    scope_description: string;
+    unmeasured_description: string | null;
+    result_scope_statement: string;
   };
   presentation: {
     hours_per_day: 8;
+    convention_label: string;
     locale: "ja-JP";
     display_currency: "JPY";
   };
@@ -41,14 +45,23 @@ export interface PublicEstimatePayload {
       write: number;
       total_processes: number;
       accepted_processes: number;
+      unresolved_processes: number;
     };
     inferred_movement_count: number;
     excluded_component_count: number;
+    unread_file_count: number;
   };
   effort_scope_id: string;
+  effort_scope_name: string;
+  rules_and_standards: {
+    measurement_standard: string;
+    display_rule_version: string;
+    schema_version: string;
+  };
   assurance: {
     assessment_class: "COMMUNITY";
     context_isolation: "not_enforced";
+    context_isolation_note: string;
     semantic_assessment: "NOT_INDEPENDENTLY_VERIFIED";
   };
   model_label: string | null;
@@ -72,22 +85,38 @@ export interface PublicEstimatePayload {
   basis: {
     benchmark: {
       profile_id: string;
+      profile_version: string;
       source: string;
+      source_url: string | null;
+      period: string;
+      domain: string;
+      methodology: string;
       sample_size: number;
       hours_per_cfp: { p25: string; median: string; p75: string };
     };
     wage: {
       profile_id: string;
       source: string;
+      source_url: string | null;
+      occupation: string;
+      region: string;
+      metric: string;
       hourly_wage_usd: string;
       period: string | null;
     };
     fx: {
       currency: string;
       rate: string | null;
+      currency_pair: string;
       observed_at: string | null;
+      published_at: string | null;
       source: string;
+      source_url: string | null;
     };
+  };
+  verification_links: {
+    certificate_verify_url: string;
+    public_envelope_url: string;
   };
   limitation_codes: string[];
 }

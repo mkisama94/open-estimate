@@ -10,10 +10,14 @@
     "description": "つくったものに、ちょっと誇れる数字を。",
     "publisher_label": "@developer",
     "app_url": "https://example.com/tsukulog",
-    "include_model_label": true
+    "include_model_label": true,
+    "scope_description": "WebフロントエンドおよびバックエンドAPIの全コアモジュール（機能プロセス計24件）",
+    "unmeasured_description": "管理用バッチスクリプト、外部OAuth連携設定ファイル等は対象外（除外: 2コンポーネント）",
+    "result_scope_statement": "本レポートの工数・参考金額は、測定対象として識別された機能プロセス（120 CFP）のみの換算結果です。"
   },
   "presentation": {
     "hours_per_day": 8,
+    "convention_label": "OESの表示規約 (1人日＝8人時)",
     "locale": "ja-JP",
     "display_currency": "JPY"
   },
@@ -26,15 +30,24 @@
       "read": 25,
       "write": 15,
       "total_processes": 24,
-      "accepted_processes": 24
+      "accepted_processes": 24,
+      "unresolved_processes": 0
     },
     "inferred_movement_count": 0,
-    "excluded_component_count": 2
+    "excluded_component_count": 2,
+    "unread_file_count": 0
   },
   "effort_scope_id": "oes-standard-dev-v1",
+  "effort_scope_name": "OES標準開発作業定義 第1版",
+  "rules_and_standards": {
+    "measurement_standard": "COSMIC v5.0 / OES Mapping Rules v0.1.0",
+    "display_rule_version": "oes-ja-result/0.1.0",
+    "schema_version": "open-estimate/public-estimate/v1"
+  },
   "assurance": {
     "assessment_class": "COMMUNITY",
     "context_isolation": "not_enforced",
+    "context_isolation_note": "Community版の測定では、AIモデル評価時の会話文脈隔離（Context Isolation）は技術的に強制されておらず、利用者の自己申告に基づきます。",
     "semantic_assessment": "NOT_INDEPENDENTLY_VERIFIED"
   },
   "model_label": "Claude 3.5 Sonnet",
@@ -74,7 +87,12 @@
   "basis": {
     "benchmark": {
       "profile_id": "oes-test-benchmark-v1",
+      "profile_version": "rev. 2026-09",
       "source": "Open Source Web/API Benchmark Dataset",
+      "source_url": "https://example.com/benchmarks/oes-test-benchmark-v1",
+      "period": "2023-2025",
+      "domain": "Web Application & REST/GraphQL API",
+      "methodology": "各実績案件の標準開発作業人時（実績） ÷ COSMIC CFP を計算し、その分位点を集計",
       "sample_size": 10,
       "hours_per_cfp": {
         "p25": "2",
@@ -84,16 +102,27 @@
     },
     "wage": {
       "profile_id": "oes-test-wage-v1",
-      "source": "U.S. Bureau of Labor Statistics (BLS) OEWS SOC 15-1252",
+      "source": "U.S. Bureau of Labor Statistics (BLS) OEWS",
+      "source_url": "https://www.bls.gov/oes/",
+      "occupation": "Software Developers (SOC 15-1252)",
+      "region": "National (US)",
+      "metric": "Median Hourly Wage",
       "hourly_wage_usd": "50",
       "period": "2025-05"
     },
     "fx": {
       "currency": "JPY",
       "rate": "150",
+      "currency_pair": "USD to JPY",
       "observed_at": "2026-09-25T00:00:00Z",
-      "source": "Official Daily FX Reference"
+      "published_at": "2026-09-25T08:00:00Z",
+      "source": "Official Daily FX Reference (BOJ / FRB)",
+      "source_url": "https://example.com/fx/20260925-usd-jpy"
     }
+  },
+  "verification_links": {
+    "certificate_verify_url": "https://open-estimate.ai-orchestration.jp/verify/cert_01h9y2p4k8m9a7b6c5d4e3f2",
+    "public_envelope_url": "https://open-estimate.ai-orchestration.jp/api/v1/shared-estimates/sh_a1b2c3d4e5f60718293a4b5c6d7e8f90"
   },
   "limitation_codes": [
     "COMMUNITY_ASSESSMENT",

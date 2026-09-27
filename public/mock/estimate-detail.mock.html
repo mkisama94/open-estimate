@@ -97,7 +97,7 @@
         padding: 0 32px;
       }
 
-      /* モック専用コントロールバー（本番共有時には非表示） */
+      /* モック専用コントロールバー */
       .mock-control-bar {
         background-color: #212529;
         color: #f8f9fa;
@@ -665,15 +665,16 @@
       }
 
       .details-table th, .details-table td {
-        padding: 10px 14px;
+        padding: 12px 14px;
         text-align: left;
         border-bottom: 1px solid var(--border-color);
+        vertical-align: top;
       }
 
       .details-table th {
         font-size: 0.82rem;
         color: var(--text-light);
-        width: 30%;
+        width: 28%;
         background: var(--bg-subtle);
       }
 
@@ -682,16 +683,22 @@
         color: var(--text-main);
       }
 
-      /* V-09 対象作業の範囲 */
+      /* ① 測定対象と対象作業のカードレイアウト */
+      .scope-card {
+        border-radius: var(--radius-md);
+        padding: 24px;
+      }
+
+      .scope-app-card {
+        background: #ffffff;
+        border: 1px solid var(--border-dark);
+        margin-bottom: 20px;
+      }
+
       .scope-comparison-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 24px;
-      }
-
-      .scope-card {
-        border-radius: var(--radius-md);
-        padding: 24px;
       }
 
       .scope-card-included {
@@ -778,7 +785,7 @@
       }
 
       .verification-label {
-        min-width: 180px;
+        min-width: 220px;
         font-weight: 700;
         color: var(--text-light);
       }
@@ -1046,6 +1053,29 @@
           grid-template-columns: 1fr;
         }
 
+        .details-table th, .details-table td {
+          display: block;
+          width: 100%;
+        }
+
+        .details-table th {
+          border-bottom: none;
+          padding-bottom: 4px;
+        }
+
+        .details-table td {
+          padding-top: 4px;
+        }
+
+        .verification-item {
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .verification-label {
+          min-width: auto;
+        }
+
         .mobile-share-bar {
           display: block;
         }
@@ -1196,7 +1226,7 @@
                   <span class="person-days-unit" id="hero-days-unit">人日相当</span>
                 </div>
                 <div class="metric-subinfo" id="hero-days-sub">
-                  360 人時 ／ 1人日=8人時換算
+                  360 人時 ／ OESの表示規約（1人日＝8人時）
                 </div>
               </div>
 
@@ -1258,23 +1288,23 @@
 
           <!-- V-05 ばらつき（四分位換算幅） -->
           <section class="section-card" id="section-quartiles" aria-labelledby="quartile-heading">
-            <h2 class="section-title" id="quartile-heading">工数換算のばらつき（参照実績の分布）</h2>
+            <h2 class="section-title" id="quartile-heading">工数換算のばらつき（参照実績の分布幅）</h2>
             <p class="section-lead">
-              ソフトウェア開発の実績データには幅があります。本換算では中央値（median）を代表値とし、第1四分位（p25）から第3四分位（p75）の換算幅を併記しています。
+              ソフトウェア開発の実績データには案件ごとに幅があります。本換算では中央値（median）を代表値とし、参照実績における少工数側（p25）から多工数側（p75）の換算幅を併記しています。
             </p>
             <div class="quartile-grid">
               <div class="quartile-item">
-                <div class="quartile-label">第1四分位 (p25 / 短期)</div>
+                <div class="quartile-label">第1四分位 (p25 / 少工数側: 2.0 h/CFP)</div>
                 <div class="quartile-val" id="q-p25-days">30 人日相当</div>
                 <div class="quartile-sub" id="q-p25-sub">240 人時 · 約180万円</div>
               </div>
               <div class="quartile-item is-median">
-                <div class="quartile-label">中央値 (median / 主結果)</div>
+                <div class="quartile-label">中央値 (median / 基準工数: 3.0 h/CFP)</div>
                 <div class="quartile-val" id="q-med-days">45 人日相当</div>
                 <div class="quartile-sub" id="q-med-sub">360 人時 · 約270万円</div>
               </div>
               <div class="quartile-item">
-                <div class="quartile-label">第3四分位 (p75 / 長期)</div>
+                <div class="quartile-label">第3四分位 (p75 / 多工数側: 5.0 h/CFP)</div>
                 <div class="quartile-val" id="q-p75-days">75 人日相当</div>
                 <div class="quartile-sub" id="q-p75-sub">600 人時 · 約450万円</div>
               </div>
@@ -1284,8 +1314,88 @@
               <div class="distribution-bar-median"></div>
             </div>
             <p style="font-size: 0.82rem; color: var(--text-light); margin: 8px 0 0;">
-              ※ 四分位は参照データ群（過去のWeb/API開発実績）における分布幅であり、対象案件がこの期間内に完成することを保証する予測区間ではありません。
+              ※ 四分位は参照データ群（過去のWeb/API開発実績）における工数比率のばらつき分布（25%〜75%範囲）であり、開発期間（暦月・納期）の長短や対象案件がこの期間内に完成することを保証する予測区間ではありません。
             </p>
+          </section>
+
+          <!-- ① 「対象作業」と「測定対象」を分けたセクション -->
+          <!-- A: このアプリの測定対象と適用範囲 -->
+          <section class="section-card" aria-labelledby="target-scope-heading">
+            <h2 class="section-title" id="target-scope-heading">このアプリの測定対象と適用範囲</h2>
+            <p class="section-lead">
+              本レポートにおいて、対象ソフトウェアのどの部分を解析・計数したのか、および対象外とした範囲の説明です。
+            </p>
+
+            <div class="scope-app-card">
+              <table class="details-table" style="margin: 0;">
+                <tbody>
+                  <tr>
+                    <th>測定状態</th>
+                    <td>
+                      <span id="target-scope-status" style="font-weight: 800; color: var(--green-primary);">全体測定（COMPLETE）</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>測定対象の説明</th>
+                    <td id="target-scope-desc">
+                      WebフロントエンドおよびバックエンドAPIの全コアモジュール（機能プロセス計24件）
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>対象外・未確認部分</th>
+                    <td id="target-unmeasured-desc">
+                      管理用バッチスクリプト、一部のサードパーティSDK連携用設定は対象外（除外: 2コンポーネント）
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>未解決・未読の有無</th>
+                    <td id="target-unresolved-desc">
+                      未解決プロセス: <strong>0</strong> 件 ／ 未読・未解析ファイル: <strong>0</strong> 件
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>結果の適用範囲</th>
+                    <td id="target-scope-statement">
+                      本レポートの工数・参考金額は、上記測定対象として識別された機能プロセス（120 CFP）のみの換算結果です。対象外コンポーネントや未解析コードの工数は含まれません。
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p style="font-size: 0.82rem; color: var(--text-light); margin: 0;">
+              ※ 内部のソースコード、具体的なファイルパス、シンボル一覧等の詳細機密情報は公開されません。
+            </p>
+          </section>
+
+          <!-- B: 開発工数の対象作業（作業範囲の定義） -->
+          <section class="section-card" aria-labelledby="work-scope-heading">
+            <h2 class="section-title" id="work-scope-heading">
+              <span>開発工数の対象作業（作業範囲定義）</span>
+            </h2>
+            <p class="section-lead">
+              参照工数は、以下の作業範囲定義に基づいています。<br>
+              <strong>作業定義名・版:</strong> <code>OES標準開発作業定義 第1版 (oes-standard-dev-v1)</code>
+            </p>
+            <div class="scope-comparison-grid">
+              <div class="scope-card scope-card-included">
+                <h4>✓ 本工数に含まれる標準作業</h4>
+                <ul class="scope-list">
+                  <li>詳細設計（データモデル・API・機能構造の設計）</li>
+                  <li>プログラミング・コーディング・機能実装</li>
+                  <li>単体テスト・機能結合検証・デバッグ</li>
+                </ul>
+              </div>
+              <div class="scope-card scope-card-excluded">
+                <h4>✗ 本工数に含まれない作業（対象外）</h4>
+                <ul class="scope-list">
+                  <li>要件定義・ビジネス企画・仕様調整・ステークホルダー折衝</li>
+                  <li>プロジェクト管理・進行管理・会議・調整コスト</li>
+                  <li>デザイン・UI/UX検討・ブランド素材制作</li>
+                  <li>インフラ構築・クラウド環境設定・CI/CD整備・運用保守</li>
+                  <li>待ち時間・手戻り・不確定要素に対するバッファ</li>
+                </ul>
+              </div>
+            </div>
           </section>
 
           <!-- V-07 計算の流れ -->
@@ -1325,77 +1435,83 @@
             </p>
           </section>
 
-          <!-- V-08 参照条件（details アコーディオン） -->
+          <!-- ② & ③ 算定根拠と参照条件の詳細（出典・条件・算出方法の網羅） -->
           <details class="accordion-details" id="accordion-basis">
             <summary>
-              <span>算定の根拠と参照条件の詳細</span>
+              <span>算定の根拠と参照条件の詳細（出典・比率・賃金・為替）</span>
               <span class="toggle-icon">▼</span>
             </summary>
             <div class="accordion-body">
               <table class="details-table">
                 <tbody>
+                  <!-- 工数換算係数と参照実績 -->
                   <tr>
-                    <th>工数実績プロファイル</th>
+                    <th>工数換算係数 (3値)</th>
                     <td>
-                      <code>oes-test-benchmark-v1</code>（オープンソースWeb/API開発実績データセット、標本数: 10件、適合範囲: 1〜500 CFP）
+                      <div><strong>p25:</strong> 2.0 人時/CFP ｜ <strong>中央値:</strong> 3.0 人時/CFP ｜ <strong>p75:</strong> 5.0 人時/CFP</div>
+                      <div style="font-size: 0.82rem; color: var(--text-light); margin-top: 4px;">
+                        ※ 比率の作り方: 過去の実績案件における標準開発作業人時（実績）÷ COSMIC CFP を計算し、その分位点を集計
+                      </div>
                     </td>
                   </tr>
                   <tr>
-                    <th>参考賃金データ</th>
+                    <th>参照実績プロファイル</th>
                     <td>
-                      米国労働統計局（BLS）OEWS SOC 15-1252（Software Developers）全国時給中央値 $50.00 / 人時（対象期間: 2025-05）
+                      <div><strong>プロファイルID:</strong> <code>oes-test-benchmark-v1</code>（版: <code>rev. 2026-09</code>）</div>
+                      <div><strong>対象領域:</strong> Webアプリケーション、REST/GraphQL API</div>
+                      <div><strong>対象期間:</strong> 2023年〜2025年 ｜ <strong>標本数:</strong> 10件 ｜ <strong>適合規模:</strong> 1〜500 CFP</div>
+                      <div><strong>対象作業定義:</strong> OES標準開発作業定義 第1版 (<code>oes-standard-dev-v1</code>)</div>
+                      <div style="margin-top: 6px;">
+                        <a href="https://example.com/benchmarks/oes-test-benchmark-v1" target="_blank" rel="noopener noreferrer">
+                          参照プロファイルの仕様と実績データ一覧を見る ↗
+                        </a>
+                      </div>
                     </td>
                   </tr>
+                  <!-- 賃金の根拠 -->
                   <tr>
-                    <th>為替レート</th>
+                    <th>参考賃金の根拠 (USD)</th>
                     <td>
-                      1 USD ＝ 150.00 JPY（公的基準為替レート、観測日: 2026-09-25）
+                      <div><strong>採用資料:</strong> 米国労働統計局（U.S. Bureau of Labor Statistics / BLS）Occupational Employment and Wage Statistics (OEWS)</div>
+                      <div><strong>対象年月:</strong> 2025年5月調査データ（May 2025 data, 2026年4月公表）</div>
+                      <div><strong>職種・地域・指標:</strong> 米国全国（National）／ Software Developers（SOCコード: 15-1252）／ 時給中央値（Median Hourly Wage）</div>
+                      <div><strong>採用時給:</strong> <strong>$50.00 / 人時</strong></div>
+                      <div style="margin-top: 6px;">
+                        <a href="https://www.bls.gov/oes/" target="_blank" rel="noopener noreferrer">
+                          出典資料: U.S. BLS OEWS 職種別賃金統計 ↗
+                        </a>
+                      </div>
                     </td>
                   </tr>
+                  <!-- 為替の根拠 -->
+                  <tr>
+                    <th>為替レートの根拠 (JPY)</th>
+                    <td>
+                      <div><strong>提供元:</strong> 公的基準為替レート（日銀公表値 / FRB基準参照値）</div>
+                      <div><strong>観測日時:</strong> 2026年9月25日 00:00:00 UTC</div>
+                      <div><strong>公表日時:</strong> 2026年9月25日 17:00:00 JST</div>
+                      <div><strong>通貨の方向・採用レート:</strong> USD to JPY（米ドルに対する日本円） ＝ <strong>150.00 JPY/USD</strong></div>
+                      <div style="margin-top: 6px;">
+                        <a href="https://example.com/fx/20260925-usd-jpy" target="_blank" rel="noopener noreferrer">
+                          出典資料: 公的基準為替レートデータ ↗
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                  <!-- 換算規約 -->
                   <tr>
                     <th>人日換算規約</th>
                     <td>
-                      1人日 ＝ 8人時（日本の標準開発換算、システム内部正本は人時として保持）
-                    </td>
-                  </tr>
-                  <tr>
-                    <th>表示規約版</th>
-                    <td>
-                      <code>oes-ja-result/0.1.0</code>（仕様ID: OES-SHARE-0.1.0-draft.1）
+                      <strong>OESの表示規約（1人日＝8人時）</strong><br>
+                      <span style="font-size: 0.82rem; color: var(--text-light);">
+                        日本の一般的なソフトウェア開発実務に合わせた表示用の導出値です。システム内部正本は「人時（hours）」として厳密に保持されています。
+                      </span>
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </details>
-
-          <!-- V-09 対象作業の範囲 -->
-          <section class="section-card" aria-labelledby="scope-heading">
-            <h2 class="section-title" id="scope-heading">開発工数の対象範囲</h2>
-            <p class="section-lead">
-              本換算が対象としているのは、実装・検証等の直接的な開発作業です。ビジネス企画や運用保守などの間接作業は含まれません。
-            </p>
-            <div class="scope-comparison-grid">
-              <div class="scope-card scope-card-included">
-                <h4>✓ 本工数に含まれる標準作業</h4>
-                <ul class="scope-list">
-                  <li>詳細設計（データモデル・API・機能構造の設計）</li>
-                  <li>プログラミング・コーディング・機能実装</li>
-                  <li>単体テスト・機能結合検証・デバッグ</li>
-                </ul>
-              </div>
-              <div class="scope-card scope-card-excluded">
-                <h4>✗ 本工数に含まれない作業（対象外）</h4>
-                <ul class="scope-list">
-                  <li>要件定義・ビジネス企画・仕様調整・ステークホルダー折衝</li>
-                  <li>プロジェクト管理・進行管理・会議・調整コスト</li>
-                  <li>デザイン・UI/UX検討・ブランド素材制作</li>
-                  <li>インフラ構築・クラウド環境設定・CI/CD整備・運用保守</li>
-                  <li>待ち時間・手戻り・不確定要素に対するバッファ</li>
-                </ul>
-              </div>
-            </div>
-          </section>
 
           <!-- V-10 CFP集計 -->
           <section class="section-card" aria-labelledby="cfp-heading">
@@ -1426,17 +1542,19 @@
               </div>
             </div>
             <div style="display: flex; gap: 24px; flex-wrap: wrap; font-size: 0.9rem; color: var(--text-muted); padding-top: 12px; border-top: 1px dashed var(--border-color);">
-              <span>機能プロセス総数: <strong id="cfp-proc-total">24</strong> プロセス</span>
+              <span>機能プロセス総数: <strong id="cfp-proc-total">24</strong></span>
               <span>確定プロセス: <strong id="cfp-proc-accepted">24</strong></span>
+              <span>未解決プロセス: <strong id="cfp-proc-unresolved">0</strong></span>
               <span>推論を含むデータ移動: <strong id="cfp-inferred">0</strong> 件</span>
-              <span>除外コンポーネント: <strong>2</strong> 件</span>
+              <span>除外コンポーネント: <strong id="cfp-excluded">2</strong> 件</span>
+              <span>未読・未解析ファイル: <strong id="cfp-unread">0</strong> 件</span>
             </div>
             <p style="font-size: 0.82rem; color: var(--text-light); margin-top: 14px;">
               ※ ソースコード原文やリポジトリの内部パス等の機密情報は公開されません。本ページでは集計された統計件数のみを公開しています。
             </p>
           </section>
 
-          <!-- V-11 評価・署名・検証情報 -->
+          <!-- ④ 評価・署名・証跡情報（日時・規約版・確認先リンクの網羅） -->
           <section class="section-card" aria-labelledby="verify-heading">
             <h2 class="section-title" id="verify-heading">評価および署名・証跡情報</h2>
             <div class="verification-list">
@@ -1446,18 +1564,52 @@
               </div>
               <div class="verification-item">
                 <div class="verification-label">評価アシュアランス</div>
-                <div class="verification-val">Community（AIによる機能モデル復元・未独立審査）</div>
-              </div>
-              <div class="verification-item">
-                <div class="verification-label">元証明書ID</div>
                 <div class="verification-val">
-                  <code>cert_01h9y2p4k8m9a7b6c5d4e3f2</code>
+                  Community版（AIによる機能モデル復元・第三者による独立審査なし）<br>
+                  <span style="font-size: 0.82rem; color: var(--text-light);">
+                    ※ Community版の測定では、AIモデル評価時の会話文脈隔離（Context Isolation）は技術的に強制されておらず、利用者の自己申告に基づきます。
+                  </span>
                 </div>
               </div>
               <div class="verification-item">
-                <div class="verification-label">公開要約署名</div>
+                <div class="verification-label">日時情報</div>
+                <div class="verification-val">
+                  <div><strong>証明書発行日時:</strong> 2026-09-27 10:00:00 UTC（2026-09-27 19:00:00 JST）</div>
+                  <div><strong>公開要約公開日時:</strong> 2026-09-27 10:15:00 UTC（2026-09-27 19:15:00 JST）</div>
+                </div>
+              </div>
+              <div class="verification-item">
+                <div class="verification-label">採用規約・スキーマ版</div>
+                <div class="verification-val">
+                  <div><strong>機能規模測定規格:</strong> COSMIC v5.0 / OES Mapping Rules v0.1.0</div>
+                  <div><strong>画面・OGP表示規約版:</strong> <code>oes-ja-result/0.1.0</code>（仕様ID: OES-SHARE-0.1.0-draft.1）</div>
+                  <div><strong>公開要約スキーマ版:</strong> <code>open-estimate/public-estimate/v1</code></div>
+                </div>
+              </div>
+              <div class="verification-item">
+                <div class="verification-label">採用参照プロファイル</div>
+                <div class="verification-val">
+                  <div><strong>工数プロファイル:</strong> <code>oes-test-benchmark-v1</code> (rev. 2026-09)</div>
+                  <div><strong>参考賃金プロファイル:</strong> <code>oes-test-wage-v1</code> (BLS SOC 15-1252, 2025-05)</div>
+                  <div><strong>基準為替レートID:</strong> <code>fx-usd-jpy-20260925</code></div>
+                </div>
+              </div>
+              <div class="verification-item">
+                <div class="verification-label">元証明書IDと確認先</div>
+                <div class="verification-val">
+                  <code>cert_01h9y2p4k8m9a7b6c5d4e3f2</code><br>
+                  <a href="https://open-estimate.ai-orchestration.jp/verify/cert_01h9y2p4k8m9a7b6c5d4e3f2" target="_blank" rel="noopener noreferrer">
+                    元証明書の台帳証跡を確認する（/verify/cert_...） ↗
+                  </a>
+                </div>
+              </div>
+              <div class="verification-item">
+                <div class="verification-label">公開要約署名とデータ</div>
                 <div class="verification-val" id="verify-signature">
-                  Ed25519 署名済み（公開鍵ID: <code>key_oes_pub_2026_01</code>）
+                  <div>Ed25519 署名済み（公開鍵ID: <code>key_oes_pub_2026_01</code>）</div>
+                  <a href="https://open-estimate.ai-orchestration.jp/api/v1/shared-estimates/sh_a1b2c3d4e5f60718293a4b5c6d7e8f90" target="_blank" rel="noopener noreferrer">
+                    公開要約データ（JSON / 署名付きEnvelope）を確認する ↗
+                  </a>
                 </div>
               </div>
               <div class="verification-item">
@@ -1534,6 +1686,8 @@
             <div><strong>公開アプリ名:</strong> つくログ</div>
             <div><strong>公開概要:</strong> つくったものに、ちょっと誇れる数字を。</div>
             <div><strong>主結果:</strong> 45 人日相当（360人時） / 参考労務額: 約270万円</div>
+            <div><strong>測定対象:</strong> WebフロントエンドおよびバックエンドAPIの全コアモジュール</div>
+            <div><strong>対象作業:</strong> OES標準開発作業定義 第1版（詳細設計・実装・単体テスト）</div>
             <div><strong>公開される項目:</strong> CFP集計値、参照条件、証明書ID、発行日時</div>
             <div style="color: var(--red-danger); font-size: 0.82rem; margin-top: 6px;">
               <strong>非公開情報:</strong> ソースコード本文、ファイルパス、リポジトリURL、コミット情報、詳細機能名は公開されません。
@@ -1543,7 +1697,7 @@
           <div class="consent-list">
             <label class="consent-label">
               <input type="checkbox" id="consent-1">
-              <span><strong>公開要約とSNSカード掲載への同意:</strong> 上記の公開用アプリ名、概要、人日相当、参考労務額、および測定根拠がインターネット上に公開され、SNSカードとしてプレビューされることに同意します。</span>
+              <span><strong>公開要約とSNSカード掲載への同意:</strong> 上記の公開用アプリ名、概要、測定対象、人日相当、参考労務額、および測定根拠がインターネット上に公開され、SNSカードとしてプレビューされることに同意します。</span>
             </label>
             <label class="consent-label">
               <input type="checkbox" id="consent-2">
@@ -1580,7 +1734,7 @@
             badgeClass: "badge-sample",
             daysVal: "45",
             daysUnit: "人日相当",
-            daysSub: "360 人時 ／ 1人日=8人時換算",
+            daysSub: "360 人時 ／ OESの表示規約（1人日＝8人時）",
             jpyPrefix: "約",
             jpyVal: "270",
             jpyUnit: "万円",
@@ -1588,14 +1742,34 @@
             cfpVal: "120",
             statusAlert: null,
             showQuartiles: true,
-            isWithdrawn: false
+            isWithdrawn: false,
+            targetScope: {
+              status: "全体測定（COMPLETE）",
+              statusColor: "var(--green-primary)",
+              desc: "WebフロントエンドおよびバックエンドAPIの全コアモジュール（機能プロセス計24件）",
+              unmeasured: "管理用バッチスクリプト、一部のサードパーティSDK連携用設定は対象外（除外: 2コンポーネント）",
+              unresolved: "未解決プロセス: <strong>0</strong> 件 ／ 未読・未解析ファイル: <strong>0</strong> 件",
+              statement: "本レポートの工数・参考金額は、上記測定対象として識別された機能プロセス（120 CFP）のみの換算結果です。対象外コンポーネントや未解析コードの工数は含まれません。"
+            },
+            cfpCounts: {
+              entry: "35",
+              exit: "45",
+              read: "25",
+              write: "15",
+              totalProc: "24",
+              acceptedProc: "24",
+              unresolvedProc: "0",
+              inferred: "0",
+              excluded: "2",
+              unread: "0"
+            }
           },
           partial: {
             badge: "SAMPLE · 部分測定",
             badgeClass: "badge-sample",
             daysVal: "18",
             daysUnit: "人日相当",
-            daysSub: "144 人時 ／ 1人日=8人時換算",
+            daysSub: "144 人時 ／ OESの表示規約（1人日＝8人時）",
             jpyPrefix: "約",
             jpyVal: "108",
             jpyUnit: "万円",
@@ -1606,7 +1780,27 @@
               html: "<strong>【部分測定】</strong> 本レポートはリポジトリ内の一部の機能構成要素のみを対象としています。未測定のモジュールが存在するため、システム全体の規模・工数ではありません。"
             },
             showQuartiles: true,
-            isWithdrawn: false
+            isWithdrawn: false,
+            targetScope: {
+              status: "部分測定（PARTIAL）",
+              statusColor: "var(--yellow-warning-text)",
+              desc: "コアメモ管理APIモジュールのみ（機能プロセス計10件）",
+              unmeasured: "ユーザー認証モジュール、外部決済連携API、管理画面（未測定・未解析）",
+              unresolved: "未解決プロセス: <strong>2</strong> 件 ／ 未読・未解析ファイル: <strong>4</strong> 件",
+              statement: "【部分測定の限定適用】本換算結果は、測定対象として確定できた10プロセス（48 CFP）にのみ限定適用されます。未測定・除外モジュールの工数は含まれません。"
+            },
+            cfpCounts: {
+              entry: "14",
+              exit: "18",
+              read: "10",
+              write: "6",
+              totalProc: "12",
+              acceptedProc: "10",
+              unresolvedProc: "2",
+              inferred: "1",
+              excluded: "5",
+              unread: "4"
+            }
           },
           benchmark_unavailable: {
             badge: "SAMPLE · 工数未提供",
@@ -1624,14 +1818,34 @@
               html: "<strong>【工数換算未提供】</strong> 機能規模（120 CFP）の計数は完了していますが、該当する業務領域・言語の承認済み参照工数プロファイルが未登録のため、人日および参考金額の換算は提供されません。"
             },
             showQuartiles: false,
-            isWithdrawn: false
+            isWithdrawn: false,
+            targetScope: {
+              status: "全体測定（COMPLETE）",
+              statusColor: "var(--green-primary)",
+              desc: "WebフロントエンドおよびバックエンドAPIの全コアモジュール（機能プロセス計24件）",
+              unmeasured: "管理用バッチスクリプト、一部のサードパーティSDK連携用設定は対象外（除外: 2コンポーネント）",
+              unresolved: "未解決プロセス: <strong>0</strong> 件 ／ 未読・未解析ファイル: <strong>0</strong> 件",
+              statement: "工数換算プロファイルが未登録のため、機能規模（120 CFP）のみ提供されます。"
+            },
+            cfpCounts: {
+              entry: "35",
+              exit: "45",
+              read: "25",
+              write: "15",
+              totalProc: "24",
+              acceptedProc: "24",
+              unresolvedProc: "0",
+              inferred: "0",
+              excluded: "2",
+              unread: "0"
+            }
           },
           wage_unavailable: {
             badge: "SAMPLE · 金額未提供",
             badgeClass: "badge-sample",
             daysVal: "45",
             daysUnit: "人日相当",
-            daysSub: "360 人時 ／ 1人日=8人時換算",
+            daysSub: "360 人時 ／ OESの表示規約（1人日＝8人時）",
             jpyPrefix: "",
             jpyVal: "—",
             jpyUnit: "",
@@ -1642,14 +1856,34 @@
               html: "<strong>【参考金額未提供】</strong> 人日換算（45人日相当）は有効ですが、適用可能な公的賃金統計（BLS）の承認データが不在のため、金額への換算は提供されません。"
             },
             showQuartiles: true,
-            isWithdrawn: false
+            isWithdrawn: false,
+            targetScope: {
+              status: "全体測定（COMPLETE）",
+              statusColor: "var(--green-primary)",
+              desc: "WebフロントエンドおよびバックエンドAPIの全コアモジュール（機能プロセス計24件）",
+              unmeasured: "管理用バッチスクリプト、一部のサードパーティSDK連携用設定は対象外（除外: 2コンポーネント）",
+              unresolved: "未解決プロセス: <strong>0</strong> 件 ／ 未読・未解析ファイル: <strong>0</strong> 件",
+              statement: "人日換算のみ有効です。賃金統計が不在のため参考金額は算出されません。"
+            },
+            cfpCounts: {
+              entry: "35",
+              exit: "45",
+              read: "25",
+              write: "15",
+              totalProc: "24",
+              acceptedProc: "24",
+              unresolvedProc: "0",
+              inferred: "0",
+              excluded: "2",
+              unread: "0"
+            }
           },
           unsigned: {
             badge: "SAMPLE · 架空値 · 未署名",
             badgeClass: "badge-sample",
             daysVal: "45",
             daysUnit: "人日相当",
-            daysSub: "360 人時 ／ 1人日=8人時換算",
+            daysSub: "360 人時 ／ OESの表示規約（1人日＝8人時）",
             jpyPrefix: "約",
             jpyVal: "270",
             jpyUnit: "万円",
@@ -1657,7 +1891,27 @@
             cfpVal: "120",
             statusAlert: null,
             showQuartiles: true,
-            isWithdrawn: false
+            isWithdrawn: false,
+            targetScope: {
+              status: "全体測定（COMPLETE）",
+              statusColor: "var(--green-primary)",
+              desc: "WebフロントエンドおよびバックエンドAPIの全コアモジュール（機能プロセス計24件）",
+              unmeasured: "管理用バッチスクリプト、一部のサードパーティSDK連携用設定は対象外（除外: 2コンポーネント）",
+              unresolved: "未解決プロセス: <strong>0</strong> 件 ／ 未読・未解析ファイル: <strong>0</strong> 件",
+              statement: "本レポートの工数・参考金額は、上記測定対象として識別された機能プロセスのみの換算結果です。"
+            },
+            cfpCounts: {
+              entry: "35",
+              exit: "45",
+              read: "25",
+              write: "15",
+              totalProc: "24",
+              acceptedProc: "24",
+              unresolvedProc: "0",
+              inferred: "0",
+              excluded: "2",
+              unread: "0"
+            }
           },
           withdrawn: {
             badge: "公開撤回済み",
@@ -1703,6 +1957,25 @@
         const sharePreviewBox = document.getElementById("share-text-preview-box");
         const toast = document.getElementById("copy-toast");
         let toastTimer = null;
+
+        // 測定対象要素
+        const targetScopeStatus = document.getElementById("target-scope-status");
+        const targetScopeDesc = document.getElementById("target-scope-desc");
+        const targetUnmeasuredDesc = document.getElementById("target-unmeasured-desc");
+        const targetUnresolvedDesc = document.getElementById("target-unresolved-desc");
+        const targetScopeStatement = document.getElementById("target-scope-statement");
+
+        // CFP集計要素
+        const cfpEntry = document.getElementById("cfp-entry");
+        const cfpExit = document.getElementById("cfp-exit");
+        const cfpRead = document.getElementById("cfp-read");
+        const cfpWrite = document.getElementById("cfp-write");
+        const cfpProcTotal = document.getElementById("cfp-proc-total");
+        const cfpProcAccepted = document.getElementById("cfp-proc-accepted");
+        const cfpProcUnresolved = document.getElementById("cfp-proc-unresolved");
+        const cfpInferred = document.getElementById("cfp-inferred");
+        const cfpExcluded = document.getElementById("cfp-excluded");
+        const cfpUnread = document.getElementById("cfp-unread");
 
         function showToast(msg) {
           if (!toast) return;
@@ -1754,6 +2027,30 @@
 
           if (sectionQuartiles) {
             sectionQuartiles.style.display = s.showQuartiles ? "block" : "none";
+          }
+
+          // 測定対象の反映
+          if (s.targetScope && targetScopeStatus) {
+            targetScopeStatus.textContent = s.targetScope.status;
+            targetScopeStatus.style.color = s.targetScope.statusColor;
+            targetScopeDesc.textContent = s.targetScope.desc;
+            targetUnmeasuredDesc.textContent = s.targetScope.unmeasured;
+            targetUnresolvedDesc.innerHTML = s.targetScope.unresolved;
+            targetScopeStatement.textContent = s.targetScope.statement;
+          }
+
+          // CFP集計の反映
+          if (s.cfpCounts && cfpEntry) {
+            cfpEntry.textContent = s.cfpCounts.entry;
+            cfpExit.textContent = s.cfpCounts.exit;
+            cfpRead.textContent = s.cfpCounts.read;
+            cfpWrite.textContent = s.cfpCounts.write;
+            cfpProcTotal.textContent = s.cfpCounts.totalProc;
+            cfpProcAccepted.textContent = s.cfpCounts.acceptedProc;
+            cfpProcUnresolved.textContent = s.cfpCounts.unresolvedProc;
+            cfpInferred.textContent = s.cfpCounts.inferred;
+            cfpExcluded.textContent = s.cfpCounts.excluded;
+            cfpUnread.textContent = s.cfpCounts.unread;
           }
 
           updateShareText(key);
