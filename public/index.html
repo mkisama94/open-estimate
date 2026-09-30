@@ -62,11 +62,12 @@
               </p>
               <div class="hero-actions">
                 <a href="#start" class="btn btn-primary">自分のソフトを測ってみる</a>
-                <a href="#sample" class="btn-link">どんな結果が出る？ →</a>
+                <a href="./estimate-detail.html" class="btn btn-secondary" style="font-size: 0.92rem; padding: 10px 18px;">見積詳細・共有画面を見る →</a>
+                <a href="#sample" class="btn-link">どんな結果が出る？ ↓</a>
               </div>
               <p class="hero-note">
                 開発者向けα版 · 対応AI環境＋ローカルMCPで利用<br>
-                現在は機能規模の測定に対応。工数・参考金額への換算は公開準備中です。
+                COSMIC規格の機能規模（CFP）に加え、参照実績による工数（人日）・公的統計による参考金額への換算に対応。
               </p>
             </div>
 
@@ -76,35 +77,57 @@
                 <div class="card-header-bar">
                   <div>
                     <span class="card-badge">OPEN ESTIMATE REPORT</span>
-                    <h3 class="card-title">ソフトウェア測定レポート</h3>
+                    <h3 class="card-title">つくログ</h3>
                   </div>
                   <span class="card-meta-tag">表示サンプル</span>
                 </div>
-                <div class="card-cfp-display">
-                  <span class="cfp-label">機能規模</span>
-                  <span class="cfp-number">6</span>
-                  <span class="cfp-unit">CFP</span>
+
+                <div class="card-dual-metric">
+                  <div class="metric-col-left">
+                    <div class="card-metric-title">参照開発工数</div>
+                    <div class="card-metric-val">
+                      <span class="card-days-number">45</span>
+                      <span class="card-days-unit">人日相当</span>
+                    </div>
+                    <div class="card-subtext">360人時 · 1人日=8人時</div>
+                  </div>
+                  <div class="metric-col-right">
+                    <div class="card-metric-title">参考労務換算額</div>
+                    <div class="card-metric-val">
+                      <span class="card-jpy-number">約270</span>
+                      <span class="card-jpy-unit">万円</span>
+                    </div>
+                    <div class="card-subtext">USD 18,000 · 参考値</div>
+                  </div>
                 </div>
+
                 <div class="card-status">
-                  COMPLETE · 架空のアプリ · 未署名
+                  COMPLETE · 120 CFP · Community · 架空値表示例
                 </div>
+
                 <dl class="card-qa-list">
                   <div class="qa-item">
+                    <dt>何を測った？</dt>
+                    <dd>Web/API全コアモジュール（24プロセス確定・除外2件）</dd>
+                  </div>
+                  <div class="qa-item">
                     <dt>何を数えた？</dt>
-                    <dd>機能ごとの入力・出力・読み取り・書き込み</dd>
+                    <dd>機能ごとのデータ移動（Entry 35 / Exit 45 / Read 25 / Write 15）</dd>
                   </div>
                   <div class="qa-item">
-                    <dt>何を根拠にした？</dt>
-                    <dd>対象ファイルと該当箇所（<code>src/notes.ts:1-50</code>）</dd>
-                  </div>
-                  <div class="qa-item">
-                    <dt>どこを推論した？</dt>
-                    <dd>AIが判断した箇所を明記（推論フラグ: 0件）</dd>
+                    <dt>どう換算した？</dt>
+                    <dd>3.0 h/CFP × $50.00/h × 150円/$（公的統計・為替基準）</dd>
                   </div>
                 </dl>
-                <a href="#sample" class="card-link-more" id="hero-open-details">
-                  ［測定の内訳を見る］↓
-                </a>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-color); padding: 8px 12px 0;">
+                  <a href="#sample" class="card-link-more" id="hero-open-details" style="border: none; padding: 4px 0;">
+                    ［測定・算定の内訳を見る］↓
+                  </a>
+                  <a href="./estimate-detail.html" style="font-size: 0.82rem; font-weight: 700; color: var(--accent-color); text-decoration: none;">
+                    共有ページを開く ↗
+                  </a>
+                </div>
               </article>
             </div>
           </div>
@@ -159,129 +182,368 @@
             <div class="sheet-header">
               <div class="sheet-brand-group">
                 <span class="sheet-logo">OPEN ESTIMATE / ASSESSMENT REPORT</span>
-                <h3 class="sheet-title">ソフトウェア測定レポート</h3>
+                <h3 class="sheet-title">ソフトウェア測定レポート：つくログ</h3>
+                <p style="margin: 4px 0 0; font-size: 0.88rem; color: var(--text-muted);">
+                  つくったものに、ちょっと誇れる数字を。
+                </p>
               </div>
               <div class="sheet-tag-list">
                 <span class="sheet-tag">表示サンプル</span>
-                <span class="sheet-tag">架空のアプリ（sample-notes-app）</span>
-                <span class="sheet-tag warning">未署名</span>
+                <span class="sheet-tag">架空のアプリ（tsukulog）</span>
+                <span class="sheet-tag" style="background: var(--green-soft); color: var(--green-primary); font-weight: 700;">全体測定（COMPLETE）</span>
+                <span class="sheet-tag warning">未署名（デモ）</span>
               </div>
             </div>
 
-            <div class="sheet-summary-grid">
-              <div class="summary-metric">
-                <span class="metric-title">機能規模（COSMIC Function Points）</span>
-                <div class="metric-val-wrap">
-                  <span class="big-number">6</span>
-                  <span class="unit">CFP</span>
+            <!-- 主測定・換算結果（2カラムリザルト） -->
+            <div class="sheet-hero-result">
+              <div class="sheet-hero-cols">
+                <div class="sheet-hero-col-left">
+                  <div class="sheet-metric-label">参照開発工数</div>
+                  <div class="sheet-days-display">
+                    <span class="sheet-days-num">45</span>
+                    <span class="sheet-days-unit">人日相当</span>
+                  </div>
+                  <div class="sheet-metric-sub">
+                    360 人時 ／ OESの表示規約（1人日＝8人時）
+                  </div>
                 </div>
-                <div style="margin-top: 8px;">
-                  <span class="card-status">完全性: COMPLETE（2/2 プロセス確定）</span>
+                <div class="sheet-hero-col-right">
+                  <div class="sheet-metric-label">参考労務換算額</div>
+                  <div class="sheet-days-display">
+                    <span style="font-size: 1.5rem; font-weight: 900; margin-right: 4px; color: var(--text-main);">約</span>
+                    <span class="sheet-jpy-num">270</span>
+                    <span class="sheet-jpy-unit">万円</span>
+                  </div>
+                  <div class="sheet-metric-sub">
+                    USD 18,000 ／ 市場価値ではありません
+                  </div>
                 </div>
               </div>
-              <div class="summary-breakdown-list">
-                <div class="breakdown-row">
-                  <span class="breakdown-label">何を数えた？</span>
-                  <div class="breakdown-content">
-                    機能ごとの入力（Entry: 2）· 出力（Exit: 2）· 読取（Read: 1）· 書込（Write: 1）
-                  </div>
+              <div class="sheet-hero-divider"></div>
+              <div class="sheet-hero-footer">
+                <div>
+                  <strong>120</strong> CFP · Community · AIによる測定
                 </div>
-                <div class="breakdown-row">
-                  <span class="breakdown-label">何を根拠にした？</span>
-                  <div class="breakdown-content">
-                    対象ファイルと該当箇所を記録（<code>src/notes.ts:1-50</code>）
-                  </div>
+                <div>
+                  架空の参照比率・時給・為替による表示例
                 </div>
-                <div class="breakdown-row">
-                  <span class="breakdown-label">どこを推論した？</span>
-                  <div class="breakdown-content">
-                    AIが判断した箇所を明記（不確実な推論プロセス: 0件）
-                  </div>
+              </div>
+            </div>
+            <p class="sheet-disclaimer">
+              ※ 参考労務換算額は、ソフトウェアの売却価格、市場価値、または請負契約価格ではありません。公開研究実績および米国公的賃金統計に基づき、標準的な開発作業に要する労務費用を機械的に換算した参考値です。
+            </p>
+
+            <!-- 工数換算のばらつき（四分位換算幅） -->
+            <div class="sheet-quartile-box">
+              <h4 class="sheet-quartile-title">工数換算のばらつき（参照実績の分布幅）</h4>
+              <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+                ソフトウェア開発の実績データには案件ごとに幅があります。本換算では中央値（median）を代表値とし、参照実績における少工数側（p25）から多工数側（p75）の換算幅を併記しています。
+              </p>
+              <div class="quartile-grid">
+                <div class="quartile-item">
+                  <div class="quartile-label">第1四分位 (p25 / 少工数側: 2.0 h/CFP)</div>
+                  <div class="quartile-val">30 人日相当</div>
+                  <div class="quartile-sub">240 人時 · 約180万円</div>
+                </div>
+                <div class="quartile-item is-median">
+                  <div class="quartile-label">中央値 (median / 基準工数: 3.0 h/CFP)</div>
+                  <div class="quartile-val">45 人日相当</div>
+                  <div class="quartile-sub">360 人時 · 約270万円</div>
+                </div>
+                <div class="quartile-item">
+                  <div class="quartile-label">第3四分位 (p75 / 多工数側: 5.0 h/CFP)</div>
+                  <div class="quartile-val">75 人日相当</div>
+                  <div class="quartile-sub">600 人時 · 約450万円</div>
+                </div>
+              </div>
+              <div class="distribution-bar" aria-hidden="true">
+                <div class="distribution-bar-range"></div>
+                <div class="distribution-bar-median"></div>
+              </div>
+              <p style="font-size: 0.78rem; color: var(--text-light); margin: 6px 0 0;">
+                ※ 四分位は参照データ群における工数比率のばらつき分布（25%〜75%範囲）であり、開発期間（暦月・納期）の長短や対象案件がこの期間内に完成することを保証する予測区間ではありません。
+              </p>
+            </div>
+
+            <!-- ① 測定対象と対象作業の分離 -->
+            <div class="scope-section-box">
+              <h4 style="font-size: 1rem; font-weight: 800; margin: 0 0 10px; color: var(--text-main);">
+                このアプリの測定対象と適用範囲
+              </h4>
+              <div class="scope-app-card">
+                <table class="details-table" style="margin: 0;">
+                  <tbody>
+                    <tr>
+                      <th>測定状態</th>
+                      <td><strong style="color: var(--green-primary);">全体測定（COMPLETE）</strong></td>
+                    </tr>
+                    <tr>
+                      <th>測定対象の説明</th>
+                      <td>WebフロントエンドおよびバックエンドAPIの全コアモジュール（機能プロセス計24件）</td>
+                    </tr>
+                    <tr>
+                      <th>対象外・未確認部分</th>
+                      <td>管理用バッチスクリプト、一部のサードパーティSDK連携用設定は対象外（除外: 2コンポーネント）</td>
+                    </tr>
+                    <tr>
+                      <th>未解決・未読の有無</th>
+                      <td>未解決プロセス: <strong>0</strong> 件 ／ 未読・未解析ファイル: <strong>0</strong> 件</td>
+                    </tr>
+                    <tr>
+                      <th>結果の適用範囲</th>
+                      <td>本レポートの工数・参考金額は、上記測定対象として識別された機能プロセス（120 CFP）のみの換算結果です。対象外コンポーネントや未解析コードの工数は含まれません。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p style="font-size: 0.78rem; color: var(--text-light); margin: -8px 0 18px;">
+                ※ 内部のソースコード、具体的なファイルパス、シンボル一覧等の詳細機密情報は公開されません。
+              </p>
+
+              <h4 style="font-size: 1rem; font-weight: 800; margin: 0 0 4px; color: var(--text-main);">
+                開発工数の対象作業（作業範囲定義）
+              </h4>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0 0 10px;">
+                作業定義名・版: <code>OES標準開発作業定義 第1版 (oes-standard-dev-v1)</code>
+              </p>
+              <div class="scope-comparison-grid">
+                <div class="scope-card scope-card-included">
+                  <h4>✓ 本工数に含まれる標準作業</h4>
+                  <ul class="scope-list">
+                    <li>詳細設計（データモデル・API・機能構造の設計）</li>
+                    <li>プログラミング・コーディング・機能実装</li>
+                    <li>単体テスト・機能結合検証・デバッグ</li>
+                  </ul>
+                </div>
+                <div class="scope-card scope-card-excluded">
+                  <h4>✗ 本工数に含まれない作業（対象外）</h4>
+                  <ul class="scope-list">
+                    <li>要件定義・ビジネス企画・仕様調整・ステークホルダー折衝</li>
+                    <li>プロジェクト管理・進行管理・会議・調整コスト</li>
+                    <li>デザイン・UI/UX検討・ブランド素材制作</li>
+                    <li>インフラ構築・クラウド環境設定・CI/CD整備・運用保守</li>
+                    <li>待ち時間・手戻り・不確定要素に対するバッファ</li>
+                  </ul>
                 </div>
               </div>
             </div>
 
-            <!-- 測定の内訳（開閉アコーディオン） -->
-            <details class="breakdown-accordion" id="accordion-breakdown">
+            <!-- 計算の流れ -->
+            <div style="margin: 24px 0 20px;">
+              <h4 style="font-size: 1rem; font-weight: 800; margin: 0 0 8px; color: var(--text-main);">
+                計算の流れ（算定の透明性）
+              </h4>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px; line-height: 1.6;">
+                Open Estimate は主観的な係数や非公開アルゴリズムを用いません。COSMIC規格による機能規模から、公開統計データを用いて機械的に換算します。
+              </p>
+              <div class="flow-grid">
+                <div class="flow-step-card">
+                  <div class="flow-step-num">STEP 01</div>
+                  <div class="flow-step-title">機能規模測定</div>
+                  <div class="flow-step-value">120 CFP</div>
+                  <div class="flow-step-desc">COSMIC規格に基づく入力・出力・読取・書込の合計</div>
+                </div>
+                <div class="flow-step-card">
+                  <div class="flow-step-num">STEP 02</div>
+                  <div class="flow-step-title">参照実績工数</div>
+                  <div class="flow-step-value">360 人時</div>
+                  <div class="flow-step-desc">× 3.0 人時/CFP（中央値）＝ 45 人日相当</div>
+                </div>
+                <div class="flow-step-card">
+                  <div class="flow-step-num">STEP 03</div>
+                  <div class="flow-step-title">米ドル換算</div>
+                  <div class="flow-step-value">USD 18,000</div>
+                  <div class="flow-step-desc">× $50.00 / 人時（米国BLS賃金統計中央値）</div>
+                </div>
+                <div class="flow-step-card">
+                  <div class="flow-step-num">STEP 04</div>
+                  <div class="flow-step-title">参考円換算</div>
+                  <div class="flow-step-value">約270 万円</div>
+                  <div class="flow-step-desc">× 150.00 JPY/USD（公的基準為替レート）</div>
+                </div>
+              </div>
+              <p style="font-size: 0.78rem; color: var(--text-light); margin: 0;">
+                ※ すべて発行時点の固定値です。閲覧時の為替や経済条件によって自動更新されることはありません。
+              </p>
+            </div>
+
+            <!-- ② & ③ 算定根拠と参照条件の詳細 -->
+            <details class="accordion-details" id="accordion-basis" style="margin-top: 24px;">
               <summary>
-                <span>［測定の内訳を見る］</span>
+                <span>算定の根拠と参照条件の詳細（出典・比率・賃金・為替）</span>
                 <span class="toggle-icon">▼</span>
               </summary>
               <div class="accordion-body">
-                <p style="margin: 0 0 12px; color: var(--text-muted);">
-                  以下はテストFixture（sample-notes-app）における実際の計数データです。各機能プロセスにおけるデータ移動（CFP）とソースコード根拠を記録しています。
-                </p>
-                <div style="overflow-x: auto;">
-                  <table class="process-table">
-                    <thead>
-                      <tr>
-                        <th>機能プロセス</th>
-                        <th>データ移動種別</th>
-                        <th>対象データグループ / ストア</th>
-                        <th>ソース根拠 (Evidence)</th>
-                        <th>計数</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td rowspan="3" style="font-weight: 700; vertical-align: top;">
-                          Create Note<br>
-                          <small style="color: var(--text-light); font-weight: 400;">メモの新規登録</small>
-                        </td>
-                        <td><span class="tag-badge tag-entry">Entry</span></td>
-                        <td>Note Data（ユーザー入力）</td>
-                        <td><code>src/notes.ts:1-25</code></td>
-                        <td>1 CFP</td>
-                      </tr>
-                      <tr>
-                        <td><span class="tag-badge tag-write">Write</span></td>
-                        <td>Notes Database（永続保存）</td>
-                        <td><code>src/notes.ts:1-25</code></td>
-                        <td>1 CFP</td>
-                      </tr>
-                      <tr>
-                        <td><span class="tag-badge tag-exit">Exit</span></td>
-                        <td>Note Response Data（実行結果）</td>
-                        <td><code>src/notes.ts:1-25</code></td>
-                        <td>1 CFP</td>
-                      </tr>
-                      <tr style="border-top: 2px solid var(--border-dark);">
-                        <td rowspan="3" style="font-weight: 700; vertical-align: top;">
-                          List Notes<br>
-                          <small style="color: var(--text-light); font-weight: 400;">メモの一覧取得</small>
-                        </td>
-                        <td><span class="tag-badge tag-entry">Entry</span></td>
-                        <td>List Request（一覧要求）</td>
-                        <td><code>src/notes.ts:26-50</code></td>
-                        <td>1 CFP</td>
-                      </tr>
-                      <tr>
-                        <td><span class="tag-badge tag-read">Read</span></td>
-                        <td>Notes Database（一覧読出）</td>
-                        <td><code>src/notes.ts:26-50</code></td>
-                        <td>1 CFP</td>
-                      </tr>
-                      <tr>
-                        <td><span class="tag-badge tag-exit">Exit</span></td>
-                        <td>Note Response Data（一覧返却）</td>
-                        <td><code>src/notes.ts:26-50</code></td>
-                        <td>1 CFP</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                <table class="details-table">
+                  <tbody>
+                    <tr>
+                      <th>工数換算係数 (3値)</th>
+                      <td>
+                        <div><strong>p25:</strong> 2.0 人時/CFP ｜ <strong>中央値:</strong> 3.0 人時/CFP ｜ <strong>p75:</strong> 5.0 人時/CFP</div>
+                        <div style="font-size: 0.8rem; color: var(--text-light); margin-top: 4px;">
+                          ※ 比率の作り方: 過去の実績案件における標準開発作業人時（実績）÷ COSMIC CFP を計算し、その分位点を集計
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>参照実績プロファイル</th>
+                      <td>
+                        <div><strong>プロファイルID:</strong> <code>oes-test-benchmark-v1</code>（版: <code>rev. 2026-09</code>）</div>
+                        <div><strong>対象領域:</strong> Webアプリケーション、REST/GraphQL API</div>
+                        <div><strong>対象期間:</strong> 2023年〜2025年 ｜ <strong>標本数:</strong> 10件 ｜ <strong>適合規模:</strong> 1〜500 CFP</div>
+                        <div><strong>対象作業定義:</strong> OES標準開発作業定義 第1版 (<code>oes-standard-dev-v1</code>)</div>
+                        <div style="margin-top: 6px;">
+                          <a href="https://example.com/benchmarks/oes-test-benchmark-v1" target="_blank" rel="noopener noreferrer">
+                            参照プロファイルの仕様と実績データ一覧を見る ↗
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>参考賃金の根拠 (USD)</th>
+                      <td>
+                        <div><strong>採用資料:</strong> 米国労働統計局（U.S. Bureau of Labor Statistics / BLS）Occupational Employment and Wage Statistics (OEWS)</div>
+                        <div><strong>対象年月:</strong> 2025年5月調査データ（May 2025 data, 2026年4月公表）</div>
+                        <div><strong>職種・地域・指標:</strong> 米国全国（National）／ Software Developers（SOCコード: 15-1252）／ 時給中央値（Median Hourly Wage）</div>
+                        <div><strong>採用時給:</strong> <strong>$50.00 / 人時</strong></div>
+                        <div style="margin-top: 6px;">
+                          <a href="https://www.bls.gov/oes/" target="_blank" rel="noopener noreferrer">
+                            出典資料: U.S. BLS OEWS 職種別賃金統計 ↗
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>為替レートの根拠 (JPY)</th>
+                      <td>
+                        <div><strong>提供元:</strong> 公的基準為替レート（日銀公表値 / FRB基準参照値）</div>
+                        <div><strong>観測日時:</strong> 2026年9月25日 00:00:00 UTC ｜ <strong>公表日時:</strong> 2026年9月25日 17:00:00 JST</div>
+                        <div><strong>通貨の方向・採用レート:</strong> USD to JPY（米ドルに対する日本円） ＝ <strong>150.00 JPY/USD</strong></div>
+                        <div style="margin-top: 6px;">
+                          <a href="https://example.com/fx/20260925-usd-jpy" target="_blank" rel="noopener noreferrer">
+                            出典資料: 公的基準為替レートデータ ↗
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>人日換算規約</th>
+                      <td>
+                        <strong>OESの表示規約（1人日＝8人時）</strong><br>
+                        <span style="font-size: 0.8rem; color: var(--text-light);">
+                          日本の一般的なソフトウェア開発実務に合わせた表示用の導出値です。システム内部正本は「人時（hours）」として厳密に保持されています。
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </details>
 
+            <!-- COSMIC機能規模測定の内訳 -->
+            <div style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--border-dark);">
+              <h4 style="font-size: 1rem; font-weight: 800; margin: 0 0 6px; color: var(--text-main);">
+                COSMIC機能規模測定の内訳
+              </h4>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px;">
+                対象リポジトリから識別されたデータ移動（Entry: 入力, Exit: 出力, Read: 読取, Write: 書込）の集計結果です。
+              </p>
+              <div class="cfp-counts-grid">
+                <div class="cfp-count-card">
+                  <span class="tag-badge tag-entry">Entry (入力)</span>
+                  <div class="cfp-count-val">35</div>
+                  <div style="font-size: 0.75rem; color: var(--text-light);">CFP</div>
+                </div>
+                <div class="cfp-count-card">
+                  <span class="tag-badge tag-exit">Exit (出力)</span>
+                  <div class="cfp-count-val">45</div>
+                  <div style="font-size: 0.75rem; color: var(--text-light);">CFP</div>
+                </div>
+                <div class="cfp-count-card">
+                  <span class="tag-badge tag-read">Read (読取)</span>
+                  <div class="cfp-count-val">25</div>
+                  <div style="font-size: 0.75rem; color: var(--text-light);">CFP</div>
+                </div>
+                <div class="cfp-count-card">
+                  <span class="tag-badge tag-write">Write (書込)</span>
+                  <div class="cfp-count-val">15</div>
+                  <div style="font-size: 0.75rem; color: var(--text-light);">CFP</div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.85rem; color: var(--text-muted); padding: 8px 0; border-top: 1px dashed var(--border-color);">
+                <span>機能プロセス総数: <strong>24</strong></span>
+                <span>確定プロセス: <strong>24</strong></span>
+                <span>未解決プロセス: <strong>0</strong></span>
+                <span>推論を含むデータ移動: <strong>0</strong> 件</span>
+                <span>除外コンポーネント: <strong>2</strong> 件</span>
+                <span>未読・未解析ファイル: <strong>0</strong> 件</span>
+              </div>
+            </div>
+
+            <!-- ④ 評価および署名・証跡情報 -->
+            <div style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--border-dark);">
+              <h4 style="font-size: 1rem; font-weight: 800; margin: 0 0 10px; color: var(--text-main);">
+                評価および署名・証跡情報
+              </h4>
+              <div class="verification-list">
+                <div class="verification-item">
+                  <div class="verification-label">使用AIモデル（申告）</div>
+                  <div class="verification-val">Claude 3.5 Sonnet（公開者自己申告・第三者による独立確認なし）</div>
+                </div>
+                <div class="verification-item">
+                  <div class="verification-label">評価アシュアランス</div>
+                  <div class="verification-val">
+                    Community版（AIによる機能モデル復元・第三者による独立審査なし）<br>
+                    <span style="font-size: 0.78rem; color: var(--text-light);">
+                      ※ Community版の測定では、AIモデル評価時の会話文脈隔離（Context Isolation）は技術的に強制されておらず、利用者の自己申告に基づきます。
+                    </span>
+                  </div>
+                </div>
+                <div class="verification-item">
+                  <div class="verification-label">日時情報</div>
+                  <div class="verification-val">
+                    <div><strong>証明書発行日時:</strong> 2026-09-27 10:00:00 UTC（2026-09-27 19:00:00 JST）</div>
+                    <div><strong>公開要約公開日時:</strong> 2026-09-27 10:15:00 UTC（2026-09-27 19:15:00 JST）</div>
+                  </div>
+                </div>
+                <div class="verification-item">
+                  <div class="verification-label">採用規約・プロファイル</div>
+                  <div class="verification-val">
+                    <div><strong>測定規格:</strong> COSMIC v5.0 / OES Mapping Rules v0.1.0</div>
+                    <div><strong>表示規約版:</strong> <code>oes-ja-result/0.1.0</code> ｜ <strong>スキーマ版:</strong> <code>open-estimate/public-estimate/v1</code></div>
+                    <div><strong>工数プロファイル:</strong> <code>oes-test-benchmark-v1</code> ｜ <strong>賃金:</strong> <code>oes-test-wage-v1</code> ｜ <strong>為替:</strong> <code>fx-usd-jpy-20260925</code></div>
+                  </div>
+                </div>
+                <div class="verification-item">
+                  <div class="verification-label">元証明書IDと確認先</div>
+                  <div class="verification-val">
+                    <code>cert_01h9y2p4k8m9a7b6c5d4e3f2</code><br>
+                    <a href="https://open-estimate.ai-orchestration.jp/verify/cert_01h9y2p4k8m9a7b6c5d4e3f2" target="_blank" rel="noopener noreferrer">
+                      元証明書の台帳証跡を確認する（/verify/cert_...） ↗
+                    </a>
+                  </div>
+                </div>
+                <div class="verification-item">
+                  <div class="verification-label">公開要約署名とデータ</div>
+                  <div class="verification-val">
+                    <div>Ed25519 署名済み（公開鍵ID: <code>key_oes_pub_2026_01</code>）</div>
+                    <a href="https://open-estimate.ai-orchestration.jp/api/v1/shared-estimates/sh_a1b2c3d4e5f60718293a4b5c6d7e8f90" target="_blank" rel="noopener noreferrer">
+                      公開要約データ（JSON / 署名付きEnvelope）を確認する ↗
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="future-callout">
-              <h4>「人が作ったら何時間分？」まで、つなげていきます。</h4>
+              <h4>見積詳細・SNS共有画面のご案内</h4>
               <p>
-                公開研究の開発実績による参考工数、米国の公的賃金統計による参考金額への換算を準備しています。<br>
-                金額は売値や市場価値ではなく、決められた条件での参考値です。
+                今回実装された「見積詳細・SNS共有ページ」では、上記すべての項目に加え、SNSカード共有・クリップボードコピー・印刷用スタイル・7つの表示状態シミュレータ（PARTIAL、換算データ欠損、失効表示、公開撤回など）をご確認いただけます。
               </p>
               <div style="margin-top: 16px;">
                 <a href="./estimate-detail.html" class="btn btn-primary" style="font-size: 0.92rem; padding: 10px 20px;">
-                  見積詳細・SNS共有プレビューを見る（つくログ 45人日相当） →
+                  見積詳細・SNS共有プレビュー画面を開く（つくログ 45人日） →
                 </a>
               </div>
             </div>
@@ -575,7 +837,7 @@
 
         // ヒーローカードの内訳リンクを押した際にアコーディオンを開く
         const heroOpenDetails = document.getElementById('hero-open-details');
-        const accordion = document.getElementById('accordion-breakdown');
+        const accordion = document.getElementById('accordion-basis');
         if (heroOpenDetails && accordion) {
           heroOpenDetails.addEventListener('click', function() {
             accordion.open = true;
