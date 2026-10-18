@@ -33,4 +33,7 @@ describe("Safe Paths (T02 / A83)", () => {
   it("rejects NUL bytes", async () => {
     await expect(resolveSafePath("test\0file", root)).rejects.toThrow(SafePathError);
   });
+  it("rejects Windows alternate data streams", async () => {
+    await expect(resolveSafePath("docs/report.md:secret", root)).rejects.toThrow(SafePathError);
+  });
 });

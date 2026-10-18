@@ -1,6 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { hashSkillPackage } from "../../profiles/skill-package.js";
+import { getLocalProfile } from "../../profiles/local-profile.js";
+import { getWorkspaceRoot } from "../../collector/safe-paths.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,8 +17,15 @@ export async function handleGetAssessorContract(): Promise<any> {
 
   const manifestPath = path.resolve(__dirname, "../../../skills/open-estimate-assessor/skill.manifest.json");
   const skillManifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  const actual = hashSkillPackage(path.dirname(skillPath));
+  if (skillManifest.package_sha256 !== actual.package_sha256 || JSON.stringify(skillManifest.files) !== JSON.stringify(actual.files))
+    throw new Error("BUNDLED_SKILL_INTEGRITY_ERROR");
 
   return {
+    contract_version: "0.3.0-local-preview", environment: "TEST", workspace_root: getWorkspaceRoot(),
+    capabilities: { local_evaluation: true, persistent_evaluations: true, display_time_frb: true, html_report: true, web_management: false, certificates: false, publishing: false },
+    profile: getLocalProfile(),
+    privacy_notice: "ソースコードはOpen Estimateのサーバーへアップロードされず、一般公開もされません。CodexはAI解析のためにコードをモデル提供元へ送信する場合があります。",
     schema: schemaJson.definitions.Assessment,
     assessor_instructions: skillInstructions,
     methodology_ref: "oes-cosmic-ph1-v1",
@@ -27,7 +37,7 @@ export async function handleGetAssessorContract(): Promise<any> {
     supported_languages: ["typescript", "javascript", "python"],
     profile_sets: [
       {
-        profile_set_id: "oes-test-profile-set-2026-v1",
+        profile_set_id: getLocalProfile().profile_set_id,
         is_test: true,
         description: "Standard TEST profile for local validation and testing"
       }

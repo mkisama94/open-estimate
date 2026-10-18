@@ -1,0 +1,69 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { hashSkillPackage } from '../dist/profiles/skill-package.js';
+
+const repo = fileURLToPath(new URL('../', import.meta.url));
+const args = process.argv.slice(2);
+if (args.length && (args.length !== 2 || args[0] !== '--workspace')) throw new Error('Usage: npm run plugin:pack -- --workspace ABSOLUTE_DIRECTORY');
+if (args.length) throw new Error('Workspace is now selected in chat; run npm run plugin:pack without --workspace');
+const workspace = null;
+const release = path.resolve(repo, 'release');
+const marketplace = path.join(release, 'desktop-marketplace');
+const plugin = path.join(marketplace, 'plugins', 'open-estimate');
+// The only replacement target is this generated directory, contained in release/.
+if (path.relative(release, marketplace) !== 'desktop-marketplace') throw new Error('Unsafe output path');
+try { if ((await fs.lstat(release)).isSymbolicLink()) throw new Error('Unsafe release directory'); }
+catch (e) { if (e.code !== 'ENOENT') throw e; }
+try { if ((await fs.lstat(marketplace)).isSymbolicLink()) throw new Error('Unsafe marketplace directory'); }
+catch (e) { if (e.code !== 'ENOENT') throw e; }
+console.log('Generating package at', marketplace);
+await fs.rm(marketplace, { recursive: true, force: true });
+await fs.mkdir(path.join(plugin, '.codex-plugin'), { recursive: true });
+const json = async (file, data) => { await fs.mkdir(path.dirname(file), { recursive: true }); await fs.writeFile(file, JSON.stringify(data, null, 2) + '\n'); };
+const manifest = JSON.parse(await fs.readFile(path.join(repo, 'plugin/plugin.json'), 'utf8'));
+await json(path.join(plugin, '.codex-plugin/plugin.json'), manifest);
+// Select the project through discovery and confirmation; plugin cwd is not the project.
+await json(path.join(plugin, '.mcp.json'), { mcpServers: { 'open-estimate': {
+  type: 'http', url: 'https://open-estimate.ai-orchestration.jp/mcp'
+} } });
+for (const dir of ['dist', 'contracts', 'profiles', 'skills'])
+  await fs.cp(path.join(repo, dir), path.join(plugin, 'server', dir), { recursive: true, dereference: false });
+await fs.cp(path.join(repo, 'skills'), path.join(plugin, 'skills'), { recursive: true });
+try { await fs.copyFile(path.join(repo, 'LICENSE'), path.join(plugin, 'LICENSE')); } catch(e) { if(e.code !== 'ENOENT') throw e; }
+await fs.copyFile(path.join(repo, 'docs/DESKTOP-PLUGIN.md'), path.join(plugin, 'README.md'));
+await fs.copyFile(path.join(repo, 'package.json'), path.join(plugin, 'server/package.json'));
+await fs.copyFile(path.join(repo, 'package-lock.json'), path.join(plugin, 'server/package-lock.json'));
+const npm = process.env.npm_execpath;
+if (!npm) throw new Error('Run through npm run plugin:pack');
+const dependencies = execFileSync(process.execPath, [npm, 'ls', '--omit=dev', '--parseable', '--all'], { cwd: repo, encoding: 'utf8', windowsHide: true }).trim().split(/\r?\n/).filter(p => p !== path.resolve(repo));
+const moduleRoot = path.join(repo, 'node_modules');
+for (const dep of dependencies) {
+  const rel = path.relative(moduleRoot, dep);
+  if (!rel || rel.startsWith('..') || path.isAbsolute(rel) || (await fs.lstat(dep)).isSymbolicLink()) throw new Error('Unsafe dependency path');
+  await fs.cp(dep, path.join(plugin, 'server/node_modules', rel), { recursive: true, filter: source => !path.relative(dep, source).split(path.sep).includes('node_modules') });
+}
+const skill = hashSkillPackage(path.join(plugin, 'skills/open-estimate-assessor'));
+const skillManifest = JSON.parse(await fs.readFile(path.join(plugin, 'skills/open-estimate-assessor/skill.manifest.json'), 'utf8'));
+if (skill.package_sha256 !== skillManifest.package_sha256) throw new Error('Packaged skill hash mismatch');
+await json(path.join(marketplace, '.agents/plugins/marketplace.json'), {
+  name: 'open-estimate-desktop', interface: { displayName: 'Open Estimate Desktop' },
+  plugins: [{ name: 'open-estimate', source: { source: 'local', path: './plugins/open-estimate' },
+    policy: { installation: 'AVAILABLE', authentication: 'ON_INSTALL' }, category: 'Productivity' }]
+});
+await fs.copyFile(path.join(repo, 'docs/DESKTOP-PLUGIN.md'), path.join(marketplace, 'INSTALL.md'));
+const files = [];
+async function inventory(dir, prefix = '') {
+  for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
+    const rel = prefix + entry.name;
+    if (entry.isSymbolicLink()) throw new Error('Symlink found in output');
+    if (entry.isDirectory()) await inventory(path.join(dir, entry.name), rel + '/');
+    else files.push({ path: rel, sha256: createHash('sha256').update(await fs.readFile(path.join(dir, entry.name))).digest('hex') });
+  }
+}
+await inventory(plugin);
+files.sort((a,b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
+await json(path.join(marketplace, 'BUILD.json'), { plugin_version: manifest.version, built_at: new Date().toISOString(), workspace_root: workspace, node_version: process.version, production_dependencies: dependencies.length, files });
+console.log(JSON.stringify({ marketplace, plugin, workspace, production_dependencies: dependencies.length, files: files.length }, null, 2));

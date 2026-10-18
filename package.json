@@ -1,6 +1,6 @@
 {
   "name": "open-estimate",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "description": "Open Estimate — functional size measurement and estimation based on COSMIC",
   "type": "module",
   "main": "dist/index.js",
@@ -9,7 +9,7 @@
     "open-estimate": "dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/update-skill-manifest.mjs && node scripts/build-contracts.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "test": "vitest run",
@@ -18,7 +18,13 @@
     "start": "node dist/index.js",
     "dev:web": "wrangler dev",
     "deploy:check": "wrangler deploy --dry-run",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "plugin:pack": "node scripts/package-plugin.mjs",
+    "plugin:smoke": "node scripts/smoke-desktop.mjs",
+    "fx:check": "node scripts/check-frb.mjs",
+    "helper": "node dist/local/cli.js",
+    "dev:mcp": "wrangler dev --config wrangler.mcp.jsonc",
+    "deploy:mcp:check": "wrangler deploy --config wrangler.mcp.jsonc --dry-run"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

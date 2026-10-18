@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import path from "node:path";
 import fs from "node:fs/promises";
+import { SnapshotCoverageTracker } from "../../src/collector/coverage.js";
 import { createRepositorySnapshot } from "../../src/collector/snapshot.js";
 import { handleReadRepositoryFile } from "../../src/mcp/tools/read-repository-file.js";
 import { mcpState } from "../../src/mcp/state.js";
@@ -44,5 +45,23 @@ describe("Collector & Read Coverage Integration (T02 / T10)", () => {
     const disp = tracker.getDisposition(basicFile!.path);
     // basic-assessment.json is classified as config/manifest/other, so disposition should be supporting or analyzed
     expect(["analyzed", "supporting"]).toContain(disp);
+  });
+  it("retains incomplete coverage after all eligible files are read", () => {
+    const manifest = { domain: "oes/source-manifest/v1" as const, files: [{ path: "a.js", sha256: "0".repeat(64), bytes: 2, line_count: 1, disposition: "unread" as const, exclusion_reason: null }] };
+    const tracker = new SnapshotCoverageTracker(manifest, false);
+    tracker.recordRead("a.js", 1, 1);
+    const result = tracker.reconcileInput({ manifest, manifest_hash: "0".repeat(64), analysis_complete: true } as any);
+    expect(result.reconciledInput.analysis_complete).toBe(false);
+  });
+  it("rejects snapshots targeted directly at excluded secret directories", async () => {
+    // No directory access should escape the configured workspace.
+    await expect(createRepositorySnapshot(".git")).rejects.toThrow("EXCLUDED_TARGET_DIRECTORY");
+  });
+  it("detects changed cached bytes before exposing them", async () => {
+    const snapshot = await createRepositorySnapshot("examples/quality-check");
+    mcpState.registerSnapshot(snapshot);
+    const file = snapshot.manifest.files.find(f => f.path === "notes.js")!;
+    await fs.writeFile(path.join(snapshot.cache_dir, "files", file.path), "tampered");
+    await expect(handleReadRepositoryFile({ snapshot_id: snapshot.snapshot_id, file_id: file.path })).rejects.toThrow("SNAPSHOT_CONTENT_CHANGED");
   });
 });

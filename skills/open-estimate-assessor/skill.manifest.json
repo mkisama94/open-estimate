@@ -1,12 +1,17 @@
 {
   "domain": "oes/skill-manifest/v1",
   "skill_id": "open-estimate-assessor",
-  "skill_version": "0.1.0",
-  "package_sha256": "81a7cecdb4e818407d2d6d938c80b744552a44ec080cb437383e62d4e0ba9dd5",
+  "skill_version": "0.4.0",
+  "hash_rule": "SHA256(JCS({domain:oes/skill-package/v1,files:[{path,sha256},...]}))",
   "files": [
     {
       "path": "SKILL.md",
-      "sha256": "041d0e5283886bcf58261140d8b98dcbd7279bca702850b3dfcb31350c9bb412"
+      "sha256": "6b07f2fab809d432f60a45346e4c62e86fe03e030840dc58f6c3a78d95f2c0ea"
+    },
+    {
+      "path": "scripts/oes.mjs",
+      "sha256": "c1bfc96cc3485b5e8f6a18ac9e2775d7df65adf8645fce0cd71c5b2f7ab158d8"
     }
-  ]
+  ],
+  "package_sha256": "90802fbb6f313b02a289d3aeb9c2e21736e0c9217b01ce383807070a6655c758"
 }

@@ -1,12 +1,14 @@
 import { mcpState } from "../state.js";
 import { validateAssessment } from "../../core/validate.js";
-import { normalizeAssessment } from "../../core/normalize.js";
-import { measureAssessment } from "../../core/measure.js";
-import { estimateAssessment } from "../../core/estimate.js";
-import { extractFeatures } from "../../core/features.js";
-import { jcsSha256 } from "../../core/canonical.js";
 import { parseStrictJson } from "../../core/json-parser.js";
-import type { Assessment, CalculationContext, Report } from "../../core/types.js";
+import { createEvaluation } from "../../core/evaluation.js";
+import { getLocalProfile } from "../../profiles/local-profile.js";
+import { saveEvaluation } from "../storage.js";
+import { presentEvaluation } from "../presentation.js";
+import { handleGetAssessorContract } from "./get-assessor-contract.js";
+import { frbProvider, type FxProvider } from "../../profiles/frb.js";
+import type { Assessment } from "../../core/types.js";
+import { classifyFile } from "../../collector/classification.js";
 
 export interface EvaluateAssessmentArgs {
   snapshot_id: string;
@@ -15,117 +17,36 @@ export interface EvaluateAssessmentArgs {
   display_currency?: string;
 }
 
-export async function handleEvaluateAssessment(args: EvaluateAssessmentArgs): Promise<any> {
-  const { snapshot_id } = args;
-  if (!snapshot_id) {
-    throw new Error("snapshot_id is required");
+export async function validateSnapshotAssessment(args: EvaluateAssessmentArgs) {
+  const entry = mcpState.getSnapshot(args.snapshot_id);
+  if (!entry) throw new Error("SNAPSHOT_NOT_FOUND_OR_EXPIRED");
+  const json = typeof args.assessment === "string" ? args.assessment : JSON.stringify(args.assessment);
+  if (Buffer.byteLength(json, "utf8") > 8 * 1024 * 1024) throw new Error("ASSESSMENT_TOO_LARGE");
+  const raw: any = parseStrictJson(json);
+  if (!raw || typeof raw !== "object" || !raw.input?.manifest?.files || !Array.isArray(raw.input.manifest.files))
+    throw new Error("ASSESSMENT_INPUT_REQUIRED");
+  const { reconciledInput, wasReconciled } = entry.tracker.reconcileInput(raw.input);
+  for (const [key, value] of Object.entries(entry.snapshot.source_identity))
+    if (raw.input[key] !== value) throw new Error("SNAPSHOT_SOURCE_IDENTITY_MISMATCH");
+  raw.input = reconciledInput;
+  const validated = validateAssessment(raw);
+  if (!entry.snapshot.analysis_complete && !validated.findings.some(f => f.category === "coverage_gap" && f.severity === "blocking"))
+    throw new Error("COVERAGE_FINDING_REQUIRED");
+  for (const evidence of validated.evidence) {
+    const category = classifyFile(evidence.file_path).category;
+    if (["source", "schema", "configuration"].includes(evidence.evidence_type)
+      && ["test", "doc", "manifest", "secret", "binary", "asset"].includes(category))
+      throw new Error("EVIDENCE_TYPE_MISMATCH");
   }
+  const contract = await handleGetAssessorContract();
+  if (validated.assessor.skill_id !== contract.skill.skill_id || validated.assessor.skill_version !== contract.skill.skill_version
+    || validated.assessor.skill_sha256 !== contract.skill.package_sha256) throw new Error("ASSESSOR_SKILL_MISMATCH");
+  if (Date.parse(validated.assessor.started_at) > Date.parse(validated.assessor.finished_at)) throw new Error("INVALID_ASSESSOR_TIMES");
+  return { validated, wasReconciled };
+}
 
-  const snapshotEntry = mcpState.getSnapshot(snapshot_id);
-  if (!snapshotEntry) {
-    throw new Error(`Snapshot '${snapshot_id}' not found or expired`);
-  }
-  const { snapshot, tracker } = snapshotEntry;
-
-  // Parse raw JSON strictly if passed as string to detect duplicate keys
-  let rawAssessment: any;
-  if (typeof args.assessment === "string") {
-    rawAssessment = parseStrictJson(args.assessment);
-  } else {
-    rawAssessment = args.assessment;
-  }
-
-  // 1. Reconcile input using coverage tracker
-  let inputReconciled = false;
-  if (rawAssessment.input && rawAssessment.input.manifest) {
-    const { reconciledInput, wasReconciled } = tracker.reconcileInput(rawAssessment.input);
-    rawAssessment.input = reconciledInput;
-    inputReconciled = wasReconciled;
-  }
-
-  // 2. Validate Assessment strictly (Schema + Semantic)
-  const validated = validateAssessment(rawAssessment);
-
-  // 3. Normalize Assessment (deterministic IDs and Unicode code point ordering)
-  const { normalized, assessment_hash } = normalizeAssessment(validated);
-
-  // 4. Deterministic Measurement (COSMIC data movements counting and status)
-  const measurement = measureAssessment(normalized);
-
-  // 5. Estimation using TEST profile or available profile
-  const locale = args.locale || "ja-JP";
-  const displayCurrency = args.display_currency || (locale.includes("JP") ? "JPY" : "USD");
-
-  // Standard Ph1 M1 TEST context
-  const context: CalculationContext = {
-    locale,
-    display_currency: displayCurrency,
-    benchmarkProfile: {
-      id: "oes-test-benchmark-2026-v1",
-      sample_size: 10,
-      hours_per_cfp: {
-        p25: "2",
-        median: "3",
-        p75: "5"
-      },
-      min_cfp: 1,
-      max_cfp: 10000,
-      is_test: true
-    },
-    wageProfile: {
-      id: "oes-test-wage-2026-v1",
-      hourly_wage_usd: "50",
-      is_test: true
-    },
-    fxRate: displayCurrency === "JPY" ? { currency: "JPY", currency_per_usd: "150" } : undefined
-  };
-
-  const estimation = estimateAssessment(measurement, context);
-  const features = extractFeatures(normalized);
-
-  const report: Report = {
-    domain: "open-estimate/report/ph1/v1",
-    assessment_id: normalized.assessment_id,
-    assessment_hash,
-    profile_set_id: "oes-test-profile-set-2026-v1",
-    measurement,
-    assurance: {
-      assessment_class: "COMMUNITY",
-      context_isolation: "not_enforced",
-      semantic_assessment: "NOT_INDEPENDENTLY_VERIFIED"
-    },
-    effort: estimation.effort,
-    reference_usd: estimation.reference_usd,
-    localized_reference: estimation.localized_reference,
-    features,
-    limitation_codes: estimation.limitation_codes,
-    generated_at: new Date().toISOString()
-  };
-
-  const report_hash = jcsSha256(report);
-
-  // Save to local MCP state
-  mcpState.saveEvaluation({
-    assessment_id: normalized.assessment_id,
-    normalizedAssessment: normalized,
-    report,
-    report_hash,
-    context
-  });
-
-  const issues = normalized.findings.map(f => ({
-    finding_id: f.finding_id,
-    category: f.category,
-    severity: f.severity,
-    message: f.message
-  }));
-
-  return {
-    assessment_id: normalized.assessment_id,
-    report,
-    report_hash,
-    profile_set_id: report.profile_set_id,
-    input_reconciled: inputReconciled,
-    issues
-  };
+export async function handleEvaluateAssessment(args: EvaluateAssessmentArgs, provider: FxProvider = frbProvider) {
+  const { validated, wasReconciled } = await validateSnapshotAssessment(args);
+  const record = await saveEvaluation(createEvaluation(validated, getLocalProfile()));
+  return { ...await presentEvaluation(record, provider, args.locale, args.display_currency), input_reconciled: wasReconciled };
 }

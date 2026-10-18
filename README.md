@@ -1,10 +1,20 @@
-# Open Estimate (OES) — Ph1 M1
+# Open Estimate (OES) — デスクトップ試用版 0.4.0
+
+**0.4.0実装（2026-10-18）**：ローカルMCPへの依存を外し、同梱CLIとHTTPリモートMCPへ分離しました。`npm run build` → `npm test` → `npm run plugin:pack` → `npm run plugin:smoke`。新配布先は`release/desktop-marketplace`です。[利用・送信契約・検証範囲](docs/DESKTOP-PLUGIN.md)を参照してください。公開ドメインへのデプロイ、Work/Codex実機操作、保存・認証・発行は未実施です。以下の0.3.0記述は従来実装の記録です。
+
+**次期構成（2026-10-18、未実装）**：公開版はローカルMCPを必須とせず、Work／CodexのSkill・標準ツール・補助スクリプトとリモートMCPに分けます。ローカルの測定記録を独立検証済みの証拠として扱いません。[構成変更と検証の境界](docs/implementation/LOCAL-EXECUTION-BOUNDARY.md)。以下は現在の0.3.0の導入・実装情報です。
+
+**0.3.0：対象パスの固定を廃止しました。** 現在のプロジェクトを`discover_workspace`で構成走査し、ユーザーの回答後に`confirm_workspace`で確定して解析します。MCP rootsを優先し、非対応時は会話の現在のプロジェクト情報を候補として明示します。対象変更や再起動後は再確認します。[最新の導入・利用手順](docs/LOCAL-PLUGIN.md)を参照してください。ツールは8個です。
+
+ローカル導入と品質確認は **[プラグイン導入手順](docs/LOCAL-PLUGIN.md)** を参照してください。`npm run build` → `npm run plugin:pack` でSkill・stdio MCP・実行時依存を含むローカルマーケットプレイスを生成します。対象は設計・実装・テスト（企画・運用を除く）。工数係数・時給はTEST値、為替は表示時にFRBから直接取得します。
+
+> **製品方針の更新（2026-10-11）**：[製品構成とデータの扱い](docs/implementation/PRODUCT-ARCHITECTURE.md)を参照してください。測定はCodexのローカルプラグイン、初回の発行・公開は会話で確定、継続管理はWebで行う方針です。本READMEのM1実装は、その全体を実現済みという意味ではありません。
 
 COSMIC機能規模測定規格（ISO/IEC 19761 / COSMIC v5.0）に基づき、AIが開発したWeb/APIアプリのソースコードから機能規模（CFP: COSMIC Function Points）を決定論的に計数・評価し、参考工数を算出するMCP（Model Context Protocol）サーバーです。
 
-## 概要 (M1)
+## 現在のローカル実装
 
-M1マイルストーンでは、ChatGPTや各種AIホスト（Claude Desktop, Cursor等）と連携して最低限動作するMCPサーバーと4つのコアツールを提供します。
+M1の4ツールに評価の永続化・再表示・HTML出力を追加し、6つのツールを提供します。認証・証明書・公開・Web管理はこの版に含みません。
 
 | ツール名 | 役割 |
 |---|---|
@@ -12,6 +22,8 @@ M1マイルストーンでは、ChatGPTや各種AIホスト（Claude Desktop, Cu
 | `prepare_repository` | 対象リポジトリのパス検証、除外判定、不変スナップショットキャッシュ作成、UTF-8 line_count・SHA-256計算、安定manifest生成 |
 | `read_repository_file` | 固定スナップショットから最大400行/64KiBのチャンクを行番号付きで読取。読取カバレッジ台帳を記録 |
 | `evaluate_assessment` | 提出されたAssessmentを厳格検証（重複キー検査・JSON Schema・Semantic検証）、カバレッジ自動再構築、COSMICデータ移動計数（CFP算出）、完全性状態判定、工数・参考額試算、Report返却 |
+| `get_evaluation` | 保存済み評価をIDから取得し、FRB公表為替を再確認して表示額を再計算 |
+| `render_report` | 機能別計数・根拠・TEST試算・表示時換算を含むローカルHTMLを生成 |
 
 ---
 
@@ -63,11 +75,11 @@ npm run deploy
 
 ---
 
-## ChatGPT / Claude Desktop / Cursor での接続設定
+## stdio MCPクライアントでの直接接続設定
 
-MCPクライアント（ChatGPT Desktop, Claude Desktop, Cursor等）の設定ファイルに以下を追加します。
+ChatGPT/Codexのプラグイン導入は上記の導入手順を使います。以下は汎用stdio MCPクライアントで直接起動する場合の設定例です。
 
-### Claude Desktop / ChatGPT 設定例 (`mcpServers`)
+### stdio設定例 (`mcpServers`)
 
 ```json
 {
@@ -106,6 +118,10 @@ MCPクライアント（ChatGPT Desktop, Claude Desktop, Cursor等）の設定�
 
 ## 仕様と契約
 
+- 表示・対象作業の更新（2026-10-14）: [`docs/implementation/DISPLAY-VALUATION.md`](docs/implementation/DISPLAY-VALUATION.md) — FRB直接取得、表示時換算、設計・実装・テスト（企画・運用を除外）。ローカル経路と共通計算を実装済み。Web接続は未実装。
+- 次期実装指示: [`docs/implementation/MCP-CHATGPT-PLUGIN.md`](docs/implementation/MCP-CHATGPT-PLUGIN.md) — MCP・ChatGPTプラグイン・Web見積書の契約と実装順（設計文書、未実装の変更を含む）
+- 計算・検証アルゴリズム: [`docs/implementation/ALGORITHMS.md`](docs/implementation/ALGORITHMS.md) — CFP、分位点、工数・通貨換算、丸め、状態、hash
+- 次期受入試験: [`docs/implementation/ACCEPTANCE.md`](docs/implementation/ACCEPTANCE.md) — 自動試験・実ChatGPT会話・Web・公開/撤回の完了条件
 - 仕様書正本: [`docs/milestones/PH1-SPEC.md`](docs/milestones/PH1-SPEC.md) (OES-PH1-0.1.0-draft.1)
 - スキーマ正本: [`contracts/oes-ph1.schema.json`](contracts/oes-ph1.schema.json)
 - 実行指示正本: [`skills/open-estimate-assessor/SKILL.md`](skills/open-estimate-assessor/SKILL.md)

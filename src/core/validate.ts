@@ -165,10 +165,10 @@ export function validateAssessment(assessment: any): Assessment {
         message: `Evidence file_path "${ev.file_path}" not found in manifest`
       });
     } else {
-      if (file.disposition === "excluded") {
+      if (file.disposition === "excluded" || file.disposition === "unread") {
         errors.push({
           pointer: `/evidence/${i}/file_path`,
-          code: "EXCLUDED_EVIDENCE_SOURCE",
+          code: file.disposition === "unread" ? "UNREAD_EVIDENCE_SOURCE" : "EXCLUDED_EVIDENCE_SOURCE",
           message: `Evidence file_path "${ev.file_path}" is an excluded file`
         });
       }
@@ -193,6 +193,12 @@ export function validateAssessment(assessment: any): Assessment {
   const processMap = new Map<string, FunctionalProcess>();
   for (let pIdx = 0; pIdx < typed.functional_processes.length; pIdx++) {
     const proc = typed.functional_processes[pIdx];
+    if (proc.status === "accepted" && !proc.movements.some(m => m.evidence_refs.some(ref => {
+      const e = evidenceMap.get(ref);
+      return e && ["source", "schema", "configuration"].includes(e.evidence_type);
+    }))) {
+      errors.push({ pointer: `/functional_processes/${pIdx}`, code: "IMPLEMENTATION_EVIDENCE_REQUIRED", message: "Accepted process requires source, schema, or configuration evidence" });
+    }
     if (processMap.has(proc.process_id)) {
       errors.push({
         pointer: `/functional_processes/${pIdx}/process_id`,

@@ -9,6 +9,12 @@ export interface FileClassification {
 
 const EXCLUDED_DIRS = new Set([
   ".git",
+  ".cache",
+  ".codex",
+  ".aws",
+  ".ssh",
+  ".next",
+  "release",
   "node_modules",
   "vendor",
   ".venv",
@@ -42,6 +48,7 @@ const SECRET_PATTERNS = [
   /\.p12$/i,
   /credentials\.json$/i,
   /service-account.*\.json$/i
+  , /^(\.npmrc|\.pypirc|\.netrc|\.git-credentials|\.dev\.vars(?:\..*)?)$/i
 ];
 
 const EXTENSION_LANGUAGE_MAP: Record<string, string> = {
@@ -80,7 +87,7 @@ export function classifyFile(posixRelativePath: string): FileClassification {
 
   // Check excluded directories
   for (const part of parts.slice(0, -1)) {
-    if (EXCLUDED_DIRS.has(part)) {
+    if (EXCLUDED_DIRS.has(part.toLowerCase())) {
       return {
         category: "other",
         language: null,
@@ -91,7 +98,7 @@ export function classifyFile(posixRelativePath: string): FileClassification {
   }
 
   // Check root dir itself if fileName is one of them
-  if (parts.length === 1 && EXCLUDED_DIRS.has(fileName)) {
+  if (parts.length === 1 && EXCLUDED_DIRS.has(fileName.toLowerCase())) {
     return {
       category: "other",
       language: null,
@@ -133,9 +140,7 @@ export function classifyFile(posixRelativePath: string): FileClassification {
   let category: FileClassification["category"] = "source";
 
   if (
-    lowerPath.includes("/tests/") ||
-    lowerPath.includes("/test/") ||
-    lowerPath.includes("/__tests__/") ||
+    /(^|\/)(tests?|__tests__)\//.test(lowerPath) ||
     /\.(test|spec)\.[a-z]+$/i.test(fileName)
   ) {
     category = "test";

@@ -1,10 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
+import os from "node:os";
+import { privateDirectory } from "../local-files.js";
 import { resolveSafePath, getWorkspaceRoot } from "./safe-paths.js";
 import { classifyFile } from "./classification.js";
 import { sha256Hex, jcsSha256 } from "../core/canonical.js";
-import type { ManifestFileEntry, SourceManifest } from "../core/types.js";
+import type { AssessmentInput, ManifestFileEntry, SourceManifest } from "../core/types.js";
 
 const MAX_TOTAL_FILES = 10000;
 const MAX_TOTAL_BYTES = 100 * 1024 * 1024; // 100 MiB
@@ -20,6 +22,7 @@ export interface SnapshotResult {
   excluded_files: number;
   total_bytes: number;
   cache_dir: string;
+  source_identity: Pick<AssessmentInput, "repository_label" | "snapshot_type" | "commit" | "dirty" | "source_binding">;
 }
 
 /**
@@ -53,7 +56,7 @@ export function getCacheRoot(): string {
   if (envCache && envCache.trim() !== "") {
     return path.resolve(envCache);
   }
-  return path.resolve(getWorkspaceRoot(), ".open-estimate-cache");
+  return path.join(os.tmpdir(), "open-estimate-snapshots");
 }
 
 /**
@@ -62,13 +65,16 @@ export function getCacheRoot(): string {
 export async function createRepositorySnapshot(targetRelativePath: string = ""): Promise<SnapshotResult> {
   const workspaceRoot = getWorkspaceRoot();
   const targetDir = await resolveSafePath(targetRelativePath, workspaceRoot);
+  if (classifyFile(targetRelativePath.replaceAll("\\", "/") + "/dummy").isExcluded)
+    throw new Error("EXCLUDED_TARGET_DIRECTORY");
+  if (!(await fs.lstat(targetDir)).isDirectory()) throw new Error("TARGET_MUST_BE_DIRECTORY");
 
   const snapshot_id = crypto.randomUUID();
   const cacheRoot = getCacheRoot();
   const cacheDir = path.join(cacheRoot, snapshot_id);
   const cacheFilesDir = path.join(cacheDir, "files");
 
-  await fs.mkdir(cacheFilesDir, { recursive: true });
+  await privateDirectory(cacheFilesDir);
 
   const entries: ManifestFileEntry[] = [];
   let totalBytes = 0;
@@ -77,6 +83,7 @@ export async function createRepositorySnapshot(targetRelativePath: string = ""):
   // Recursive walk directory
   async function walk(currentDir: string, relativeDir: string): Promise<void> {
     const dirEntries = await fs.readdir(currentDir, { withFileTypes: true });
+    dirEntries.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
 
     for (const d of dirEntries) {
       if (entries.length >= MAX_TOTAL_FILES) {
@@ -86,6 +93,7 @@ export async function createRepositorySnapshot(targetRelativePath: string = ""):
 
       const relativePath = relativeDir ? `${relativeDir}/${d.name}` : d.name;
       const fullPath = path.join(currentDir, d.name);
+      if (path.resolve(fullPath) === path.resolve(cacheRoot)) continue;
 
       if (d.isSymbolicLink()) {
         // Skip symlinks without following
@@ -128,7 +136,7 @@ export async function createRepositorySnapshot(targetRelativePath: string = ""):
           continue;
         }
 
-        const stat = await fs.stat(fullPath);
+        const stat = await fs.lstat(await resolveSafePath(relativePath, targetDir));
         if (stat.size > MAX_SINGLE_FILE_BYTES) {
           entries.push({
             path: relativePath,
@@ -156,19 +164,30 @@ export async function createRepositorySnapshot(targetRelativePath: string = ""):
         }
 
         const content = await fs.readFile(fullPath);
+        if (content.length > MAX_SINGLE_FILE_BYTES || totalBytes + content.length > MAX_TOTAL_BYTES)
+          throw new Error("SOURCE_CHANGED_DURING_SNAPSHOT");
+        // Reject binary/invalid UTF-8 even when the extension resembles source.
+        try {
+          if (content.includes(0)) throw new Error("binary");
+          new TextDecoder("utf-8", { fatal: true }).decode(content);
+        } catch {
+          entries.push({ path: relativePath, sha256: sha256Hex(content), bytes: content.length, line_count: 0, disposition: "excluded", exclusion_reason: "Binary or invalid UTF-8 content" });
+          analysisComplete = false;
+          continue;
+        }
         const hash = sha256Hex(content);
         const lineCount = calculateLineCount(content);
-        totalBytes += stat.size;
+        totalBytes += content.length;
 
         // Copy file to snapshot cache
         const destPath = path.join(cacheFilesDir, ...relativePath.split("/"));
-        await fs.mkdir(path.dirname(destPath), { recursive: true });
-        await fs.writeFile(destPath, content);
+        await fs.mkdir(path.dirname(destPath), { recursive: true, mode: 0o700 });
+        await fs.writeFile(destPath, content, { flag: "wx", mode: 0o600 });
 
         entries.push({
           path: relativePath,
           sha256: hash,
-          bytes: stat.size,
+          bytes: content.length,
           line_count: lineCount,
           disposition: "unread",
           exclusion_reason: null
@@ -201,6 +220,7 @@ export async function createRepositorySnapshot(targetRelativePath: string = ""):
     analyzed_candidates: analyzedCandidates,
     excluded_files: excludedFiles,
     total_bytes: totalBytes,
-    cache_dir: cacheDir
+    cache_dir: cacheDir,
+    source_identity: { repository_label: path.basename(targetDir), snapshot_type: "worktree", commit: null, dirty: true, source_binding: "client_reported" }
   };
 }

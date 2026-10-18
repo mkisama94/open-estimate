@@ -12,7 +12,7 @@ export class SnapshotCoverageTracker {
   private files: Map<string, FileCoverageRecord> = new Map();
   private originalManifest: SourceManifest;
 
-  constructor(manifest: SourceManifest) {
+  constructor(manifest: SourceManifest, private readonly snapshotComplete = true) {
     this.originalManifest = JSON.parse(JSON.stringify(manifest));
     for (const file of manifest.files) {
       if (file.disposition !== "excluded") {
@@ -29,6 +29,22 @@ export class SnapshotCoverageTracker {
     const record = this.files.get(filePath);
     if (!record) return;
     record.readRanges.push({ start: startLine, end: endLine });
+  }
+
+  public exportReads(): FileCoverageRecord[] {
+    return structuredClone([...this.files.values()]);
+  }
+
+  public restoreReads(records: FileCoverageRecord[]): void {
+    for (const record of records) {
+      const file = this.files.get(record.path);
+      if (!file || file.totalLines !== record.totalLines) throw new Error("INVALID_READ_LEDGER");
+      for (const range of record.readRanges) {
+        if (!Number.isInteger(range.start) || !Number.isInteger(range.end) || range.start < 1
+          || range.end > file.totalLines || range.end < range.start - 1) throw new Error("INVALID_READ_LEDGER");
+        this.recordRead(record.path, range.start, range.end);
+      }
+    }
   }
 
   public getDisposition(filePath: string): Disposition {
@@ -70,19 +86,23 @@ export class SnapshotCoverageTracker {
    */
   public reconcileInput(submittedInput: AssessmentInput): { reconciledInput: AssessmentInput; wasReconciled: boolean } {
     let changed = false;
-    const reconciledFiles: ManifestFileEntry[] = submittedInput.manifest.files.map(file => {
-      if (file.disposition === "excluded") {
-        return file;
-      }
+    const submitted = new Map(submittedInput.manifest.files.map(f => [f.path, f]));
+    if (submitted.size !== this.originalManifest.files.length || submitted.size !== submittedInput.manifest.files.length)
+      throw new Error("SNAPSHOT_MANIFEST_MISMATCH");
+    const reconciledFiles: ManifestFileEntry[] = this.originalManifest.files.map(file => {
+      const claim = submitted.get(file.path);
+      if (!claim || claim.sha256 !== file.sha256 || claim.bytes !== file.bytes || claim.line_count !== file.line_count)
+        throw new Error("SNAPSHOT_MANIFEST_MISMATCH");
+      if (file.disposition === "excluded") return file;
       const actualDisp = this.getDisposition(file.path);
-      if (actualDisp !== file.disposition) {
+      if (actualDisp !== claim.disposition || claim.exclusion_reason !== file.exclusion_reason) {
         changed = true;
         return {
           ...file,
           disposition: actualDisp
         };
       }
-      return file;
+      return { ...file, disposition: actualDisp };
     });
 
     // Unicode code point order
@@ -100,7 +120,8 @@ export class SnapshotCoverageTracker {
 
     // Determine analysis_complete: true if all non-excluded files are analyzed/supporting
     const hasUnread = reconciledFiles.some(f => f.disposition === "unread");
-    const analysisComplete = submittedInput.analysis_complete && !hasUnread;
+    const analysisComplete = this.snapshotComplete && submittedInput.analysis_complete && !hasUnread;
+    if (analysisComplete !== submittedInput.analysis_complete) changed = true;
 
     const reconciledInput: AssessmentInput = {
       ...submittedInput,

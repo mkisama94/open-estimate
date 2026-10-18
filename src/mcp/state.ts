@@ -14,8 +14,10 @@ export class McpLocalState {
   private snapshots: Map<string, { snapshot: SnapshotResult; tracker: SnapshotCoverageTracker }> = new Map();
   private evaluations: Map<string, EvaluatedState> = new Map();
 
+  public clearSnapshots(): void { this.snapshots.clear(); }
+
   public registerSnapshot(snapshot: SnapshotResult): void {
-    const tracker = new SnapshotCoverageTracker(snapshot.manifest);
+    const tracker = new SnapshotCoverageTracker(snapshot.manifest, snapshot.analysis_complete);
     this.snapshots.set(snapshot.snapshot_id, { snapshot, tracker });
   }
 

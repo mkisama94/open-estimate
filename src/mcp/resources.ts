@@ -14,6 +14,12 @@ export interface McpResourceDefinition {
 
 export const OES_RESOURCES: McpResourceDefinition[] = [
   {
+    uri: "open-estimate://contracts/local-preview",
+    name: "Local preview Report v3 and DisplayQuote",
+    description: "Versioned fixed evaluation and display-time currency conversion contracts",
+    mimeType: "application/json"
+  },
+  {
     uri: "open-estimate://contracts/assessment-schema",
     name: "Assessment JSON Schema",
     description: "JSON Schema 2020-12 definition for Open Estimate Canonical COSMIC Assessment",
@@ -28,6 +34,9 @@ export const OES_RESOURCES: McpResourceDefinition[] = [
 ];
 
 export async function handleReadResource(uri: string): Promise<{ uri: string; mimeType: string; text: string }> {
+  if (uri === "open-estimate://contracts/local-preview") {
+    return { uri, mimeType: "application/json", text: fs.readFileSync(path.resolve(__dirname, "../../contracts/local-preview.schema.json"), "utf8") };
+  }
   if (uri === "open-estimate://contracts/assessment-schema") {
     const schemaPath = path.resolve(__dirname, "../../contracts/oes-ph1.schema.json");
     const text = fs.readFileSync(schemaPath, "utf8");

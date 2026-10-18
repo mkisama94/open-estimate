@@ -1,0 +1,20 @@
+{
+  "profile_set_id": "oes-local-test-2026-10-v1",
+  "environment": "TEST",
+  "effort_scope_id": "oes-design-implementation-test-v1",
+  "effort_scope_name": "設計・実装・テスト（企画・運用を含まない）",
+  "notice": "架空のTEST係数です。実績ベンチマーク・実際の賃金統計ではありません。",
+  "benchmark": {
+    "id": "oes-test-benchmark-design-implementation-test-v1",
+    "sample_size": 0,
+    "hours_per_cfp": { "p25": "2", "median": "3", "p75": "5" },
+    "min_cfp": 1,
+    "max_cfp": 10000,
+    "is_test": true
+  },
+  "wage": {
+    "id": "oes-test-wage-50usd-v1",
+    "hourly_wage_usd": "50",
+    "is_test": true
+  }
+}

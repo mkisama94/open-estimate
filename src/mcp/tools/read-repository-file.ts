@@ -1,6 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { mcpState } from "../state.js";
+import { sha256Hex } from "../../core/canonical.js";
+import { resolveSafePath } from "../../collector/safe-paths.js";
 
 const MAX_LINES_LIMIT = 400;
 const MAX_BYTES_LIMIT = 64 * 1024; // 64 KiB
@@ -35,19 +37,22 @@ export async function handleReadRepositoryFile(args: ReadRepositoryFileArgs): Pr
     throw new Error(`File '${file_id}' is excluded from analysis`);
   }
 
-  const filePath = path.join(snapshot.cache_dir, "files", ...file_id.split("/"));
+  const filePath = await resolveSafePath(file_id, path.join(snapshot.cache_dir, "files"));
   const rawBytes = await fs.readFile(filePath);
+  if (sha256Hex(rawBytes) !== fileManifest.sha256) throw new Error("SNAPSHOT_CONTENT_CHANGED");
   const text = rawBytes.toString("utf8");
 
   // Split lines while preserving LF semantics
-  const allLines = text.split("\n");
+  const allLines = text.length ? text.split("\n") : [];
   if (allLines.length > 0 && allLines[allLines.length - 1] === "" && text.endsWith("\n")) {
     allLines.pop(); // remove trailing empty split if ending with newline
   }
 
   const totalLines = allLines.length;
-  const startLine = Math.max(1, args.start_line || 1);
-  const requestedMaxLines = Math.min(MAX_LINES_LIMIT, Math.max(1, args.max_lines || MAX_LINES_LIMIT));
+  const startLine = args.start_line ?? 1;
+  const requestedMaxLines = args.max_lines ?? MAX_LINES_LIMIT;
+  if (!Number.isInteger(startLine) || startLine < 1 || !Number.isInteger(requestedMaxLines) || requestedMaxLines < 1 || requestedMaxLines > MAX_LINES_LIMIT)
+    throw new Error("INVALID_READ_RANGE");
 
   if (startLine > totalLines && totalLines > 0) {
     throw new Error(`start_line ${startLine} exceeds total lines ${totalLines}`);

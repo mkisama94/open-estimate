@@ -1,5 +1,7 @@
 # Open Estimate — Ph1 実装仕様書
 
+> **製品方針の更新（2026-10-11）**：[製品構成とデータの扱い](../implementation/PRODUCT-ARCHITECTURE.md)が、利用環境・Webの役割・初回発行と公開・管理情報の保存に優先します。測定・初回確定はCodexのローカルプラグイン、継続管理はWebとし、本文のホスト・認証・公開操作の前提は改訂対象です。計数・換算・暗号検証の原則は継続します。
+
 **仕様ID：OES-PH1-0.1.0-draft.1／作成：2026-09-17**  
 対象：AIクライアント側Skillでソースを評価し、COSMICモデル・参考工数・参考労務額を記録するCommunity版。  
 状態：実装着手用の暫定仕様。結合テストを根拠に改訂可能。実装済み・ISO認証済み・本番データ確定という意味ではない。
@@ -347,13 +349,15 @@ cfp = counts.E + counts.X + counts.R + counts.W
 
 ## 2.8 公開研究ベンチマーク
 
+2026-10-14改訂：[表示時の為替換算と見積対象作業](../implementation/DISPLAY-VALUATION.md)を本章・発行/公開・受入条件に優先する。以下の更新は仕様であり、現行コード・Schemaには未反映。
+
 `BenchmarkProfile`は独立JSON。ユーザーは係数・対象集団を変更できない。運営者のcurrent profile setが自動選択する。過去profileは検証専用として保存する。
 
 ### 採用する実績（方法論で固定）
 
 COSMIC CFP、実績人時、Ph1対象の業務Web/APIへの適合、new development相当の作業範囲、同一のeffort_scope_id、出典、重複排除、利用条件を確認する。人時と経過日数・Story Point・IFPUG FPを混ぜない。管理を含む総工数から、根拠なく一定割合を引いて実装工数にしない。
 
-初期の対象作業scope IDは`oes-functional-build-v1`：対象機能の詳細設計・実装・機能検証を含み、営業、顧客要件交渉、組織管理、待ち時間、基盤運用、契約バッファ等は除く。この粒度で区別できない研究は採用保留とする。これは**OESの換算対象の定義**であり、COSMICが工程別工数を規定しているという意味ではない。
+次期の対象作業scope IDは`oes-design-implementation-test-v1`：対象機能の**設計・実装・テスト**を含み、**企画・運用**を含めない。詳細設計・単体テストだけに限定しない。営業、顧客要件交渉、組織管理、待ち時間、契約バッファ等の除外は継続する。この範囲で区別できない研究は採用保留とする。旧`oes-functional-build-v1`を自動移行しない。これは**OESの換算対象の定義**であり、COSMICが工程別工数を規定しているという意味ではない。
 
 適合データが足りない場合、別scopeで黙って代用しない。未提供のままにする。標準測定可能な機能を「対象外作業」と呼び変えて数値調整しない。
 
@@ -391,17 +395,17 @@ Ph1対応通貨：USD、JPY、EUR、GBP、AUD、NZD、CAD、CHF、CNY、HKD、IN
 
 `ja`だけから居住地を断定しない。ホストが`ja-JP`を渡せばJPY。locale・表示通貨はCFP/工数/USD額へ影響してはならない。地域表は`oes-locale-currency/0.1.0`として版固定する。
 
-### レート取得・固定
+### レート取得・表示時換算
 
-- IssuerのFX providerだけが外部へアクセスする。AIが任意のrate/date/source URLを渡せない。
+- プラグインのローカル実行部とWebサーバーの共通FX adapterがFRBへ直接アクセスする。AIが任意のrate/date/source URLを渡せない。詳細はDISPLAY-VALUATIONを正本とする。
 - FRBの固定URLから公表済み系列を取得し、通貨、観測日、公表日、取得時刻、元のquote方向、原値、source hashを保存する。
 - JPY等はcurrency_per_usd、EUR/GBP/AUD/NZD等は公表のquote方向を明示確認し、usd_per_currencyなら逆数にする。指数や月平均を日次通貨レートとして使わない。
-- キャッシュの確認周期は6時間。timeout=5秒、同一refreshの競合は1件へまとめる。発行要求ごとに毎回FRBへ問い合わせない。
+- 表示要求ごとに最新公表を確認し、使用できる場合は条件付き取得を行う。同時refreshは1件へまとめ、timeout=5秒とする。6時間の未確認cacheを通常の最新表示には使わない。
 - 初期実装は固定のH.10 current releaseまたはcountry seriesのparser。公式データ形式変更時は無理にparseせず失敗扱いとする。許可URLと期待する通貨列・方向をadapter内へ固定する。
-- 最も新しい**取得できた公表済み**の有効観測を使用する。観測日・公表日は発行日を超えてはならない。未来データ、0、負数、欠測NDは使わない。
+- 最も新しい**取得できた公表済み**の有効観測を使用する。観測日・公表日は表示計算日を超えてはならない。未来データ、0、負数、欠測NDは使わない。
 - 観測日が基準時点から14暦日を超えたら`fx_stale`とし、ローカル額を出さない。14日は運用上の初期方針であり金融標準値ではない。
-- refresh失敗でも、既存snapshotが14日以内なら使用できるが`FX_CACHE_AFTER_FAILURE`を記録する。キャッシュがない場合はUSDのみ。
-- 為替はBundleに値そのものを保存し、後日訂正・為替変動で過去の証明を変えない。
+- refresh失敗でも、既存snapshotが14日以内なら使用できるが`FX_CACHE_AFTER_FAILURE`と「最新確認に失敗／前回取得レート」を表示する。キャッシュがない場合はUSDのみ。
+- 為替と現地通貨額は表示ごとのDisplayQuoteに記録する。固定したCFP・工数・基準USD額を使い、プラグイン・Webとも再表示時に再換算する。既存Bundleの署名記録は変更せず、現在額とは区別する。
 
 `local_q = usd_q × currency_per_usd`。公式原値は保存し、逆数は小数12桁ROUND_HALF_UPに固定してから掛ける。local値はUSD表示で丸めた値ではなく内部の未丸めUSD計算から生成する。
 
@@ -419,7 +423,7 @@ decimal.jsのprecision=50、ROUND_HALF_UPを固定する。profile比率は最�
 
 `CalculationContext`はcoreへの明示入力であり、profile snapshotsと基準時点を含む。ネットワークやDate.nowをcore内部で参照しない。
 
-Reportは、measurement、assurance、effort、reference_usd、localized_reference、features、limitation_codesから構成する。値がない各段ではstatus enumで原因を示し、必要な補足をlimitation_codesへ記録する。Schemaにないreasonフィールドは追加しない。Report全体に単一のVALIDや「標準認証済み」を付けない。
+次期Reportは、measurement、assurance、effort、reference_usd、features、固定評価のlimitation_codesから構成し、表示時のlocalized_reference・FX・FX状態・表示時刻をDisplayQuoteへ分離する。ALGORITHMS 8とDISPLAY-VALUATIONに従いSchema/domainを更新する。既存Reportの同じ版のまま意味を変更しない。値がない各段ではstatus enumで原因を示す。Report全体に単一のVALIDや「標準認証済み」を付けない。
 
 - measurement COMPLETEもAIの解釈に依存。
 - assuranceは常にCOMMUNITY、context isolationはnot_enforced。
@@ -437,7 +441,7 @@ Reportは、measurement、assurance、effort、reference_usd、localized_referen
 | AI Assessment | 保存されたモデル申告・Skill申告・入力識別に基づき、このCOSMICモデルが提出された | そのモデルが確実に実行された、履歴・メモリが物理隔離された、入力が真正である |
 | Deterministic Measurement | 保存されたモデルを指定版の計数器へ通すとこのCFPになる | AIが機能を漏れなく・重複なく理解した、ISO適合性が独立審査済み |
 | Benchmark-derived Estimate | この参照実績と式ではこの人時相当になる | 実際の作業時間、納期、AIの生産性向上倍率、請負総工数 |
-| Reference Labor Amount | 工数に保存済みBLS賃金・FXを適用した参考額 | 市場価値、資産評価、売却価格、適正受託価格 |
+| Reference Labor Amount | 工数に保存済み賃金を適用したUSD額と、表示時のFRB公表為替による参考換算額 | 市場価値、資産評価、売却価格、適正受託価格 |
 
 暗号署名は全体の記録を固定するが、全層の意味的な確実性を同じにしない。`COMMUNITY`以外のassessment_classをPh1の発行APIは受け付けない。
 
@@ -539,7 +543,7 @@ SHA-256は小文字64桁hex。base64urlはパディングなし。Ed25519署名�
 2. `request_hmac=HMAC_SHA256(idempotency_secret,JCS(validated_request))`を計算する。
 3. 同じclient ID＋Idempotency-Keyが既存なら、request_hmacをconstant-time比較。同じ要求なら保存済みBundleを返す。内容が異なれば409。**再送の際は現在のprofile/FXで再計算しない。**
 4. 初回要求なら現在の承認済みprofile setを解決する。clientが過去版やTEST版をproductionで指定したら拒否する。
-5. FXをcache方針で解決し、server時刻を引数にCalculationContextを作る。
+5. 固定評価のCalculationContextを作る。表示時のFXは別途DisplayQuoteで解決し、原本Report hashへ含めない。
 6. Assessmentを再検証・正規化し、CFP・工数・金額・featuresを再計算する。クライアント値をそのまま署名しない。
 6a. 初回要求で再計算したcfpがnullなら`422 MEASUREMENT_NOT_AVAILABLE`とする。UNSUPPORTED/INCOMPLETEはローカル報告を返せるが、数値見積のCertificateは発行しない。PARTIALで正のCFPを持つものは部分測定表示を必須にして発行可能。
 7. expected_report_hashと不一致なら`409 ESTIMATE_CHANGED`。新Reportとそのhashを返す。旧値と新値を表示して、利用者の再承認後に新要求を送る。失敗した要求は発行idempotencyとして予約しない。
@@ -822,7 +826,7 @@ SQL実行回数やRESTの実装都合を増やしても、同じ機能モデル�
 | A65 | 20件同時同一要求 | CertificateとISSUEDは1件だけ。 |
 | A66 | DB保存前失敗 | 成功応答なし、部分発行行なし。 |
 | A67 | COMMIT後応答断→再送 | 同じBundleを返す。 |
-| A68 | 試算後にprofile/FX変更 | profile変更はPROFILE_NOT_ACTIVE、FX変更はESTIMATE_CHANGED。再試算・再承認し、勝手に新額を署名しない。 |
+| A68 | 試算後にprofile/FX変更 | profile変更はPROFILE_NOT_ACTIVE等の既定経路で再試算・再承認。FXだけの変更はDisplayQuote更新、原本hashは維持。 |
 | A69 | 発行済み再送時にprofile/FX変更 | 旧Bundleのまま返す。 |
 | A70 | 正常失効 | REVOKEDイベント1件追加、元署名保持。 |
 | A71 | 失効を再実行 | 重複失効なし、現在状態を返す。 |
@@ -925,7 +929,7 @@ package_sha256 = SHA256(JCS({
 - quartiles：`0 < p25 <= median <= p75`。sizeは`0 < min <= max`。未確認の期間はnullでもよいが、レポートに期間未確認を残す。
 - 全件の個別実績を公開可能と限らない。reproducibility_levelがsource_access_requiredなら制約を公開資料に書く。`not_yet_available`を承認済み本番集団にしない。
 - wage：SOC=15-1252、H_MEDIAN、US_NATIONAL_ALL_INDUSTRIES、USD、正のhourly_wage_usd、参照期間、原票content hash、reviewと公開時点が必要。
-- profile_setのrefはID・version・JSON内容hashまで照合。benchmarkの対象作業が`oes-functional-build-v1`と一致しなければ換算不可。総工程工数から任意比率で管理分を引かない。
+- profile_setのrefはID・version・JSON内容hashまで照合。次期benchmarkの対象作業は`oes-design-implementation-test-v1`と一致しなければ換算不可。旧版の検証は元scopeを保持する。総工程工数から任意比率で管理分を引かない。
 - TESTはtest environmentだけ。DRAFTや欠損を0へ補完しない。未承認profileが参照されていれば登録操作を拒否する。measurement-onlyではbenchmark_ref/wage_refをnullにする。
 - 正式発行に使用できるprofile_setは初回要求時のcurrentだけ。過去版は既存Bundleの再検証・再送だけで使う。
 
@@ -1064,7 +1068,7 @@ SQLite backup APIで整合snapshotを作る。WALファイルの途中copyを完
 
 private payload/analyticsは初期365日。削除・参加撤回は運営者CLIで扱う。公開Registryとidempotency tombstoneは保持し、削除後再送を新規発行にしない。
 
-benchmark/BLSはレビュー済みimmutable profile。FXは6h cache。新profileで過去Certificateを変更しない。
+benchmark/BLSはレビュー済みimmutable profile。FXは表示要求ごとに最新公表を確認しDisplayQuoteへ反映する。新profileで過去Certificateを変更しない。
 
 logはrequest_id、status、error code、所要時間などに限定。payload/source/model/額/nonce/tokenを出さない。
 

@@ -1,319 +1,89 @@
+import { WorkspaceSession } from "./workspace-session.js";
+import { workspaceContext } from "../collector/workspace-context.js";
+import { mcpState } from "./state.js";
+import { RootsListChangedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  ListResourcesRequestSchema,
-  ReadResourceRequestSchema,
-  ListPromptsRequestSchema,
-  GetPromptRequestSchema
-} from "@modelcontextprotocol/sdk/types.js";
+import { CallToolRequestSchema, ListToolsRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema, ListPromptsRequestSchema, GetPromptRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { Ajv2020 } from "ajv/dist/2020.js";
 import { handleGetAssessorContract } from "./tools/get-assessor-contract.js";
 import { handlePrepareRepository } from "./tools/prepare-repository.js";
 import { handleReadRepositoryFile } from "./tools/read-repository-file.js";
 import { handleEvaluateAssessment } from "./tools/evaluate-assessment.js";
+import { handleGetEvaluation } from "./tools/get-evaluation.js";
+import { handleRenderReport } from "./tools/render-report.js";
 import { OES_RESOURCES, handleReadResource } from "./resources.js";
+import { CURRENCIES } from "../profiles/frb.js";
+import fs from "node:fs";
+
+const contract = JSON.parse(fs.readFileSync(new URL("../../contracts/local-preview.schema.json", import.meta.url), "utf8"));
+const object = (properties: Record<string, unknown>, required: string[] = []) => ({ type: "object" as const, properties, required, additionalProperties: false });
+const str = { type: "string", minLength: 1, maxLength: 1024 };
+const display = { locale: { type: "string", maxLength: 64 }, display_currency: { type: "string", enum: [...CURRENCIES] } };
+const output = (properties: Record<string, unknown>, required: string[]) => object(properties, required);
+const definition = (key: string) => ({ ...contract.$defs[key], $defs: contract.$defs });
+const tools = [
+  { name: "discover_workspace", description: "Scan file names and structure only. Prefer MCP roots; if unsupported, supply the current project absolute path from conversation context, never guess. Show the returned candidate and ask user confirmation before confirm_workspace.", inputSchema: object({ context_path: str, relative_path: str }), outputSchema: { type: "object" as const }, handler: async (_: any) => ({}), readOnly: true, network: false },
+  { name: "confirm_workspace", description: "Confirm the exact scanned candidate only after the user agrees in chat. user_confirmed is an assistant report, not independent proof of consent. false cancels.", inputSchema: object({ candidate_id: str, user_confirmed: { type: "boolean" } }, ["candidate_id", "user_confirmed"]), outputSchema: { type: "object" as const }, handler: async (_: any) => ({}), readOnly: false, network: false },
+  { name: "get_assessor_contract", description: "Get the schema, trusted assessor workflow, configured workspace, TEST coefficients, scope and capabilities. Call before reading source.", inputSchema: object({}),
+    outputSchema: { type: "object" as const, required: ["schema", "skill", "profile", "capabilities"] }, handler: handleGetAssessorContract, readOnly: true, network: false },
+  { name: "prepare_repository", description: "Snapshot a relative directory inside the configured workspace. Creates local cache; never executes target code or uploads it. Returns manifest and input defaults.",
+    inputSchema: object({ relative_path: { type: "string", maxLength: 1024 } }), outputSchema: { type: "object" as const, required: ["snapshot_id", "manifest", "assessment_input"] }, handler: handlePrepareRepository, readOnly: false, network: false },
+  { name: "read_repository_file", description: "Read a snapshot file with numbered lines and track coverage. Follow has_more/next_start_line; unread files cannot support accepted evidence.",
+    inputSchema: object({ snapshot_id: str, file_id: str, start_line: { type: "integer", minimum: 1 }, max_lines: { type: "integer", minimum: 1, maximum: 400 } }, ["snapshot_id", "file_id"]),
+    outputSchema: { type: "object" as const, required: ["file_id", "content", "sha256", "has_more"] }, handler: handleReadRepositoryFile, readOnly: false, network: false },
+  { name: "evaluate_assessment", description: "Validate a raw Assessment JSON string against snapshot evidence; calculate CFP and TEST design/implementation/test effort, save locally, and fetch FRB for this display. Planning/operations excluded. Does not issue or publish.",
+    inputSchema: object({ snapshot_id: str, assessment: { type: "string", minLength: 2, maxLength: 8388608 }, ...display }, ["snapshot_id", "assessment"]),
+    outputSchema: definition("EvaluationView"), handler: handleEvaluateAssessment, readOnly: false, network: true },
+  { name: "get_evaluation", description: "Load a local evaluation ID and recalculate the displayed currency using the latest FRB release. Fixed CFP/hours/USD/hash remain unchanged; works after restart in the same configured workspace.",
+    inputSchema: object({ evaluation_id: str, ...display }, ["evaluation_id"]), outputSchema: definition("EvaluationView"), handler: handleGetEvaluation, readOnly: true, network: true },
+  { name: "render_report", description: "Generate a private local HTML review report with process counts, evidence, exclusions, TEST label, and a newly calculated FRB display quote. The exported HTML records generation time; rerun to refresh.",
+    inputSchema: object({ evaluation_id: str, ...display }, ["evaluation_id"]), outputSchema: output({ evaluation_id: str, path: str, format: { const: "html" }, signed: { const: false }, published: { const: false }, report_hash: str, display_quote: definition("DisplayQuote"), notices: { type: "array", items: { type: "string" } } }, ["evaluation_id", "path", "format", "signed", "published", "report_hash", "display_quote", "notices"]),
+    handler: handleRenderReport, readOnly: false, network: true }
+];
+const ajv = new Ajv2020({ strict: false, validateFormats: false, allErrors: true });
+const validators = new Map(tools.map(t => [t.name, ajv.compile(t.inputSchema)]));
 
 export function createMcpServer(): Server {
-  const server = new Server(
-    {
-      name: "open-estimate-mcp-server",
-      version: "0.1.0"
-    },
-    {
-      capabilities: {
-        tools: {},
-        resources: {},
-        prompts: {}
-      }
-    }
-  );
-
-  // 1. List tools handler
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return {
-      tools: [
-        {
-          name: "get_assessor_contract",
-          description: "Returns the assessment schema, assessor instructions (SKILL.md), measurement rules, and test profiles required for the AI Assessor.",
-          annotations: {
-            title: "Get Assessor Contract",
-            readOnlyHint: true,
-            destructiveHint: false,
-            idempotentHint: true,
-            openWorldHint: false
-          },
-          inputSchema: {
-            type: "object",
-            properties: {},
-            additionalProperties: false
-          },
-          outputSchema: {
-            type: "object",
-            required: ["schema", "assessor_instructions", "methodology_ref"],
-            properties: {
-              schema: { type: "object" },
-              assessor_instructions: { type: "string" },
-              methodology_ref: { type: "string" }
-            }
-          }
-        },
-        {
-          name: "prepare_repository",
-          description: "Validates repository path, creates a safe immutable local snapshot copy, computes manifest with hashes and line counts, and reports exclusions.",
-          annotations: {
-            title: "Prepare Repository Snapshot",
-            readOnlyHint: false,
-            destructiveHint: false,
-            idempotentHint: true,
-            openWorldHint: false
-          },
-          inputSchema: {
-            type: "object",
-            properties: {
-              relative_path: {
-                type: "string",
-                description: "Relative path within OES_WORKSPACE_ROOT to analyze. Empty or '.' for root."
-              }
-            },
-            additionalProperties: false
-          },
-          outputSchema: {
-            type: "object",
-            required: ["snapshot_id", "manifest", "manifest_hash", "summary"],
-            properties: {
-              snapshot_id: { type: "string" },
-              manifest: { type: "object" },
-              manifest_hash: { type: "string" },
-              summary: { type: "object" },
-              exclusions: { type: "array" }
-            }
-          }
-        },
-        {
-          name: "read_repository_file",
-          description: "Reads a chunk of up to 400 lines (max 64 KiB) from the immutable snapshot with 1-based line numbers and tracks read coverage.",
-          annotations: {
-            title: "Read Repository File Chunk",
-            readOnlyHint: true,
-            destructiveHint: false,
-            idempotentHint: true,
-            openWorldHint: false
-          },
-          inputSchema: {
-            type: "object",
-            required: ["snapshot_id", "file_id"],
-            properties: {
-              snapshot_id: {
-                type: "string",
-                description: "The snapshot ID returned by prepare_repository"
-              },
-              file_id: {
-                type: "string",
-                description: "Relative file path as registered in snapshot manifest"
-              },
-              start_line: {
-                type: "integer",
-                minimum: 1,
-                default: 1,
-                description: "1-based starting line number"
-              },
-              max_lines: {
-                type: "integer",
-                minimum: 1,
-                maximum: 400,
-                default: 400,
-                description: "Maximum number of lines to read (capped at 400 lines and 64 KiB)"
-              }
-            },
-            additionalProperties: false
-          },
-          outputSchema: {
-            type: "object",
-            required: ["file_id", "content", "sha256", "start_line", "end_line", "total_lines", "has_more"],
-            properties: {
-              file_id: { type: "string" },
-              content: { type: "string" },
-              sha256: { type: "string" },
-              start_line: { type: "integer" },
-              end_line: { type: "integer" },
-              total_lines: { type: "integer" },
-              has_more: { type: "boolean" },
-              next_start_line: { type: ["integer", "null"] }
-            }
-          }
-        },
-        {
-          name: "evaluate_assessment",
-          description: "Validates canonical COSMIC assessment, counts functional size (CFP), checks integrity, reconciles read coverage, and produces a deterministic evaluation report.",
-          annotations: {
-            title: "Evaluate Assessment and Calculate CFP",
-            readOnlyHint: false,
-            destructiveHint: false,
-            idempotentHint: true,
-            openWorldHint: false
-          },
-          inputSchema: {
-            type: "object",
-            required: ["snapshot_id", "assessment"],
-            properties: {
-              snapshot_id: {
-                type: "string",
-                description: "The snapshot ID returned by prepare_repository"
-              },
-              assessment: {
-                description: "The Assessment JSON object or raw JSON string created by AI",
-                oneOf: [{ type: "object" }, { type: "string" }]
-              },
-              locale: {
-                type: "string",
-                default: "ja-JP",
-                description: "Target locale for localized amounts, e.g. 'ja-JP'"
-              },
-              display_currency: {
-                type: "string",
-                description: "Display currency, e.g. 'JPY', 'USD'"
-              }
-            },
-            additionalProperties: false
-          },
-          outputSchema: {
-            type: "object",
-            required: ["assessment_id", "report", "report_hash"],
-            properties: {
-              assessment_id: { type: "string" },
-              report: { type: "object" },
-              report_hash: { type: "string" },
-              profile_set_id: { type: ["string", "null"] },
-              input_reconciled: { type: "boolean" },
-              issues: { type: "array" }
-            }
-          }
-        }
-      ]
-    };
-  });
-
-  // 2. Call tool handler
+  const server = new Server({ name: "open-estimate", version: "0.3.0" }, { capabilities: { tools: {}, resources: {}, prompts: {} } });
+  const workspace = new WorkspaceSession(server, () => mcpState.clearSnapshots());
+  server.setNotificationHandler(RootsListChangedNotificationSchema, async () => workspace.reset());
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: tools.map(t => ({ name: t.name, description: t.description, inputSchema: t.inputSchema, outputSchema: t.outputSchema,
+      annotations: { readOnlyHint: t.readOnly, destructiveHint: false, idempotentHint: t.name === "get_assessor_contract" || t.name === "read_repository_file", openWorldHint: t.network } }))
+  }));
   server.setRequestHandler(CallToolRequestSchema, async request => {
-    const { name, arguments: args = {} } = request.params;
-
     try {
+      const tool = tools.find(t => t.name === request.params.name);
+      if (!tool) throw new Error("UNKNOWN_TOOL");
+      const args = request.params.arguments ?? {};
+      const validate = validators.get(tool.name)!;
+      if (!validate(args)) return { isError: true, content: [{ type: "text" as const, text: JSON.stringify({ error: { code: "INVALID_TOOL_ARGUMENTS", details: validate.errors?.map(e => ({ pointer: e.instancePath, message: e.message })) } }) }] };
       let result: any;
-      if (name === "get_assessor_contract") {
-        result = await handleGetAssessorContract();
-      } else if (name === "prepare_repository") {
-        result = await handlePrepareRepository(args as any);
-      } else if (name === "read_repository_file") {
-        result = await handleReadRepositoryFile(args as any);
-      } else if (name === "evaluate_assessment") {
-        result = await handleEvaluateAssessment(args as any);
-      } else {
-        throw new Error(`Unknown tool: ${name}`);
+      if (tool.name === "discover_workspace") result = await workspace.discover(args);
+      else if (tool.name === "confirm_workspace") result = await workspace.confirm(args as any);
+      else if (tool.name === "get_assessor_contract") result = { ...await handleGetAssessorContract(), workspace_root: workspace.current(), workspace_selection: "discover_then_confirm", requires_workspace_confirmation: true };
+      else {
+        const root = await workspace.requireRoot();
+        result = await workspaceContext.run(root, () => tool.handler(args as any));
       }
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(result, null, 2)
-          }
-        ]
-      };
+      return { structuredContent: result, content: [{ type: "text" as const, text: JSON.stringify(result) }] };
     } catch (err: any) {
-      console.error(`Error in MCP tool ${name}:`, err);
-      return {
-        isError: true,
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              error: {
-                code: err.code || "TOOL_EXECUTION_ERROR",
-                message: err.message,
-                details: err.errors || undefined
-              }
-            }, null, 2)
-          }
-        ]
-      };
+      // Never log source, raw assessment, network body or absolute OS error paths.
+      const code = /^[A-Z][A-Z0-9_]+$/.test(err.message) ? err.message : err.errors ? "ASSESSMENT_VALIDATION_FAILED" : "TOOL_EXECUTION_ERROR";
+      return { isError: true, content: [{ type: "text" as const, text: JSON.stringify({ error: { code, message: code, details: err.errors } }) }] };
     }
   });
-
-  // 3. Resources handlers
-  server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    return {
-      resources: OES_RESOURCES.map(r => ({
-        uri: r.uri,
-        name: r.name,
-        description: r.description,
-        mimeType: r.mimeType
-      }))
-    };
-  });
-
-  server.setRequestHandler(ReadResourceRequestSchema, async request => {
-    const { uri } = request.params;
-    const resource = await handleReadResource(uri);
-    return {
-      contents: [
-        {
-          uri: resource.uri,
-          mimeType: resource.mimeType,
-          text: resource.text
-        }
-      ]
-    };
-  });
-
-  // 4. Prompts handlers
-  server.setRequestHandler(ListPromptsRequestSchema, async () => {
-    return {
-      prompts: [
-        {
-          name: "cosmic-assessment",
-          description: "Workflow prompt to guide the AI Assessor through repository inspection and COSMIC assessment construction",
-          arguments: [
-            {
-              name: "relative_path",
-              description: "Relative path of repository to analyze (optional)",
-              required: false
-            }
-          ]
-        }
-      ]
-    };
-  });
-
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: OES_RESOURCES }));
+  server.setRequestHandler(ReadResourceRequestSchema, async request => ({ contents: [await handleReadResource(request.params.uri)] }));
+  server.setRequestHandler(ListPromptsRequestSchema, async () => ({ prompts: [{ name: "cosmic-assessment", description: "Assess implemented source with evidence, TEST effort and current FRB conversion", arguments: [{ name: "relative_path", required: false }] }] }));
   server.setRequestHandler(GetPromptRequestSchema, async request => {
-    const { name } = request.params;
-    if (name === "cosmic-assessment") {
-      return {
-        description: "COSMIC Assessment Workflow Guide",
-        messages: [
-          {
-            role: "user",
-            content: {
-              type: "text",
-              text: "Please perform a functional size assessment of this repository using Open Estimate (COSMIC v5.0):\n" +
-                    "1. Call `get_assessor_contract` to retrieve schema and instructions.\n" +
-                    "2. Call `prepare_repository` to create an immutable snapshot.\n" +
-                    "3. Read files with `read_repository_file` to identify functional processes, users, stores, and data movements (Entry, Exit, Read, Write).\n" +
-                    "4. Submit the Assessment JSON to `evaluate_assessment` to obtain deterministic CFP count and effort estimate."
-            }
-          }
-        ]
-      };
-    }
-    throw new Error(`Unknown prompt: ${name}`);
+    if (request.params.name !== "cosmic-assessment") throw new Error("UNKNOWN_PROMPT");
+    return { messages: [{ role: "user" as const, content: { type: "text" as const, text: "Open Estimateで対象を評価してください。最初にget_assessor_contractを取得し、workspace_rootとデータ取扱いを説明してください。対象相対パス: " + JSON.stringify(request.params.arguments?.relative_path ?? ".") + "。契約のSkillに沿ってsnapshotの実装根拠からAssessmentを作り、TEST係数、設計・実装・テストの範囲、未読・未解決点を明示してください。" } }] };
   });
-
   return server;
 }
-
 export async function runStdioServer(): Promise<void> {
   const server = createMcpServer();
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("Open Estimate MCP Server started on stdio transport.");
+  await server.connect(new StdioServerTransport());
 }

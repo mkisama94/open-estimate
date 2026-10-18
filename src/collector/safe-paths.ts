@@ -1,6 +1,6 @@
+import { workspaceContext } from "./workspace-context.js";
 import path from "node:path";
 import fs from "node:fs/promises";
-import fsSync from "node:fs";
 
 export class SafePathError extends Error {
   public code: string;
@@ -15,6 +15,8 @@ export class SafePathError extends Error {
  * Gets the workspace root directory from environment or fallback to cwd.
  */
 export function getWorkspaceRoot(): string {
+  const active = workspaceContext.getStore();
+  if (active) return active;
   const envRoot = process.env.OES_WORKSPACE_ROOT;
   const root = envRoot && envRoot.trim() !== "" ? envRoot : process.cwd();
   return path.resolve(root);
@@ -27,12 +29,20 @@ export function getWorkspaceRoot(): string {
 export async function resolveSafePath(relativePath: string, rootDir?: string): Promise<string> {
   const root = path.resolve(rootDir || getWorkspaceRoot());
 
+  // Reject a configured root reached through a junction/symlink as well.
+  let ancestor = path.parse(root).root;
+  for (const part of path.relative(ancestor, root).split(path.sep)) {
+    ancestor = path.join(ancestor, part);
+    const stat = await fs.lstat(ancestor);
+    if (stat.isSymbolicLink()) throw new SafePathError("Workspace root contains a symbolic link");
+  }
+
   if (!relativePath || relativePath.trim() === "" || relativePath === ".") {
     return root;
   }
 
   // Reject NUL bytes
-  if (relativePath.includes("\0")) {
+  if (relativePath.includes("\0") || relativePath.includes(":")) {
     throw new SafePathError("Path contains NUL byte");
   }
 
