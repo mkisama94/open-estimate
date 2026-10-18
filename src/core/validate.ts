@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import addFormatsPkg from "ajv-formats";
 import type { Assessment, FunctionalProcess } from "./types.js";
+import { validateRecords } from "./validate-records.js";
 
 const addFormats = (addFormatsPkg as any).default || addFormatsPkg;
 
@@ -40,7 +41,8 @@ const validateAssessmentSchema = ajv.compile(schemaJson.definitions.Assessment);
 /**
  * Validates Assessment against JSON Schema and semantic rules strictly.
  */
-export function validateAssessment(assessment: any): Assessment {
+export function validateAssessment(assessment: any, depth = 0): Assessment {
+  if (depth > 12) throw new SemanticValidationError("Comparison history too deep", [{ pointer: "/comparison", code: "COMPARISON_DEPTH_LIMIT", message: "Maximum comparison history depth is 12" }]);
   const errors: ValidationErrorDetail[] = [];
 
   // 1. JSON Schema Validation
@@ -62,6 +64,7 @@ export function validateAssessment(assessment: any): Assessment {
   }
 
   const typed = assessment as Assessment;
+  if (typed.comparison) validateAssessment(typed.comparison.previous_assessment, depth + 1);
 
   // 2. Semantic Checks
 
@@ -380,6 +383,7 @@ export function validateAssessment(assessment: any): Assessment {
     }
   }
 
+  errors.push(...validateRecords(typed));
   if (errors.length > 0) {
     sortErrors(errors);
     throw new SemanticValidationError("Semantic validation failed", errors);

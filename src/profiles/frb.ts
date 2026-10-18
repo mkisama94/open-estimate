@@ -15,7 +15,10 @@ const series: Record<string, [string, string, boolean]> = {
 const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 const DAY = 86400000;
 const clean = (s: string) => s.replace(/<[^>]*>/g, " ").replace(/&nbsp;|&#160;/g, " ").replace(/\s+/g, " ").trim();
-const invalid = () => new Error("FRB_RESPONSE_INVALID");
+class FrbRetrievalError extends Error {
+  constructor(public readonly code: string) { super(code); }
+}
+const invalid = () => new FrbRetrievalError("FRB_RESPONSE_INVALID");
 function isoDate(year: number, month: string, day: number): string {
   const m = months.indexOf(month.slice(0, 3).toLowerCase());
   const d = new Date(Date.UTC(year, m, day));
@@ -91,13 +94,24 @@ export function parseFrbRelease(html: string, now: Date): Map<Currency, FxSnapsh
 export class FrbProvider implements FxProvider {
   private cached = new Map<Currency, FxSnapshot>();
   private pending: Promise<Map<Currency, FxSnapshot>> | undefined;
-  constructor(private readonly request: typeof fetch = fetch, private readonly clock = () => new Date()) {}
+  constructor(private readonly request: typeof fetch = (input, init) => fetch(input, init), private readonly clock = () => new Date()) {}
 
   private async refresh(): Promise<Map<Currency, FxSnapshot>> {
-    const response = await this.request(FRB_URL, {
-      signal: AbortSignal.timeout(5000), redirect: "error", headers: { Accept: "text/html" }
+    // Invoke injected functions without binding the provider as their receiver.
+    // Workers' native fetch requires its original calling context.
+    const request = this.request;
+    const response = await request(FRB_URL, {
+      signal: AbortSignal.timeout(5000), redirect: "manual", headers: { Accept: "text/html" }
     });
-    if (!response.ok || !response.headers.get("content-type")?.includes("text/html") || !response.body) throw invalid();
+    // Workers does not implement redirect:error. Reject redirects explicitly;
+    // never follow a response to another URL or host.
+    if (!response.ok || !response.headers.get("content-type")?.includes("text/html") || !response.body) {
+      const code = response.status >= 300 && response.status < 400 ? "FRB_REDIRECT_REJECTED"
+        : !response.ok ? "FRB_HTTP_ERROR"
+        : !response.headers.get("content-type")?.includes("text/html") ? "FRB_CONTENT_TYPE_INVALID" : "FRB_BODY_MISSING";
+      await response.body?.cancel();
+      throw new FrbRetrievalError(code);
+    }
     const reader = response.body.getReader();
     const parts: Uint8Array[] = [];
     let size = 0;
@@ -106,24 +120,32 @@ export class FrbProvider implements FxProvider {
         const { value, done } = await reader.read();
         if (done) break;
         size += value.byteLength;
-        if (size > 5 * 1024 * 1024) throw invalid();
+        if (size > 5 * 1024 * 1024) throw new FrbRetrievalError("FRB_RESPONSE_TOO_LARGE");
         parts.push(value);
       }
     } finally { await reader.cancel(); }
     const bytes = Buffer.concat(parts);
-    const parsed = parseFrbRelease(new TextDecoder("utf-8", { fatal: true }).decode(bytes), this.clock());
+    let html: string;
+    try { html = new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
+    catch { throw new FrbRetrievalError("FRB_UTF8_INVALID"); }
+    const parsed = parseFrbRelease(html, this.clock());
     this.cached = parsed;
     return parsed;
   }
 
   async get(currency: Currency): Promise<FxResult> {
-    let failed = false;
+    let failureCode: string | null = null;
     // Collapse only concurrent requests. Every later display rechecks the source.
     this.pending ??= this.refresh().finally(() => { this.pending = undefined; });
-    try { await this.pending; } catch { failed = true; }
+    try { await this.pending; }
+    catch (e) {
+      // Expose only controlled codes, never upstream bodies, URLs or raw errors.
+      failureCode = e instanceof FrbRetrievalError ? e.code
+        : e instanceof Error && ["TimeoutError", "AbortError"].includes(e.name) ? "FRB_TIMEOUT" : "FRB_FETCH_FAILED";
+    }
     const snapshot = this.cached.get(currency) ?? null;
-    const flags = failed ? ["FX_CACHE_AFTER_FAILURE"] : [];
-    if (!snapshot) return { status: "FX_UNAVAILABLE", snapshot: null, limitation_codes: ["FX_UNAVAILABLE"] };
+    const flags = failureCode ? ["FX_CACHE_AFTER_FAILURE", failureCode] : [];
+    if (!snapshot) return { status: "FX_UNAVAILABLE", snapshot: null, limitation_codes: ["FX_UNAVAILABLE", failureCode ?? "FRB_CURRENCY_UNAVAILABLE"] };
     const age = (Date.parse(this.clock().toISOString().slice(0, 10)) - Date.parse(snapshot.observed_on)) / DAY;
     if (age < 0 || age > 14) return { status: "FX_STALE", snapshot, limitation_codes: [...flags, "FX_STALE"] };
     return { status: "AVAILABLE", snapshot, limitation_codes: flags };

@@ -1,5 +1,23 @@
 # 実装ログ (IMPLEMENTATION LOG)
 
+## 2026-10-18 — FRB取得のWorkers互換性修正・本番確認
+
+- 原因：FrbProviderに保存したfetchをthis.requestとして呼んだ際のIllegal invocationと、Workersが未対応のredirect:error。両方ともHTTP送信前に失敗し、catch後にFX_UNAVAILABLEとなっていた。
+- 標準fetchをラップし、注入されたrequestもproviderのthisを渡さず呼ぶ。redirect:manualとresponse.okの確認でリダイレクトを追わず拒否する。5秒・5MiB・UTF-8・単位・値・日付の検査と、キャッシュ利用時の警告・14日制限は維持。
+- limitation_codesへ安全なFRB理由コードを追加。ネットワーク・タイムアウト・HTTP・リダイレクト・Content-Type・本文なし・サイズ・文字コード・解析・通貨欠測を区別し、本文や生の例外は出力しない。
+- build、102件の回帰テスト、Worker dry-run成功。通常のHTTP MCPクライアントでローカルWorkerと公開MCPを確認し、ともにAVAILABLE、6 CFP・18人時・900 USD・142,506 JPY（158.34 JPY/USD、2026-10-09観測／2026-10-13公表）で一致。警告付きキャッシュ利用ではない。
+- 公開MCP Workerへデプロイ済み。Version ID: 9784aada-e951-4491-9e83-ea564776adda。公開経路の確認時刻は2026-10-18 19:59 JST。送信したのはexamples/basic-assessment.jsonから作る合成数値モデルのみで、利用者ソースや実評価は送っていない。
+- 再現可能な検証は `node scripts/check-remote-frb.mjs [MCP_URL]`。既定はローカル。結果はrelease/validation/frb-mcp-local-check.jsonとfrb-mcp-remote-check.jsonへ保存。MCPのみを更新し、紹介サイト・既存インストール・ZIPは変更しない。既存プラグインは同じ公開接続先への再呼出しで修正を利用する。
+
+## 2026-10-18 — 0.4.1：Work／Codexと実行条件の案内
+
+- 一覧名・短い説明・詳細冒頭をWork／Codex向けに統一。ローカル読取・補助実行・Node.js 24以上を明示し、Chatや対象へアクセスできないクラウド実行との違いを説明。
+- Skillの開始時にファイル読取・CLI contract・evaluate_modelの検出を確認。検出とHTTP疎通を分け、同意前のテストモデル送信は行わない。Chatの実行不可時は解析未開始とWork／Codexでの再開手順を案内し、自動切替・無断引継ぎ・ZIP代案・推測見積りを避ける。
+- ローカル実行不可・ツール未検出・HTTP失敗・入力検査失敗・為替失敗を分離。旧get_assessor_contractの探索を禁止し、評価ID・保存・HTML・証明書は未提供と明示。
+- リモートserver title・ツールtitle/説明を数値モデル再計算専用に変更。直接登録接続の表示名を区別する手順を追加。既存のユーザー設定の接続名は自動変更しない。
+- README・導入手順・公開ページのソースを更新。公開ページとWorkerのデプロイ、既存インストールの置換はこの変更作業では実施しない。
+- build、92件の回帰テスト、Skill Creator quick_validate、Worker dry-run、配布物を別フォルダーへ移設したCLIスモーク試験が成功。Work／Codexの新規会話受入は未実施で、[会話テスト手順](implementation/WORK-CODEX-ACCEPTANCE.md)に条件と期待動作を記録。Workの評価完了を実機確認済みとは表示しない。
+
 ## 2026-10-18 — デスクトップ試用版 0.4.0
 
 - ローカルstdio MCP必須構成を廃止。同梱CLIのcontract/scan/confirm/prepare/read/export/purgeと、HTTP MCPのevaluate_modelに分離。旧ローカル経路のコード・旧配布先は比較用として維持。

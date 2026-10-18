@@ -4,6 +4,7 @@ import { measureAssessment } from "./measure.js";
 import { extractFeatures } from "./features.js";
 import { jcsSha256 } from "./canonical.js";
 import type { Assessment, CalculationContext } from "./types.js";
+import { isRecordedAssessment } from "./records.js";
 
 export interface LocalProfile {
   profile_set_id: string;
@@ -20,7 +21,7 @@ export function createEvaluation(assessment: Assessment, profile: LocalProfile) 
   const { normalized, assessment_hash } = normalizeAssessment(assessment);
   const basis = {
     domain: "open-estimate/calculation-basis/v3" as const,
-    engine_version: "0.2.0",
+    engine_version: isRecordedAssessment(assessment) ? "0.5.0-records" : "0.2.0",
     mapping_version: "oes-cosmic-ph1-v1",
     ...structuredClone(profile)
   };

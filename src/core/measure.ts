@@ -1,4 +1,5 @@
 import type { Assessment, MeasurementResult, MeasurementStatus } from "./types.js";
+import { isRecordedAssessment, recordState } from "./records.js";
 
 export function measureAssessment(assessment: Assessment): MeasurementResult {
   const acceptedProcesses = assessment.functional_processes.filter(p => p.status === "accepted");
@@ -29,8 +30,8 @@ export function measureAssessment(assessment: Assessment): MeasurementResult {
     const hasImpactExcludedComponent = assessment.components.some(c => c.status === "excluded" && c.scope_impact);
     const hasUnresolvedComponent = assessment.components.some(c => c.status === "unresolved");
     const hasUnresolvedProcess = assessment.functional_processes.some(p => p.status === "unresolved");
-    const hasBlockingFinding = assessment.findings.some(f => f.severity === "blocking");
-    const isIncompleteAnalysis = !assessment.input.analysis_complete;
+    const hasBlockingFinding = !isRecordedAssessment(assessment) && assessment.findings.some(f => f.severity === "blocking");
+    const isIncompleteAnalysis = isRecordedAssessment(assessment) ? recordState(assessment).partial : !assessment.input.analysis_complete;
 
     if (hasImpactExcludedComponent || hasUnresolvedComponent || hasUnresolvedProcess || hasBlockingFinding || isIncompleteAnalysis) {
       status = "PARTIAL";
@@ -45,9 +46,9 @@ export function measureAssessment(assessment: Assessment): MeasurementResult {
     read = 0;
     write = 0;
 
-    const hasApplicabilityExclusion = assessment.components.some(
+    const hasApplicabilityExclusion = (!isRecordedAssessment(assessment) && assessment.components.some(
       c => c.status === "excluded" && c.scope_impact && c.reason.toLowerCase().includes("applicability")
-    ) || assessment.findings.some(f => f.category === "applicability_limit");
+    )) || assessment.findings.some(f => f.category === "applicability_limit");
 
     if (hasApplicabilityExclusion) {
       status = "UNSUPPORTED";

@@ -1,6 +1,7 @@
 import { createDisplayQuote } from "../core/display-quote.js";
 import type { EvaluationRecord } from "../core/evaluation.js";
 import type { FxProvider } from "../profiles/frb.js";
+import { recordState, comparisonSummary } from "../core/records.js";
 
 export async function presentEvaluation(record: EvaluationRecord, provider: FxProvider, locale = "ja-JP", currency?: string) {
   const quote = await createDisplayQuote(record, provider, locale, currency);
@@ -8,7 +9,9 @@ export async function presentEvaluation(record: EvaluationRecord, provider: FxPr
   return {
     evaluation_id: record.evaluation_id, assessment_id: a.assessment_id, evaluated_at: record.evaluated_at,
     report: record.report, report_hash: record.report_hash, basis: record.basis, display_quote: quote,
-    review: { scope: a.scope, components: a.components, functional_processes: a.functional_processes,
+    review: { scope: a.scope, scope_record: a.scope_record ?? null, function_candidates: a.function_candidates ?? null,
+      judgments: a.judgments ?? null, records: recordState(a), comparison: comparisonSummary(a),
+      components: a.components, functional_processes: a.functional_processes,
       functional_users: a.functional_users, persistent_stores: a.persistent_stores,
       data_groups: a.data_groups, objects_of_interest: a.objects_of_interest,
       evidence: a.evidence, findings: a.findings, human_amendments: a.human_amendments,
@@ -47,6 +50,7 @@ export function renderEvaluationHtml(view: EvaluationView): string {
 <div class="notice">${view.notices.map(n => `<div>${escape(n)}</div>`).join("")}</div>
 <h2>測定した機能規模</h2><div class="metric">${escape(r.measurement.cfp)} CFP · ${escape(r.measurement.status)}</div>
 <p>${escape(review.scope.description)}</p><p>PARTIALは測定できた部分のみ。COMPLETEもAIの意味解釈の正しさを独立に保証するものではありません。</p>
+<p>${escape(review.records.format)}／範囲：${escape(review.scope_record?.scope_id)}・改訂 ${escape(review.scope_record?.revision)}<br>暫定判断のCFP小計（合計の内数）：${review.records.provisional_cfp_subtotal}<br>範囲内の未読：${review.records.in_scope_unread.length}／範囲外の未読：${review.records.outside_unread.length}<br>${escape(review.records.notice)}</p>
 <h2>TEST試算</h2><table><tr><th>項目</th><th>第1四分位（TEST）</th><th>中央値（TEST）</th><th>第3四分位（TEST）</th></tr>
 ${row("工数（人時）", r.effort.person_hours)}${row("人日（1人日＝8人時）", q.person_days)}${row("基準額（USD）", r.reference_usd.amount_usd)}${row(`表示時の参考換算額（${q.display_currency}）`, q.localized_reference.amount)}</table>
 <p>換算状態：${escape(labels[q.localized_reference.status])}／レート：${escape(q.localized_reference.currency_per_usd)} ${escape(q.display_currency)}/USD</p>

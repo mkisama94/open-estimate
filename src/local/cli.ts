@@ -16,6 +16,11 @@ import { projectModel } from "../remote/model.js";
 import { parseStrictJson } from "../core/json-parser.js";
 import { classifyFile } from "../collector/classification.js";
 import { sha256Hex } from "../core/canonical.js";
+import { validateAssessment, SemanticValidationError } from "../core/validate.js";
+import { normalizeAssessment } from "../core/normalize.js";
+import { comparisonSummary, recordState } from "../core/records.js";
+import { createEvaluation } from "../core/evaluation.js";
+import { getLocalProfile } from "../profiles/local-profile.js";
 
 const base = path.resolve(process.env.OES_HELPER_STATE ?? path.join(os.tmpdir(), "open-estimate-helper"));
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -30,8 +35,9 @@ async function input() {
 }
 async function main() {
   const command = process.argv[2], args = await input();
-  if (command === "contract") return { ...await handleGetAssessorContract(), contract_version: "0.4.0-desktop",
+  if (command === "contract") return { ...await handleGetAssessorContract(), contract_version: "0.5.0-desktop",
     workspace_root: null, execution: "one_shot_cli", capabilities: { local_evidence_validation: true,
+      assessment_drafts: true, local_assessment_artifacts: true, recorded_assessment_v2: true,
       remote_recalculation_required: true, persistent_evaluations: false, html_report: false, web_management: false, certificates: false, publishing: false } };
   await privateDirectory(base);
   if (command === "scan") {
@@ -79,7 +85,16 @@ async function main() {
         mcpState.registerSnapshot(entry.snapshot);
         const tracker = mcpState.getSnapshot(args.snapshot_id)!.tracker;
         tracker.restoreReads(entry.reads);
-        if (command === "read") result = await handleReadRepositoryFile(args);
+        if (command === "draft") {
+          const raw = typeof args.assessment === "string" ? parseStrictJson(args.assessment) : args.assessment;
+          if (!raw || typeof raw !== "object") throw new Error("ASSESSMENT_INPUT_REQUIRED");
+          const draftPath = path.join(sessionCache, `draft-${randomUUID()}.json`);
+          await fs.writeFile(draftPath, JSON.stringify(raw,null,2) + "\n", { mode: 0o600, flag: "wx" });
+          let errors: unknown[] = [];
+          try { validateAssessment(raw); } catch (e) { if (e instanceof SemanticValidationError) errors=e.errors; else throw e; }
+          result = { status: "DRAFT_SAVED", local_path: draftPath, validation_errors: errors, exported: false };
+        }
+        else if (command === "read") result = await handleReadRepositoryFile(args);
         else if (command === "export") {
           for (const file of entry.snapshot.manifest.files) if (file.disposition !== "excluded") {
             const full = await resolveSafePath(file.path, path.join(entry.snapshot.cache_dir, "files"));
@@ -87,7 +102,16 @@ async function main() {
           }
           const { validated, wasReconciled } = await validateSnapshotAssessment(args);
           const model = projectModel(validated);
+          const { normalized, assessment_hash } = normalizeAssessment(validated);
+          const localPath = path.join(sessionCache, `assessment-${assessment_hash}.json`);
+          // Content-addressed immutable local artifact; preserve the submitted input too.
+          const artifact = { assessment: normalized, assessment_hash, submitted_assessment: typeof args.assessment === "string" ? parseStrictJson(args.assessment) : args.assessment };
+          try { await fs.writeFile(localPath, JSON.stringify(artifact,null,2) + "\n", { mode: 0o600, flag: "wx" }); }
+          catch (e: any) { if (e.code !== "EEXIST") throw e; }
           result = { model, input_reconciled: wasReconciled, transmission: "PREVIEW_ONLY_NOT_SENT",
+            local: { assessment_path: localPath, assessment_hash, scope: validated.scope, scope_record: validated.scope_record ?? null,
+              records: recordState(validated), comparison: comparisonSummary(validated), report: createEvaluation(validated,getLocalProfile()).report,
+              ledger_pointer: "/assessment/judgments", candidates_pointer: "/assessment/function_candidates" },
             notice: "連番ID・分類・状態のみ。ソース、名称、説明、パス、根拠、ハッシュは送信対象外。送信前にこのモデルの送信同意を確認してください。" };
         } else throw new Error("UNKNOWN_COMMAND");
         entry.reads = tracker.exportReads();
@@ -102,5 +126,5 @@ async function main() {
 try { process.stdout.write(JSON.stringify(await main()) + "\n"); }
 catch (e: any) {
   const code = /^[A-Z][A-Z0-9_]+$/.test(e.message) ? e.message : "HELPER_EXECUTION_FAILED";
-  process.stdout.write(JSON.stringify({ error: { code } }) + "\n"); process.exitCode = 1;
+  process.stdout.write(JSON.stringify({ error: { code, ...(e instanceof SemanticValidationError ? { code: "ASSESSMENT_VALIDATION_FAILED", details: e.errors } : {}) } }) + "\n"); process.exitCode = 1;
 }

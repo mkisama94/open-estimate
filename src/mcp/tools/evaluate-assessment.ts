@@ -25,7 +25,7 @@ export async function validateSnapshotAssessment(args: EvaluateAssessmentArgs) {
   const raw: any = parseStrictJson(json);
   if (!raw || typeof raw !== "object" || !raw.input?.manifest?.files || !Array.isArray(raw.input.manifest.files))
     throw new Error("ASSESSMENT_INPUT_REQUIRED");
-  const { reconciledInput, wasReconciled } = entry.tracker.reconcileInput(raw.input);
+  const { reconciledInput, wasReconciled } = entry.tracker.reconcileInput(raw.input, raw.format_version === "oes/assessment/v2");
   for (const [key, value] of Object.entries(entry.snapshot.source_identity))
     if (raw.input[key] !== value) throw new Error("SNAPSHOT_SOURCE_IDENTITY_MISMATCH");
   raw.input = reconciledInput;

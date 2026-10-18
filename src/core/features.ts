@@ -1,5 +1,6 @@
 import { classifyFile } from "../collector/classification.js";
 import type { Assessment, AssessmentFeatures } from "./types.js";
+import { isRecordedAssessment } from "./records.js";
 
 export function extractFeatures(assessment: Assessment): AssessmentFeatures {
   const acceptedProcesses = assessment.functional_processes.filter(p => p.status === "accepted");
@@ -34,6 +35,7 @@ export function extractFeatures(assessment: Assessment): AssessmentFeatures {
   const languageSet = new Set<string>();
 
   for (const file of assessment.input.manifest.files) {
+    if (isRecordedAssessment(assessment) && !assessment.scope_record?.files.some(f=>f.path===file.path && f.membership==="included")) continue;
     if (file.disposition !== "excluded") {
       const cls = classifyFile(file.path);
       if (cls.category === "source") {

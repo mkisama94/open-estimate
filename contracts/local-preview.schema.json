@@ -383,6 +383,67 @@
               },
               "description": {
                 "type": "string"
+              },
+              "definition": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "business_meaning",
+                  "identifiers",
+                  "no_identifier_reason",
+                  "attribute_mapping",
+                  "grouping_reason",
+                  "evidence_refs",
+                  "unconfirmed"
+                ],
+                "properties": {
+                  "business_meaning": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "identifiers": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    },
+                    "minItems": 0,
+                    "uniqueItems": true
+                  },
+                  "no_identifier_reason": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1
+                  },
+                  "attribute_mapping": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "grouping_reason": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true
+                  },
+                  "unconfirmed": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    },
+                    "minItems": 0,
+                    "uniqueItems": true
+                  }
+                }
               }
             }
           }
@@ -561,6 +622,64 @@
                     }
                   }
                 }
+              },
+              "boundary": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "start",
+                  "functional_user_id",
+                  "goal",
+                  "completion",
+                  "execution_relationship",
+                  "grouping_reason",
+                  "evidence_refs",
+                  "judgment_refs"
+                ],
+                "properties": {
+                  "start": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "functional_user_id": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "goal": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "completion": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "execution_relationship": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "grouping_reason": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true
+                  },
+                  "judgment_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true
+                  }
+                }
               }
             }
           }
@@ -608,6 +727,57 @@
                 "items": {
                   "type": "string"
                 }
+              },
+              "targets": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "id",
+                    "process_id"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "candidate",
+                        "process",
+                        "data_group",
+                        "movement",
+                        "judgment"
+                      ]
+                    },
+                    "id": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    },
+                    "process_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "minLength": 1
+                    }
+                  }
+                },
+                "minItems": 0,
+                "uniqueItems": true
+              },
+              "impact": {
+                "enum": [
+                  "scope",
+                  "coverage",
+                  "boundary",
+                  "counting",
+                  "explanation"
+                ]
+              },
+              "resolution": {
+                "enum": [
+                  "open",
+                  "resolved"
+                ]
               }
             }
           }
@@ -638,8 +808,736 @@
               }
             }
           }
+        },
+        "format_version": {
+          "enum": [
+            "oes/assessment/v1",
+            "oes/assessment/v2"
+          ]
+        },
+        "scope_record": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scope_id",
+            "revision",
+            "confirmations",
+            "files"
+          ],
+          "properties": {
+            "scope_id": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "revision": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "confirmations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "confirmation_id",
+                  "actor",
+                  "statement",
+                  "confirmed_at"
+                ],
+                "properties": {
+                  "confirmation_id": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "actor": {
+                    "enum": [
+                      "user",
+                      "ai"
+                    ]
+                  },
+                  "statement": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "confirmed_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "membership",
+                  "reason",
+                  "confirmation_ref",
+                  "evidence_refs"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "membership": {
+                    "enum": [
+                      "included",
+                      "outside",
+                      "supporting",
+                      "unresolved"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "confirmation_ref": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    },
+                    "minItems": 0,
+                    "uniqueItems": true
+                  }
+                }
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            }
+          }
+        },
+        "function_candidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "candidate_id",
+              "name",
+              "role",
+              "component_id",
+              "disposition",
+              "process_id",
+              "merged_into",
+              "reason",
+              "evidence_refs"
+            ],
+            "properties": {
+              "candidate_id": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "name": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "role": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "component_id": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "disposition": {
+                "enum": [
+                  "counted",
+                  "outside",
+                  "merged",
+                  "unresolved"
+                ]
+              },
+              "process_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1
+              },
+              "merged_into": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1
+              },
+              "reason": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "evidence_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "\\S"
+                },
+                "minItems": 1,
+                "uniqueItems": true
+              }
+            }
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "judgments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "judgment_id",
+              "targets",
+              "kind",
+              "interpretation",
+              "rule",
+              "application_reason",
+              "evidence_refs",
+              "status",
+              "evidence_status",
+              "unresolved_points",
+              "alternatives"
+            ],
+            "properties": {
+              "judgment_id": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "targets": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "id",
+                    "process_id"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "candidate",
+                        "process",
+                        "data_group",
+                        "movement",
+                        "judgment"
+                      ]
+                    },
+                    "id": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    },
+                    "process_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "minLength": 1
+                    }
+                  }
+                },
+                "minItems": 1,
+                "uniqueItems": true
+              },
+              "kind": {
+                "enum": [
+                  "adopt",
+                  "not_counted",
+                  "merge",
+                  "split"
+                ]
+              },
+              "interpretation": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "rule": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "source",
+                  "id",
+                  "version"
+                ],
+                "properties": {
+                  "source": {
+                    "enum": [
+                      "skill",
+                      "project_policy",
+                      "external_standard"
+                    ]
+                  },
+                  "id": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "version": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  }
+                }
+              },
+              "application_reason": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "evidence_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "\\S"
+                },
+                "minItems": 0,
+                "uniqueItems": true
+              },
+              "status": {
+                "enum": [
+                  "recorded",
+                  "provisional",
+                  "unresolved"
+                ]
+              },
+              "evidence_status": {
+                "enum": [
+                  "sufficient",
+                  "insufficient",
+                  "missing"
+                ]
+              },
+              "unresolved_points": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "\\S"
+                },
+                "minItems": 0,
+                "uniqueItems": true
+              },
+              "alternatives": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "interpretation",
+                    "rejection_reason"
+                  ],
+                  "properties": {
+                    "interpretation": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    },
+                    "rejection_reason": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    }
+                  }
+                },
+                "minItems": 0,
+                "uniqueItems": true
+              }
+            }
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "comparison": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "previous_assessment",
+            "previous_hash",
+            "reason",
+            "scope_changes",
+            "movement_changes"
+          ],
+          "properties": {
+            "previous_assessment": {
+              "type": "object"
+            },
+            "previous_hash": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "reason": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "scope_changes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "before",
+                  "after",
+                  "reason",
+                  "evidence_refs"
+                ],
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "add",
+                      "exclude",
+                      "merge",
+                      "split",
+                      "unmatched"
+                    ]
+                  },
+                  "before": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "id",
+                        "process_id"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "candidate",
+                            "process",
+                            "data_group",
+                            "movement",
+                            "judgment"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        },
+                        "process_id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    "minItems": 0,
+                    "uniqueItems": true
+                  },
+                  "after": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "id",
+                        "process_id"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "candidate",
+                            "process",
+                            "data_group",
+                            "movement",
+                            "judgment"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        },
+                        "process_id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    "minItems": 0,
+                    "uniqueItems": true
+                  },
+                  "reason": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true
+                  }
+                }
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "movement_changes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "before",
+                  "after",
+                  "judgment_refs",
+                  "reason"
+                ],
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "add",
+                      "delete",
+                      "merge",
+                      "split",
+                      "unmatched",
+                      "retained"
+                    ]
+                  },
+                  "before": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "id",
+                        "process_id"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "candidate",
+                            "process",
+                            "data_group",
+                            "movement",
+                            "judgment"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        },
+                        "process_id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    "minItems": 0,
+                    "uniqueItems": true
+                  },
+                  "after": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "id",
+                        "process_id"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "candidate",
+                            "process",
+                            "data_group",
+                            "movement",
+                            "judgment"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        },
+                        "process_id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    "minItems": 0,
+                    "uniqueItems": true
+                  },
+                  "judgment_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true
+                  },
+                  "reason": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  }
+                }
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            }
+          }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "format_version"
+            ],
+            "properties": {
+              "format_version": {
+                "const": "oes/assessment/v2"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "scope_record",
+              "function_candidates",
+              "judgments"
+            ],
+            "properties": {
+              "data_groups": {
+                "items": {
+                  "required": [
+                    "definition"
+                  ],
+                  "properties": {
+                    "attributes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "\\S"
+                      },
+                      "minItems": 1,
+                      "uniqueItems": true
+                    }
+                  }
+                }
+              },
+              "functional_processes": {
+                "items": {
+                  "required": [
+                    "boundary"
+                  ]
+                }
+              },
+              "findings": {
+                "items": {
+                  "required": [
+                    "targets",
+                    "impact",
+                    "resolution"
+                  ]
+                }
+              }
+            }
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "scope_record"
+                  ]
+                },
+                {
+                  "required": [
+                    "function_candidates"
+                  ]
+                },
+                {
+                  "required": [
+                    "judgments"
+                  ]
+                },
+                {
+                  "required": [
+                    "comparison"
+                  ]
+                }
+              ]
+            },
+            "properties": {
+              "data_groups": {
+                "items": {
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "definition"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+              "functional_processes": {
+                "items": {
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "boundary"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+              "findings": {
+                "items": {
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "targets"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "impact"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "resolution"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "Report": {
       "type": "object",

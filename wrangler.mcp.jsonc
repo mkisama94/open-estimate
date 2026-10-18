@@ -4,5 +4,7 @@
   "main": "src/remote/worker.ts",
   "compatibility_date": "2026-09-25",
   "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "routes": [{ "pattern": "open-estimate.ai-orchestration.jp/mcp*", "zone_name": "ai-orchestration.jp" }],
   "observability": { "enabled": false }
 }

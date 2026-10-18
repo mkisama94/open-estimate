@@ -1,6 +1,8 @@
-# Open Estimate (OES) — デスクトップ試用版 0.4.0
+# Open Estimate (OES) — Work／Codex・ローカル実行向け 0.5.0
 
-**0.4.0実装（2026-10-18）**：ローカルMCPへの依存を外し、同梱CLIとHTTPリモートMCPへ分離しました。`npm run build` → `npm test` → `npm run plugin:pack` → `npm run plugin:smoke`。新配布先は`release/desktop-marketplace`です。[利用・送信契約・検証範囲](docs/DESKTOP-PLUGIN.md)を参照してください。公開ドメインへのデプロイ、Work/Codex実機操作、保存・認証・発行は未実施です。以下の0.3.0記述は従来実装の記録です。
+**ソース解析には、対象フォルダーを読み取り、補助スクリプトを実行できるWorkまたはCodexのローカル実行環境とNode.js 24以上が必要です。** Chatモードでフォルダーパスを指定するだけでは解析できません。Work／Codexでも対象へアクセスできないクラウド環境では実行できません。[初めての導入・開始手順とエラー別の案内](docs/DESKTOP-PLUGIN.md)を参照してください。Assessmentの下書きと検査済み入力をセッション内にローカル保持します。評価ID・サーバー保存・確認用HTML・証明書は未提供です。Workでの評価完了は実機未確認です。
+
+**現在の構成**：同梱CLIとHTTPリモートMCPを使用します。`npm run build` → `npm test` → `npm run plugin:pack` → `npm run plugin:smoke`。新配布先は`release/desktop-marketplace`です。[利用・送信契約・検証範囲](docs/DESKTOP-PLUGIN.md)と[Assessment v2の実装内容](docs/implementation/ASSESSMENT-RECORDS-V2.md)を参照してください。サーバー保存・認証・発行は未提供で、0.5.0の本番デプロイは実施していません。以下の0.3.0記述は従来実装の記録で、現行版の導入手順には使いません。
 
 **次期構成（2026-10-18、未実装）**：公開版はローカルMCPを必須とせず、Work／CodexのSkill・標準ツール・補助スクリプトとリモートMCPに分けます。ローカルの測定記録を独立検証済みの証拠として扱いません。[構成変更と検証の境界](docs/implementation/LOCAL-EXECUTION-BOUNDARY.md)。以下は現在の0.3.0の導入・実装情報です。
 

@@ -86,6 +86,7 @@ export interface ObjectOfInterest {
 }
 
 export interface DataGroup {
+  definition?: DataGroupDefinition;
   data_group_id: string;
   object_of_interest_id: string;
   name: string;
@@ -116,6 +117,7 @@ export interface DataMovement {
 }
 
 export interface FunctionalProcess {
+  boundary?: ProcessBoundary;
   process_id: string;
   component_id: string;
   name: string;
@@ -129,6 +131,9 @@ export interface FunctionalProcess {
 }
 
 export interface Finding {
+  targets?: TargetRef[];
+  impact?: "scope" | "coverage" | "boundary" | "counting" | "explanation";
+  resolution?: "open" | "resolved";
   finding_id: string;
   category: FindingCategory;
   severity: FindingSeverity;
@@ -143,7 +148,55 @@ export interface HumanAmendment {
   reason: string;
 }
 
+export type JudgmentStatus = "recorded" | "provisional" | "unresolved";
+export interface TargetRef {
+  kind: "candidate" | "process" | "data_group" | "movement" | "judgment";
+  id: string;
+  process_id: string | null;
+}
+export interface ScopeRecord {
+  scope_id: string;
+  revision: number;
+  confirmations: Array<{ confirmation_id: string; actor: "user" | "ai"; statement: string; confirmed_at: string }>;
+  files: Array<{ path: string; membership: "included" | "outside" | "supporting" | "unresolved";
+    reason: string; confirmation_ref: string | null; evidence_refs: string[] }>;
+}
+export interface FunctionCandidate {
+  candidate_id: string; name: string; role: string; component_id: string;
+  disposition: "counted" | "outside" | "merged" | "unresolved";
+  process_id: string | null; merged_into: string | null; reason: string; evidence_refs: string[];
+}
+export interface Judgment {
+  judgment_id: string; targets: TargetRef[]; kind: "adopt" | "not_counted" | "merge" | "split";
+  interpretation: string;
+  rule: { source: "skill" | "project_policy" | "external_standard"; id: string; version: string };
+  application_reason: string; evidence_refs: string[]; status: JudgmentStatus;
+  evidence_status: "sufficient" | "insufficient" | "missing";
+  unresolved_points: string[]; alternatives: Array<{ interpretation: string; rejection_reason: string }>;
+}
+export interface ProcessBoundary {
+  start: string; functional_user_id: string; goal: string; completion: string;
+  execution_relationship: string; grouping_reason: string; evidence_refs: string[]; judgment_refs: string[];
+}
+export interface DataGroupDefinition {
+  business_meaning: string; identifiers: string[]; no_identifier_reason: string | null;
+  attribute_mapping: string; grouping_reason: string; evidence_refs: string[]; unconfirmed: string[];
+}
+export interface AssessmentComparison {
+  previous_assessment: Assessment;
+  previous_hash: string;
+  reason: string;
+  scope_changes: Array<{ kind: "add" | "exclude" | "merge" | "split" | "unmatched";
+    before: TargetRef[]; after: TargetRef[]; reason: string; evidence_refs: string[] }>;
+  movement_changes: Array<{ kind: "add" | "delete" | "merge" | "split" | "retained" | "unmatched";
+    before: TargetRef[]; after: TargetRef[]; judgment_refs: string[]; reason: string }>;
+}
 export interface Assessment {
+  format_version?: "oes/assessment/v1" | "oes/assessment/v2";
+  scope_record?: ScopeRecord;
+  function_candidates?: FunctionCandidate[];
+  judgments?: Judgment[];
+  comparison?: AssessmentComparison;
   assessment_id: string;
   assessor: AssessorInfo;
   input: AssessmentInput;

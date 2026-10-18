@@ -49,7 +49,7 @@ const skill = hashSkillPackage(path.join(plugin, 'skills/open-estimate-assessor'
 const skillManifest = JSON.parse(await fs.readFile(path.join(plugin, 'skills/open-estimate-assessor/skill.manifest.json'), 'utf8'));
 if (skill.package_sha256 !== skillManifest.package_sha256) throw new Error('Packaged skill hash mismatch');
 await json(path.join(marketplace, '.agents/plugins/marketplace.json'), {
-  name: 'open-estimate-desktop', interface: { displayName: 'Open Estimate Desktop' },
+  name: 'open-estimate-desktop', interface: { displayName: 'Open Estimate（Work／Codex・ローカル実行向け）' },
   plugins: [{ name: 'open-estimate', source: { source: 'local', path: './plugins/open-estimate' },
     policy: { installation: 'AVAILABLE', authentication: 'ON_INSTALL' }, category: 'Productivity' }]
 });

@@ -10,7 +10,7 @@ const plugin = path.join(temp, 'relocated plugin');
 try {
   await fs.cp(path.join(repo, 'release/desktop-marketplace/plugins/open-estimate'), plugin, { recursive: true });
   const manifest = JSON.parse(await fs.readFile(path.join(plugin, '.codex-plugin/plugin.json')));
-  assert.equal(manifest.version, '0.4.0');
+  assert.equal(manifest.version, '0.5.0');
   assert.equal(manifest.requires_local_executor, true);
   const mcp = JSON.parse(await fs.readFile(path.join(plugin, '.mcp.json'))).mcpServers['open-estimate'];
   assert.deepEqual(mcp, { type: 'http', url: 'https://open-estimate.ai-orchestration.jp/mcp' });
@@ -22,7 +22,7 @@ try {
   };
   const contract = run('contract', {});
   assert.equal(contract.workspace_root, null);
-  assert.equal(contract.skill.skill_version, '0.4.0');
+  assert.equal(contract.skill.skill_version, '0.5.0');
   const root = path.join(temp, 'sample-project'); await fs.mkdir(root);
   await fs.writeFile(path.join(root, 'main.js'), 'export const value = 1;\n');
   await fs.writeFile(path.join(root, '.env'), 'CANARY=do-not-read\n');

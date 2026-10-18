@@ -57,8 +57,8 @@
                 <span>「ISO/IEC 19761 / COSMIC v5.0」に基づき、ソースコードの価値を工数見積します。</span>
               </div>
               <p class="hero-plugin-desc">
-                オープン工数見積は貴方のソースコードを工数見積する<strong>ChatGPTプラグイン</strong>です。<br>
-                ソースコードを公開したりアップロードする必要なく、Codex上で貴方のアプリの「工数」を見積り、見積を公開できます。
+                オープン工数見積は<strong>Work／Codex向けのプラグイン</strong>です。<br>
+                ソース解析には、対象フォルダーを読み取り、補助スクリプトを実行できるローカル環境とNode.js 24以上が必要です。Chatでパスを指定するだけでは解析できません。
               </p>
               <div class="hero-actions">
                 <a href="#start" class="btn btn-primary">自分のソフトを測ってみる</a>
@@ -66,8 +66,8 @@
                 <a href="#sample" class="btn-link">どんな結果が出る？ ↓</a>
               </div>
               <p class="hero-note">
-                開発者向けα版 · 対応AI環境＋ローカルMCPで利用<br>
-                COSMIC規格の機能規模（CFP）に加え、参照実績による工数（人日）・公的統計による参考金額への換算に対応。
+                開発者向け試用版 · Work／Codexのローカル実行環境で利用（Work実機は未確認）<br>
+                COSMIC規格の機能規模とTEST参考工数を算出。工数・時給は架空のTEST値です。評価ID・保存・確認用HTML・証明書は未提供です。
               </p>
             </div>
 
@@ -557,20 +557,20 @@
           <div class="section-header">
             <h2 id="usage-title">使い方。会議は不要です。</h2>
             <p>
-              プロジェクトの調整も見積依頼書も不要。AI環境にMCPを登録し、測定を頼むだけです。
+              対象フォルダーを開き、ローカル実行が可能なWork／Codexの新しいチャットで始めます。クラウド環境からPCのフォルダーへアクセスできるとは限りません。
             </p>
           </div>
 
           <div class="steps-grid">
             <article class="step-card">
               <span class="step-number">01</span>
-              <h3>MCPを導入する。</h3>
-              <p>対応するAI環境（Claude Desktop、Cursor等）に、Open Estimateを追加します。</p>
+              <h3>プラグインを導入する。</h3>
+              <p>「オープン工数見積（Work／Codex向け）」を追加します。Node.js 24以上と対象フォルダーの読取・ローカル実行環境が必要です。</p>
             </article>
             <article class="step-card">
               <span class="step-number">02</span>
               <h3>自分のソフトを測らせる。</h3>
-              <p>対象リポジトリを指定して、AIに測定を依頼します。</p>
+              <p>ファイル読取・補助CLI・リモートMCPの利用可否を確認し、対象範囲への同意後に解析します。Chatで実行できない場合はWork／Codexのローカル環境で同じ依頼を送ってください。</p>
             </article>
             <article class="step-card">
               <span class="step-number">03</span>
@@ -586,7 +586,7 @@
               <button class="copy-btn" id="copy-prompt-btn" type="button">依頼文をコピー</button>
             </div>
             <p class="prompt-text" id="prompt-content">
-              「このリポジトリをOpen Estimateで測定してください。機能規模と、数えた機能・根拠・除外範囲を教えてください。」
+              「このプロジェクトをOpen Estimateで測定してください。まずファイル読取・補助CLI・リモートMCPの利用可否を確認し、対象範囲への同意後に解析してください。」
             </p>
           </div>
 
@@ -596,7 +596,7 @@
               導入手順を見る（GitHub）
             </a>
             <p class="usage-disclaimer">
-              現在は開発者向けのローカルMCP版です。対応環境と設定手順をご確認ください。<br>
+              直接登録したリモートMCPは数値モデルの再計算専用で、フォルダー走査・ソース解析は行いません。<br>
               利用するAIサービスの料金は別途かかる場合があります。
             </p>
           </div>

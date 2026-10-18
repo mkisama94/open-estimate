@@ -28,9 +28,10 @@ export default {
       const raw = Buffer.concat(chunks).toString("utf8");
       const parsed = parseStrictJson(raw);
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return new Response("Invalid request", { status: 400 });
-      const server = new Server({ name: "open-estimate-remote", version: "0.4.0" }, { capabilities: { tools: {} } });
+      const server = new Server({ name: "open-estimate-remote", title: "オープン工数見積：数値モデル再計算専用", version: "0.4.1" }, { capabilities: { tools: {} } });
       server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: [{ name: "evaluate_model",
-        description: "Recalculate a client-reported numeric functional model using server TEST rules and display-time FRB rates. No source audit, storage, certificate or publication.",
+        title: "数値モデル再計算専用（フォルダー走査・ソース解析なし）",
+        description: "作成済みの数値モデルを再計算します。PC上のフォルダーの走査やソース解析は行いません。フォルダーパス・ソースを渡さないでください。ソースからの見積りには対象を読取・補助CLIを実行できるWork／Codexとソース解析用プラグインが必要です。Recalculates a client-reported numeric model using server TEST rules and display-time FRB rates. No evaluation ID, storage, HTML report, source audit, certificate or publication.",
         inputSchema: remoteArgsSchema as any,
         annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: true } }] }));
       server.setRequestHandler(CallToolRequestSchema, async req => {

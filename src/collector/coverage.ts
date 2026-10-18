@@ -84,7 +84,7 @@ export class SnapshotCoverageTracker {
    * Reconciles the input manifest with the actual coverage tracking.
    * If reconciled manifest hash differs from submitted, returns reconciled manifest and hash.
    */
-  public reconcileInput(submittedInput: AssessmentInput): { reconciledInput: AssessmentInput; wasReconciled: boolean } {
+  public reconcileInput(submittedInput: AssessmentInput, scoped = false): { reconciledInput: AssessmentInput; wasReconciled: boolean } {
     let changed = false;
     const submitted = new Map(submittedInput.manifest.files.map(f => [f.path, f]));
     if (submitted.size !== this.originalManifest.files.length || submitted.size !== submittedInput.manifest.files.length)
@@ -120,7 +120,8 @@ export class SnapshotCoverageTracker {
 
     // Determine analysis_complete: true if all non-excluded files are analyzed/supporting
     const hasUnread = reconciledFiles.some(f => f.disposition === "unread");
-    const analysisComplete = this.snapshotComplete && submittedInput.analysis_complete && !hasUnread;
+    // v2 records acquisition here; declared-scope completion is derived by recordState.
+    const analysisComplete = scoped ? this.snapshotComplete : this.snapshotComplete && submittedInput.analysis_complete && !hasUnread;
     if (analysisComplete !== submittedInput.analysis_complete) changed = true;
 
     const reconciledInput: AssessmentInput = {

@@ -41,7 +41,7 @@ describe("FRB H.10 direct provider", () => {
     now = new Date("2026-10-23T12:00:00Z");
     const fallback = await provider.get("JPY");
     expect(fallback.status).toBe("AVAILABLE");
-    expect(fallback.limitation_codes).toEqual(["FX_CACHE_AFTER_FAILURE"]);
+    expect(fallback.limitation_codes).toEqual(["FX_CACHE_AFTER_FAILURE", "FRB_FETCH_FAILED"]);
     expect(fallback.snapshot?.checked_at).toBe(first.snapshot?.checked_at);
     now = new Date("2026-10-24T00:00:00Z");
     expect((await provider.get("JPY")).status).toBe("FX_STALE");
@@ -52,5 +52,44 @@ describe("FRB H.10 direct provider", () => {
       const provider = new FrbProvider(async () => response, () => fxNow);
       expect((await provider.get("JPY")).status).toBe("FX_UNAVAILABLE");
     }
+  });
+
+  it("calls default and injected fetch without binding the provider as this", async () => {
+    const request = vi.fn(async function(this: unknown, _input: RequestInfo | URL, init?: RequestInit) {
+      if (this !== undefined) throw new TypeError("Illegal invocation");
+      if (init?.redirect !== "manual") throw new TypeError("Invalid redirect mode");
+      return htmlResponse(frbHtml());
+    });
+    vi.stubGlobal("fetch", request);
+    try {
+      expect((await new FrbProvider(undefined, () => fxNow).get("JPY")).status).toBe("AVAILABLE");
+      expect((await new FrbProvider(request, () => fxNow).get("JPY")).status).toBe("AVAILABLE");
+    } finally { vi.unstubAllGlobals(); }
+  });
+
+  it("rejects redirects without requesting the redirect destination", async () => {
+    const request = vi.fn(async () => new Response("redirect body", { status: 302, headers: { location: "https://other.example/" } }));
+    const result = await new FrbProvider(request, () => fxNow).get("JPY");
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ status: "FX_UNAVAILABLE", snapshot: null, limitation_codes: ["FX_UNAVAILABLE", "FRB_REDIRECT_REJECTED"] });
+  });
+
+  it.each([
+    [() => new Response("private HTTP body", { status: 503 }), "FRB_HTTP_ERROR"],
+    [() => new Response("{}", { headers: { "content-type": "application/json" } }), "FRB_CONTENT_TYPE_INVALID"],
+    [() => new Response(null, { headers: { "content-type": "text/html" } }), "FRB_BODY_MISSING"],
+    [() => htmlResponse("x".repeat(5 * 1024 * 1024 + 1)), "FRB_RESPONSE_TOO_LARGE"],
+    [() => new Response(new Uint8Array([255]), { headers: { "content-type": "text/html" } }), "FRB_UTF8_INVALID"],
+    [() => htmlResponse("unexpected private HTML"), "FRB_RESPONSE_INVALID"]
+  ] as const)("reports a safe failure code %s", async (response, code) => {
+    const result = await new FrbProvider(async () => response(), () => fxNow).get("JPY");
+    expect(result.status).toBe("FX_UNAVAILABLE");
+    expect(result.limitation_codes).toEqual(["FX_UNAVAILABLE", code]);
+    expect(JSON.stringify(result)).not.toContain("private");
+  });
+
+  it.each(["TimeoutError", "AbortError"])("reports %s without exposing exception messages", async name => {
+    const result = await new FrbProvider(async () => { throw new DOMException("private diagnostic", name); }).get("JPY");
+    expect(result.limitation_codes).toEqual(["FX_UNAVAILABLE", "FRB_TIMEOUT"]);
   });
 });

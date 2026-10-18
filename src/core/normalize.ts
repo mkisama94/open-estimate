@@ -1,5 +1,6 @@
 import { jcsSha256 } from "./canonical.js";
 import type { Assessment } from "./types.js";
+import { isRecordedAssessment } from "./records.js";
 
 function cmpUnicode(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
@@ -52,6 +53,25 @@ export function normalizeAssessment(assessment: Assessment): { normalized: Asses
 
   // Sort files in manifest
   norm.input.manifest.files.sort((a, b) => cmpUnicode(a.path, b.path));
+
+  if (isRecordedAssessment(norm)) {
+    // New record arrays are sets. Do not add defaults or reorder any legacy payload.
+    const sortSets = (value: any): any => {
+      if (Array.isArray(value)) return value.map(sortSets).sort((a,b) => cmpUnicode(JSON.stringify(a),JSON.stringify(b)));
+      if (value && typeof value === "object") return Object.fromEntries(Object.keys(value).sort(cmpUnicode).map(k => [k,sortSets(value[k])]));
+      return value;
+    };
+    norm.scope_record = sortSets(norm.scope_record);
+    norm.function_candidates = sortSets(norm.function_candidates);
+    norm.judgments = sortSets(norm.judgments);
+    for (const p of norm.functional_processes) p.boundary = sortSets(p.boundary);
+    for (const g of norm.data_groups) g.definition = sortSets(g.definition);
+    for (const f of norm.findings) f.targets = sortSets(f.targets);
+    if (norm.comparison) {
+      norm.comparison.scope_changes = sortSets(norm.comparison.scope_changes);
+      norm.comparison.movement_changes = sortSets(norm.comparison.movement_changes);
+    }
+  }
 
   const assessment_hash = jcsSha256(norm);
 

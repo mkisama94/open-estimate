@@ -1,5 +1,7 @@
 import { Ajv2020 } from "ajv/dist/2020.js";
 import type { Assessment } from "../core/types.js";
+import { isRecordedAssessment, recordState } from "../core/records.js";
+import { validateRecords } from "../core/validate-records.js";
 import { measureAssessment } from "../core/measure.js";
 import { estimateAssessment } from "../core/estimate.js";
 import { createDisplayQuote } from "../core/display-quote.js";
@@ -27,18 +29,24 @@ const validate = new Ajv2020({ strict: false }).compile(remoteArgsSchema);
 
 /** Only enums, booleans and generated integers cross the OES boundary. */
 export function projectModel(a: Assessment) {
+  if (isRecordedAssessment(a) && validateRecords(a).length) throw new Error("INVALID_ASSESSMENT_RECORDS");
+  const state = isRecordedAssessment(a) ? recordState(a) : null;
   const users = a.functional_users.map(u => u.user_id), stores = a.persistent_stores.map(s => s.store_id);
   const groups = a.data_groups.map(g => g.data_group_id);
   const objects = [...new Set(a.data_groups.map(g => g.object_of_interest_id))];
   const variants = [...new Set(a.functional_processes.flatMap(p => p.movements.map(v => v.semantic_variant_key)))];
+  // v1 cannot encode an unknown trigger. Retain that unadopted function locally
+  // with partial=true; never invent a group or movement to satisfy transport.
+  const processes = a.functional_processes.filter(p => !state || p.status === "accepted"
+    || p.movements.some(m => m.movement_id === p.trigger_movement_id));
   return {
-    version: "oes/remote-model/v1", analysis_complete: a.input.analysis_complete,
-    partial: a.components.some(c => c.status === "unresolved" || (c.status === "excluded" && c.scope_impact))
-      || a.findings.some(f => f.severity === "blocking"),
+    version: "oes/remote-model/v1", analysis_complete: state?.analysis_complete ?? a.input.analysis_complete,
+    partial: state?.partial ?? (a.components.some(c => c.status === "unresolved" || (c.status === "excluded" && c.scope_impact))
+      || a.findings.some(f => f.severity === "blocking")),
     applicability_limit: a.findings.some(f => f.category === "applicability_limit")
-      || a.components.some(c => c.status === "excluded" && c.scope_impact && c.reason.toLowerCase().includes("applicability")),
+      || (!isRecordedAssessment(a) && a.components.some(c => c.status === "excluded" && c.scope_impact && c.reason.toLowerCase().includes("applicability"))),
     users: users.length, stores: stores.length, groups: a.data_groups.map(g => objects.indexOf(g.object_of_interest_id)),
-    processes: a.functional_processes.map(p => ({ status: p.status,
+    processes: processes.map(p => ({ status: p.status,
       trigger_user: users.indexOf(p.trigger_user_id), trigger_group: groups.indexOf(p.movements.find(v => v.movement_id === p.trigger_movement_id)?.data_group_id ?? ""),
       movements: p.movements.map(m => ({ type: m.type, group: groups.indexOf(m.data_group_id),
         peer: m.peer_id === null ? null : users.indexOf(m.peer_id), store: m.store_id === null ? null : stores.indexOf(m.store_id),

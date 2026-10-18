@@ -1,6 +1,6 @@
 {
   "name": "open-estimate",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Open Estimate — functional size measurement and estimation based on COSMIC",
   "type": "module",
   "main": "dist/index.js",
@@ -24,6 +24,7 @@
     "fx:check": "node scripts/check-frb.mjs",
     "helper": "node dist/local/cli.js",
     "dev:mcp": "wrangler dev --config wrangler.mcp.jsonc",
+    "deploy:mcp": "wrangler deploy --config wrangler.mcp.jsonc",
     "deploy:mcp:check": "wrangler deploy --config wrangler.mcp.jsonc --dry-run"
   },
   "dependencies": {
