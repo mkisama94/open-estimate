@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Open Estimate — 工数見積は嫌い。でも、自分が作ったものの見積なら見たい。</title>
-    <meta name="description" content="AIで作ったソフトウェアのソースコードを読み解き、COSMIC規格に基づく機能規模（CFP）を算出。「なんか結構つくった」を根拠付きの数字にするオープンソースプロジェクトです。">
+    <title>Open Estimate — ソフトウェアの機能規模を測る</title>
+    <meta name="description" content="Open Estimateは、ソースコードから実装された機能を読み解き、COSMIC規格に基づいて機能規模を測定する開発者向けプラグインです。測定結果と根拠を確認でき、試験用の係数による工数換算を試せます。">
     
     <!-- OGP -->
-    <meta property="og:title" content="Open Estimate — オープン工数見積">
-    <meta property="og:description" content="工数見積は嫌い。でも、自分が作ったものの見積なら、ちょっと見たい。AIの成果を客観的な数字にする開発者向けOSS。">
+    <meta property="og:title" content="Open Estimate — 何をどれだけ作ったかを、数字で伝える">
+    <meta property="og:description" content="ソフトウェアの機能規模を測り、何を数えたのか、どう判断したのかを確認。現在は開発者向けα版です。工数・金額への換算には試験用の架空の係数を使用します。">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://open-estimate.ai-orchestration.jp/">
     <meta property="og:image" content="https://open-estimate.ai-orchestration.jp/images/ai-orchestration-logo.png">
@@ -40,34 +40,30 @@
     </header>
 
     <main id="top">
-      <!-- ① ファーストビュー：工数見積、好きですか ？ -->
+      <!-- ① ファーストビュー -->
       <section class="hero-section" aria-labelledby="hero-title">
         <div class="container">
           <div class="hero-grid">
             <div class="hero-content">
-              <p class="hero-intro">2026年、AIエージェントがソフトウェアを記述する時代。<br>
-人類は依然として見積を「人日」に縛られていた――。</p>
+              <p class="hero-intro">AIで作ったアプリも、育ててきたツールも。</p>
  
               <h1 class="hero-hate" id="hero-title">オープン工数見積</h1>
               <p class="hero-catch">
-                <strong>貴方のアプリを、AIプラグインが工数見積</strong>
+                <strong>何を、どれだけ作ったか。根拠のある数字で伝えよう。</strong>
               </p>
               <div class="hero-oss-banner">
-                <strong>オープン工数見積 — Open Estimate</strong>
-                <span>「ISO/IEC 19761 / COSMIC v5.0」に基づき、ソースコードの価値を工数見積します。</span>
+                <strong>Open Estimate</strong>
+                <span>ソースコードから実装された機能を読み解き、COSMIC規格に基づいて機能規模を測定します。</span>
               </div>
               <p class="hero-plugin-desc">
-                オープン工数見積は<strong>Work／Codex向けのプラグイン</strong>です。<br>
-                ソース解析には、対象フォルダーを読み取り、補助スクリプトを実行できるローカル環境とNode.js 24以上が必要です。Chatでパスを指定するだけでは解析できません。
+                Open Estimateは、Work／Codexのローカル実行環境で使う開発者向けプラグインです。どの機能を数えたのか、どのように判断したのかを確認できます。
               </p>
               <div class="hero-actions">
-                <a href="#start" class="btn btn-primary">自分のソフトを測ってみる</a>
-                <a href="./estimate-detail.html" class="btn btn-secondary" style="font-size: 0.92rem; padding: 10px 18px;">見積詳細・共有画面を見る →</a>
-                <a href="#sample" class="btn-link">どんな結果が出る？ ↓</a>
+                <a href="#start" class="btn btn-primary">導入手順を見る</a>
+                <a href="#sample" class="btn-link">測定結果のサンプルを見る ↓</a>
               </div>
               <p class="hero-note">
-                開発者向け試用版 · Work／Codexのローカル実行環境で利用（Work実機は未確認）<br>
-                COSMIC規格の機能規模とTEST参考工数を算出。工数・時給は架空のTEST値です。評価ID・保存・確認用HTML・証明書は未提供です。
+                開発者向けα版です。工数・金額の換算には試験用の架空の係数を使用しており、実際の開発工数や費用を示すものではありません。
               </p>
             </div>
 
@@ -77,14 +73,14 @@
                 <div class="card-header-bar">
                   <div>
                     <span class="card-badge">OPEN ESTIMATE REPORT</span>
-                    <h3 class="card-title">つくログ</h3>
+                    <h3 class="card-title">つくログ（架空のアプリ）</h3>
                   </div>
-                  <span class="card-meta-tag">表示サンプル</span>
+                  <span class="card-meta-tag">架空の条件による表示例</span>
                 </div>
 
                 <div class="card-dual-metric">
                   <div class="metric-col-left">
-                    <div class="card-metric-title">参照開発工数</div>
+                    <div class="card-metric-title">工数換算例</div>
                     <div class="card-metric-val">
                       <span class="card-days-number">45</span>
                       <span class="card-days-unit">人日相当</span>
@@ -92,40 +88,37 @@
                     <div class="card-subtext">360人時 · 1人日=8人時</div>
                   </div>
                   <div class="metric-col-right">
-                    <div class="card-metric-title">参考労務換算額</div>
+                    <div class="card-metric-title">金額換算例</div>
                     <div class="card-metric-val">
                       <span class="card-jpy-number">約270</span>
                       <span class="card-jpy-unit">万円</span>
                     </div>
-                    <div class="card-subtext">USD 18,000 · 参考値</div>
+                    <div class="card-subtext">USD 18,000 · 試算例</div>
                   </div>
                 </div>
 
                 <div class="card-status">
-                  COMPLETE · 120 CFP · Community · 架空値表示例
+                  機能規模 120 CFP · 架空の測定結果
                 </div>
 
                 <dl class="card-qa-list">
                   <div class="qa-item">
                     <dt>何を測った？</dt>
-                    <dd>Web/API全コアモジュール（24プロセス確定・除外2件）</dd>
+                    <dd>WebアプリとAPIの機能（表示例）</dd>
                   </div>
                   <div class="qa-item">
                     <dt>何を数えた？</dt>
-                    <dd>機能ごとのデータ移動（Entry 35 / Exit 45 / Read 25 / Write 15）</dd>
+                    <dd>機能ごとの入力・出力・読取・書込</dd>
                   </div>
                   <div class="qa-item">
                     <dt>どう換算した？</dt>
-                    <dd>3.0 h/CFP × $50.00/h × 150円/$（公的統計・為替基準）</dd>
+                    <dd>試算用の仮定：3人時/CFP × 50米ドル/人時 × 150円/米ドル</dd>
                   </div>
                 </dl>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-color); padding: 8px 12px 0;">
-                  <a href="#sample" class="card-link-more" id="hero-open-details" style="border: none; padding: 4px 0;">
-                    ［測定・算定の内訳を見る］↓
-                  </a>
-                  <a href="./estimate-detail.html" style="font-size: 0.82rem; font-weight: 700; color: var(--accent-color); text-decoration: none;">
-                    共有ページを開く ↗
+                <div style="border-top: 1px dashed var(--border-color); padding: 8px 12px 0; text-align: center;">
+                  <a href="#sample" class="card-link-more" style="border: none; padding: 4px 0;">
+                    試算の内訳を見る ↓
                   </a>
                 </div>
               </article>
@@ -134,12 +127,11 @@
         </div>
       </section>
 
-      <!-- ② 共感：「これ、結構すごくない？」を数字にする -->
+      <!-- ② 共感セクション -->
       <section class="empathy-section" aria-labelledby="empathy-title">
         <div class="container-narrow">
           <h2 class="empathy-heading" id="empathy-title">
-            AIで作りました。<br>
-            <span class="sub">……で、これ、どれくらいすごいんでしょう。</span>
+            「AIで作りました」の、その先を伝える。
           </h2>
           <div class="empathy-body">
             <p>
@@ -148,50 +140,39 @@
               外部APIともつながった。
             </p>
             <p>
-              でも、人に説明すると「AIで作りました」の一言で終わってしまう。
-            </p>
-            <p class="empathy-highlight">
-              いや、もう少し褒められてもよくないですか。
+              けれど、「何をどれだけ作ったのか」を人に説明するのは、意外と難しいものです。
             </p>
             <p>
-              オープン工数見積は、あなたのソフトウェアが実現している機能を読み解き、共通の物差しで測ります。
+              Open Estimateは、ソフトウェアが実現している機能を整理し、共通の測定方法で規模を数値にします。
             </p>
             <p>
-              すごさの全部は測れません。<br>
-              でも、<strong>何をどれだけ作ったのかを説明する材料</strong>にはなります。
+              測定結果とその根拠は、つくった成果を具体的に説明する材料になります。
             </p>
           </div>
           <div class="empathy-theme-box">
-            <p class="empathy-theme-text">「自慢するための数字にも、出典を。」</p>
+            <p class="empathy-theme-text">つくった成果を、根拠とともに伝える。</p>
           </div>
         </div>
       </section>
 
-      <!-- ③ 結果サンプル：見積られると、こうなります -->
+      <!-- ③ 結果サンプル -->
       <section class="sample-section" id="sample" aria-labelledby="sample-title">
         <div class="container">
           <div class="section-header">
-            <h2 id="sample-title">見積られる側になると、<br>ちょっと楽しい。</h2>
+            <h2 id="sample-title">測定すると、こんな結果が見られます。</h2>
             <p>
-              数字だけ出して「以上です」にはしません。<br>
-              何を数えたのか、どこを読んだのか、どこがAIの判断なのかも残します。
+              機能の規模と換算の内訳を確認できます。以下は、架空のアプリと条件を使った表示例です。現在のプラグインがこのWebレポートを生成することを示すものではありません。
             </p>
           </div>
 
           <article class="sample-sheet" aria-label="測定結果サンプル詳細票">
             <div class="sheet-header">
               <div class="sheet-brand-group">
-                <span class="sheet-logo">OPEN ESTIMATE / ASSESSMENT REPORT</span>
-                <h3 class="sheet-title">ソフトウェア測定レポート：つくログ</h3>
-                <p style="margin: 4px 0 0; font-size: 0.88rem; color: var(--text-muted);">
-                  つくったものに、ちょっと誇れる数字を。
-                </p>
+                <span class="sheet-logo">OPEN ESTIMATE</span>
+                <h3 class="sheet-title">つくログ（架空のアプリ）</h3>
               </div>
               <div class="sheet-tag-list">
-                <span class="sheet-tag">表示サンプル</span>
-                <span class="sheet-tag">架空のアプリ（tsukulog）</span>
-                <span class="sheet-tag" style="background: var(--green-soft); color: var(--green-primary); font-weight: 700;">全体測定（COMPLETE）</span>
-                <span class="sheet-tag warning">未署名（デモ）</span>
+                <span class="sheet-tag">架空の条件による表示例</span>
               </div>
             </div>
 
@@ -199,7 +180,7 @@
             <div class="sheet-hero-result">
               <div class="sheet-hero-cols">
                 <div class="sheet-hero-col-left">
-                  <div class="sheet-metric-label">参照開発工数</div>
+                  <div class="sheet-metric-label">工数換算例</div>
                   <div class="sheet-days-display">
                     <span class="sheet-days-num">45</span>
                     <span class="sheet-days-unit">人日相当</span>
@@ -209,374 +190,91 @@
                   </div>
                 </div>
                 <div class="sheet-hero-col-right">
-                  <div class="sheet-metric-label">参考労務換算額</div>
+                  <div class="sheet-metric-label">金額換算例</div>
                   <div class="sheet-days-display">
                     <span style="font-size: 1.5rem; font-weight: 900; margin-right: 4px; color: var(--text-main);">約</span>
                     <span class="sheet-jpy-num">270</span>
                     <span class="sheet-jpy-unit">万円</span>
                   </div>
                   <div class="sheet-metric-sub">
-                    USD 18,000 ／ 市場価値ではありません
+                    18,000米ドル
                   </div>
                 </div>
               </div>
               <div class="sheet-hero-divider"></div>
               <div class="sheet-hero-footer">
                 <div>
-                  <strong>120</strong> CFP · Community · AIによる測定
+                  機能規模 <strong>120</strong> CFP
                 </div>
                 <div>
-                  架空の参照比率・時給・為替による表示例
+                  架空の条件による表示例
                 </div>
               </div>
             </div>
             <p class="sheet-disclaimer">
-              ※ 参考労務換算額は、ソフトウェアの売却価格、市場価値、または請負契約価格ではありません。公開研究実績および米国公的賃金統計に基づき、標準的な開発作業に要する労務費用を機械的に換算した参考値です。
+              ※ このサンプルの機能規模・工数係数・時給・為替は、表示を説明するための架空の値です。実績データに基づく見積もり、実際の開発費用、ソフトウェアの市場価値を示すものではありません。
             </p>
 
-            <!-- 工数換算のばらつき（四分位換算幅） -->
-            <div class="sheet-quartile-box">
-              <h4 class="sheet-quartile-title">工数換算のばらつき（参照実績の分布幅）</h4>
-              <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
-                ソフトウェア開発の実績データには案件ごとに幅があります。本換算では中央値（median）を代表値とし、参照実績における少工数側（p25）から多工数側（p75）の換算幅を併記しています。
-              </p>
-              <div class="quartile-grid">
-                <div class="quartile-item">
-                  <div class="quartile-label">第1四分位 (p25 / 少工数側: 2.0 h/CFP)</div>
-                  <div class="quartile-val">30 人日相当</div>
-                  <div class="quartile-sub">240 人時 · 約180万円</div>
-                </div>
-                <div class="quartile-item is-median">
-                  <div class="quartile-label">中央値 (median / 基準工数: 3.0 h/CFP)</div>
-                  <div class="quartile-val">45 人日相当</div>
-                  <div class="quartile-sub">360 人時 · 約270万円</div>
-                </div>
-                <div class="quartile-item">
-                  <div class="quartile-label">第3四分位 (p75 / 多工数側: 5.0 h/CFP)</div>
-                  <div class="quartile-val">75 人日相当</div>
-                  <div class="quartile-sub">600 人時 · 約450万円</div>
-                </div>
-              </div>
-              <div class="distribution-bar" aria-hidden="true">
-                <div class="distribution-bar-range"></div>
-                <div class="distribution-bar-median"></div>
-              </div>
-              <p style="font-size: 0.78rem; color: var(--text-light); margin: 6px 0 0;">
-                ※ 四分位は参照データ群における工数比率のばらつき分布（25%〜75%範囲）であり、開発期間（暦月・納期）の長短や対象案件がこの期間内に完成することを保証する予測区間ではありません。
-              </p>
-            </div>
-
-            <!-- ① 測定対象と対象作業の分離 -->
-            <div class="scope-section-box">
-              <h4 style="font-size: 1rem; font-weight: 800; margin: 0 0 10px; color: var(--text-main);">
-                このアプリの測定対象と適用範囲
+            <!-- 計算内訳 -->
+            <div style="margin-top: 24px;">
+              <h4 style="font-size: 1rem; font-weight: 800; margin: 0 0 12px; color: var(--text-main);">
+                計算内訳
               </h4>
-              <div class="scope-app-card">
-                <table class="details-table" style="margin: 0;">
-                  <tbody>
-                    <tr>
-                      <th>測定状態</th>
-                      <td><strong style="color: var(--green-primary);">全体測定（COMPLETE）</strong></td>
-                    </tr>
-                    <tr>
-                      <th>測定対象の説明</th>
-                      <td>WebフロントエンドおよびバックエンドAPIの全コアモジュール（機能プロセス計24件）</td>
-                    </tr>
-                    <tr>
-                      <th>対象外・未確認部分</th>
-                      <td>管理用バッチスクリプト、一部のサードパーティSDK連携用設定は対象外（除外: 2コンポーネント）</td>
-                    </tr>
-                    <tr>
-                      <th>未解決・未読の有無</th>
-                      <td>未解決プロセス: <strong>0</strong> 件 ／ 未読・未解析ファイル: <strong>0</strong> 件</td>
-                    </tr>
-                    <tr>
-                      <th>結果の適用範囲</th>
-                      <td>本レポートの工数・参考金額は、上記測定対象として識別された機能プロセス（120 CFP）のみの換算結果です。対象外コンポーネントや未解析コードの工数は含まれません。</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <p style="font-size: 0.78rem; color: var(--text-light); margin: -8px 0 18px;">
-                ※ 内部のソースコード、具体的なファイルパス、シンボル一覧等の詳細機密情報は公開されません。
-              </p>
-
-              <h4 style="font-size: 1rem; font-weight: 800; margin: 0 0 4px; color: var(--text-main);">
-                開発工数の対象作業（作業範囲定義）
-              </h4>
-              <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0 0 10px;">
-                作業定義名・版: <code>OES標準開発作業定義 第1版 (oes-standard-dev-v1)</code>
-              </p>
-              <div class="scope-comparison-grid">
-                <div class="scope-card scope-card-included">
-                  <h4>✓ 本工数に含まれる標準作業</h4>
-                  <ul class="scope-list">
-                    <li>詳細設計（データモデル・API・機能構造の設計）</li>
-                    <li>プログラミング・コーディング・機能実装</li>
-                    <li>単体テスト・機能結合検証・デバッグ</li>
-                  </ul>
-                </div>
-                <div class="scope-card scope-card-excluded">
-                  <h4>✗ 本工数に含まれない作業（対象外）</h4>
-                  <ul class="scope-list">
-                    <li>要件定義・ビジネス企画・仕様調整・ステークホルダー折衝</li>
-                    <li>プロジェクト管理・進行管理・会議・調整コスト</li>
-                    <li>デザイン・UI/UX検討・ブランド素材制作</li>
-                    <li>インフラ構築・クラウド環境設定・CI/CD整備・運用保守</li>
-                    <li>待ち時間・手戻り・不確定要素に対するバッファ</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <!-- 計算の流れ -->
-            <div style="margin: 24px 0 20px;">
-              <h4 style="font-size: 1rem; font-weight: 800; margin: 0 0 8px; color: var(--text-main);">
-                計算の流れ（算定の透明性）
-              </h4>
-              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px; line-height: 1.6;">
-                Open Estimate は主観的な係数や非公開アルゴリズムを用いません。COSMIC規格による機能規模から、公開統計データを用いて機械的に換算します。
-              </p>
-              <div class="flow-grid">
-                <div class="flow-step-card">
-                  <div class="flow-step-num">STEP 01</div>
-                  <div class="flow-step-title">機能規模測定</div>
-                  <div class="flow-step-value">120 CFP</div>
-                  <div class="flow-step-desc">COSMIC規格に基づく入力・出力・読取・書込の合計</div>
-                </div>
-                <div class="flow-step-card">
-                  <div class="flow-step-num">STEP 02</div>
-                  <div class="flow-step-title">参照実績工数</div>
-                  <div class="flow-step-value">360 人時</div>
-                  <div class="flow-step-desc">× 3.0 人時/CFP（中央値）＝ 45 人日相当</div>
-                </div>
-                <div class="flow-step-card">
-                  <div class="flow-step-num">STEP 03</div>
-                  <div class="flow-step-title">米ドル換算</div>
-                  <div class="flow-step-value">USD 18,000</div>
-                  <div class="flow-step-desc">× $50.00 / 人時（米国BLS賃金統計中央値）</div>
-                </div>
-                <div class="flow-step-card">
-                  <div class="flow-step-num">STEP 04</div>
-                  <div class="flow-step-title">参考円換算</div>
-                  <div class="flow-step-value">約270 万円</div>
-                  <div class="flow-step-desc">× 150.00 JPY/USD（公的基準為替レート）</div>
-                </div>
-              </div>
-              <p style="font-size: 0.78rem; color: var(--text-light); margin: 0;">
-                ※ すべて発行時点の固定値です。閲覧時の為替や経済条件によって自動更新されることはありません。
-              </p>
-            </div>
-
-            <!-- ② & ③ 算定根拠と参照条件の詳細 -->
-            <details class="accordion-details" id="accordion-basis" style="margin-top: 24px;">
-              <summary>
-                <span>算定の根拠と参照条件の詳細（出典・比率・賃金・為替）</span>
-                <span class="toggle-icon">▼</span>
-              </summary>
-              <div class="accordion-body">
-                <table class="details-table">
-                  <tbody>
-                    <tr>
-                      <th>工数換算係数 (3値)</th>
-                      <td>
-                        <div><strong>p25:</strong> 2.0 人時/CFP ｜ <strong>中央値:</strong> 3.0 人時/CFP ｜ <strong>p75:</strong> 5.0 人時/CFP</div>
-                        <div style="font-size: 0.8rem; color: var(--text-light); margin-top: 4px;">
-                          ※ 比率の作り方: 過去の実績案件における標準開発作業人時（実績）÷ COSMIC CFP を計算し、その分位点を集計
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <th>参照実績プロファイル</th>
-                      <td>
-                        <div><strong>プロファイルID:</strong> <code>oes-test-benchmark-v1</code>（版: <code>rev. 2026-09</code>）</div>
-                        <div><strong>対象領域:</strong> Webアプリケーション、REST/GraphQL API</div>
-                        <div><strong>対象期間:</strong> 2023年〜2025年 ｜ <strong>標本数:</strong> 10件 ｜ <strong>適合規模:</strong> 1〜500 CFP</div>
-                        <div><strong>対象作業定義:</strong> OES標準開発作業定義 第1版 (<code>oes-standard-dev-v1</code>)</div>
-                        <div style="margin-top: 6px;">
-                          <a href="https://example.com/benchmarks/oes-test-benchmark-v1" target="_blank" rel="noopener noreferrer">
-                            参照プロファイルの仕様と実績データ一覧を見る ↗
-                          </a>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <th>参考賃金の根拠 (USD)</th>
-                      <td>
-                        <div><strong>採用資料:</strong> 米国労働統計局（U.S. Bureau of Labor Statistics / BLS）Occupational Employment and Wage Statistics (OEWS)</div>
-                        <div><strong>対象年月:</strong> 2025年5月調査データ（May 2025 data, 2026年4月公表）</div>
-                        <div><strong>職種・地域・指標:</strong> 米国全国（National）／ Software Developers（SOCコード: 15-1252）／ 時給中央値（Median Hourly Wage）</div>
-                        <div><strong>採用時給:</strong> <strong>$50.00 / 人時</strong></div>
-                        <div style="margin-top: 6px;">
-                          <a href="https://www.bls.gov/oes/" target="_blank" rel="noopener noreferrer">
-                            出典資料: U.S. BLS OEWS 職種別賃金統計 ↗
-                          </a>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <th>為替レートの根拠 (JPY)</th>
-                      <td>
-                        <div><strong>提供元:</strong> 公的基準為替レート（日銀公表値 / FRB基準参照値）</div>
-                        <div><strong>観測日時:</strong> 2026年9月25日 00:00:00 UTC ｜ <strong>公表日時:</strong> 2026年9月25日 17:00:00 JST</div>
-                        <div><strong>通貨の方向・採用レート:</strong> USD to JPY（米ドルに対する日本円） ＝ <strong>150.00 JPY/USD</strong></div>
-                        <div style="margin-top: 6px;">
-                          <a href="https://example.com/fx/20260925-usd-jpy" target="_blank" rel="noopener noreferrer">
-                            出典資料: 公的基準為替レートデータ ↗
-                          </a>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <th>人日換算規約</th>
-                      <td>
-                        <strong>OESの表示規約（1人日＝8人時）</strong><br>
-                        <span style="font-size: 0.8rem; color: var(--text-light);">
-                          日本の一般的なソフトウェア開発実務に合わせた表示用の導出値です。システム内部正本は「人時（hours）」として厳密に保持されています。
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </details>
-
-            <!-- COSMIC機能規模測定の内訳 -->
-            <div style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--border-dark);">
-              <h4 style="font-size: 1rem; font-weight: 800; margin: 0 0 6px; color: var(--text-main);">
-                COSMIC機能規模測定の内訳
-              </h4>
-              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px;">
-                対象リポジトリから識別されたデータ移動（Entry: 入力, Exit: 出力, Read: 読取, Write: 書込）の集計結果です。
-              </p>
-              <div class="cfp-counts-grid">
-                <div class="cfp-count-card">
-                  <span class="tag-badge tag-entry">Entry (入力)</span>
-                  <div class="cfp-count-val">35</div>
-                  <div style="font-size: 0.75rem; color: var(--text-light);">CFP</div>
-                </div>
-                <div class="cfp-count-card">
-                  <span class="tag-badge tag-exit">Exit (出力)</span>
-                  <div class="cfp-count-val">45</div>
-                  <div style="font-size: 0.75rem; color: var(--text-light);">CFP</div>
-                </div>
-                <div class="cfp-count-card">
-                  <span class="tag-badge tag-read">Read (読取)</span>
-                  <div class="cfp-count-val">25</div>
-                  <div style="font-size: 0.75rem; color: var(--text-light);">CFP</div>
-                </div>
-                <div class="cfp-count-card">
-                  <span class="tag-badge tag-write">Write (書込)</span>
-                  <div class="cfp-count-val">15</div>
-                  <div style="font-size: 0.75rem; color: var(--text-light);">CFP</div>
-                </div>
-              </div>
-              <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.85rem; color: var(--text-muted); padding: 8px 0; border-top: 1px dashed var(--border-color);">
-                <span>機能プロセス総数: <strong>24</strong></span>
-                <span>確定プロセス: <strong>24</strong></span>
-                <span>未解決プロセス: <strong>0</strong></span>
-                <span>推論を含むデータ移動: <strong>0</strong> 件</span>
-                <span>除外コンポーネント: <strong>2</strong> 件</span>
-                <span>未読・未解析ファイル: <strong>0</strong> 件</span>
-              </div>
-            </div>
-
-            <!-- ④ 評価および署名・証跡情報 -->
-            <div style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--border-dark);">
-              <h4 style="font-size: 1rem; font-weight: 800; margin: 0 0 10px; color: var(--text-main);">
-                評価および署名・証跡情報
-              </h4>
-              <div class="verification-list">
-                <div class="verification-item">
-                  <div class="verification-label">使用AIモデル（申告）</div>
-                  <div class="verification-val">Claude 3.5 Sonnet（公開者自己申告・第三者による独立確認なし）</div>
-                </div>
-                <div class="verification-item">
-                  <div class="verification-label">評価アシュアランス</div>
-                  <div class="verification-val">
-                    Community版（AIによる機能モデル復元・第三者による独立審査なし）<br>
-                    <span style="font-size: 0.78rem; color: var(--text-light);">
-                      ※ Community版の測定では、AIモデル評価時の会話文脈隔離（Context Isolation）は技術的に強制されておらず、利用者の自己申告に基づきます。
-                    </span>
-                  </div>
-                </div>
-                <div class="verification-item">
-                  <div class="verification-label">日時情報</div>
-                  <div class="verification-val">
-                    <div><strong>証明書発行日時:</strong> 2026-09-27 10:00:00 UTC（2026-09-27 19:00:00 JST）</div>
-                    <div><strong>公開要約公開日時:</strong> 2026-09-27 10:15:00 UTC（2026-09-27 19:15:00 JST）</div>
-                  </div>
-                </div>
-                <div class="verification-item">
-                  <div class="verification-label">採用規約・プロファイル</div>
-                  <div class="verification-val">
-                    <div><strong>測定規格:</strong> COSMIC v5.0 / OES Mapping Rules v0.1.0</div>
-                    <div><strong>表示規約版:</strong> <code>oes-ja-result/0.1.0</code> ｜ <strong>スキーマ版:</strong> <code>open-estimate/public-estimate/v1</code></div>
-                    <div><strong>工数プロファイル:</strong> <code>oes-test-benchmark-v1</code> ｜ <strong>賃金:</strong> <code>oes-test-wage-v1</code> ｜ <strong>為替:</strong> <code>fx-usd-jpy-20260925</code></div>
-                  </div>
-                </div>
-                <div class="verification-item">
-                  <div class="verification-label">元証明書IDと確認先</div>
-                  <div class="verification-val">
-                    <code>cert_01h9y2p4k8m9a7b6c5d4e3f2</code><br>
-                    <a href="https://open-estimate.ai-orchestration.jp/verify/cert_01h9y2p4k8m9a7b6c5d4e3f2" target="_blank" rel="noopener noreferrer">
-                      元証明書の台帳証跡を確認する（/verify/cert_...） ↗
-                    </a>
-                  </div>
-                </div>
-                <div class="verification-item">
-                  <div class="verification-label">公開要約署名とデータ</div>
-                  <div class="verification-val">
-                    <div>Ed25519 署名済み（公開鍵ID: <code>key_oes_pub_2026_01</code>）</div>
-                    <a href="https://open-estimate.ai-orchestration.jp/api/v1/shared-estimates/sh_a1b2c3d4e5f60718293a4b5c6d7e8f90" target="_blank" rel="noopener noreferrer">
-                      公開要約データ（JSON / 署名付きEnvelope）を確認する ↗
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="future-callout">
-              <h4>見積詳細・SNS共有画面のご案内</h4>
-              <p>
-                今回実装された「見積詳細・SNS共有ページ」では、上記すべての項目に加え、SNSカード共有・クリップボードコピー・印刷用スタイル・7つの表示状態シミュレータ（PARTIAL、換算データ欠損、失効表示、公開撤回など）をご確認いただけます。
-              </p>
-              <div style="margin-top: 16px;">
-                <a href="./estimate-detail.html" class="btn btn-primary" style="font-size: 0.92rem; padding: 10px 20px;">
-                  見積詳細・SNS共有プレビュー画面を開く（つくログ 45人日） →
-                </a>
-              </div>
+              <table class="details-table" style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-sm); overflow: hidden;">
+                <tbody>
+                  <tr>
+                    <th style="width: 28%;">機能規模の例</th>
+                    <td>120 CFP。CFPはCOSMIC規格による機能規模の単位です。</td>
+                  </tr>
+                  <tr>
+                    <th>工数換算例</th>
+                    <td>120 CFP × 3人時/CFP ＝ 360人時 ＝ 45人日</td>
+                  </tr>
+                  <tr>
+                    <th>米ドル換算例</th>
+                    <td>360人時 × 50米ドル/人時 ＝ 18,000米ドル</td>
+                  </tr>
+                  <tr>
+                    <th>円換算例</th>
+                    <td>18,000米ドル × 150円/米ドル ＝ 270万円</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </article>
         </div>
       </section>
 
-      <!-- ④ 導入：使い方。会議は不要です -->
+      <!-- ④ 導入：使い方 -->
       <section class="usage-section" id="start" aria-labelledby="usage-title">
         <div class="container">
           <div class="section-header">
-            <h2 id="usage-title">使い方。会議は不要です。</h2>
+            <h2 id="usage-title">自分のプロジェクトで試す、3つのステップ。</h2>
             <p>
-              対象フォルダーを開き、ローカル実行が可能なWork／Codexの新しいチャットで始めます。クラウド環境からPCのフォルダーへアクセスできるとは限りません。
+              対象のプロジェクトを開き、Work／Codexのローカル実行環境で新しいチャットを始めます。
             </p>
           </div>
 
           <div class="steps-grid">
             <article class="step-card">
               <span class="step-number">01</span>
-              <h3>プラグインを導入する。</h3>
-              <p>「オープン工数見積（Work／Codex向け）」を追加します。Node.js 24以上と対象フォルダーの読取・ローカル実行環境が必要です。</p>
+              <h3>プラグインを追加する</h3>
+              <p>導入手順に沿って「オープン工数見積（Work／Codex向け）」を追加します。</p>
             </article>
             <article class="step-card">
               <span class="step-number">02</span>
-              <h3>自分のソフトを測らせる。</h3>
-              <p>ファイル読取・補助CLI・リモートMCPの利用可否を確認し、対象範囲への同意後に解析します。Chatで実行できない場合はWork／Codexのローカル環境で同じ依頼を送ってください。</p>
+              <h3>測定を依頼する</h3>
+              <p>AIが示す解析対象を確認して、測定を進めます。再計算のために送信する数値モデルは、内容を確認し、同意してから送信します。</p>
             </article>
             <article class="step-card">
               <span class="step-number">03</span>
-              <h3>数字と内訳を見る。</h3>
-              <p>結果にニヤッとする。気になるところは、根拠を確認する。</p>
+              <h3>結果と根拠を確認する</h3>
+              <p>機能規模と試験用の工数換算を確認します。気になる機能は、数え方や判断の根拠をたどれます。</p>
             </article>
+          </div>
+
+          <div style="background-color: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 18px 24px; margin-bottom: 32px; font-size: 0.92rem; color: var(--text-muted); line-height: 1.7;">
+            利用には、対象フォルダーの読み取りとローカル実行が可能なWork／Codex環境、およびNode.js 24以上が必要です。Chatにフォルダーパスを送るだけでは解析できません。Workでの評価完了は実機未確認です。
           </div>
 
           <!-- AIへの依頼文プロンプトボックス -->
@@ -586,56 +284,52 @@
               <button class="copy-btn" id="copy-prompt-btn" type="button">依頼文をコピー</button>
             </div>
             <p class="prompt-text" id="prompt-content">
-              「このプロジェクトをOpen Estimateで測定してください。まずファイル読取・補助CLI・リモートMCPの利用可否を確認し、対象範囲への同意後に解析してください。」
+              「このプロジェクトをOpen Estimateで測定してください。まず必要な読み取り・実行・接続環境を確認し、解析対象の範囲を私に確認してから進めてください。再計算のために送信する数値モデルも、送信前に内容を説明し、私の同意を確認してください。」
             </p>
           </div>
 
           <!-- アクション -->
           <div class="usage-cta-row">
-            <a href="https://github.com/mkisama94/open-estimate#readme" class="btn btn-primary" target="_blank" rel="noopener">
+            <a href="https://github.com/mkisama94/open-estimate/blob/main/docs/DESKTOP-PLUGIN.md" class="btn btn-primary" target="_blank" rel="noopener">
               導入手順を見る（GitHub）
             </a>
             <p class="usage-disclaimer">
-              直接登録したリモートMCPは数値モデルの再計算専用で、フォルダー走査・ソース解析は行いません。<br>
               利用するAIサービスの料金は別途かかる場合があります。
             </p>
           </div>
         </div>
       </section>
 
-      <!-- ⑤ 根拠：名前は軽いですが、中身は真面目です -->
+      <!-- ⑤ 測定のしくみ -->
       <section class="mechanism-section" id="mechanism" aria-labelledby="mechanism-title">
         <div class="container">
           <div class="mechanism-lead">
-            <h2 id="mechanism-title">名前は軽いですが、<br>中身はわりと真面目です。</h2>
+            <h2 id="mechanism-title">測定方法と、判断の根拠を確認できます。</h2>
             <p style="font-size: 1.08rem; color: var(--text-muted); line-height: 1.8;">
-              気分で「1,000万円！」とは言いません。<br>
-              AIがソースコードを読み解き、COSMICという機能規模の測定方法に沿って、数える対象を整理します。
+              AIがソースコードを読み解き、機能ごとの入力・出力・読取・書込を整理します。その内容をCOSMIC規格に基づくルールで集計し、機能規模を算出します。
             </p>
             <div class="mechanism-manifesto">
-              AIの判断は隠しません。<br>
-              数え方も隠しません。<br>
-              コードも隠しません。
+              AIがどう判断したか。何を数えたか。その根拠を確認できます。
             </div>
           </div>
 
           <div class="pillars-grid">
             <article class="pillar-card">
-              <h3>物差しがある</h3>
+              <h3>共通の方法で測る</h3>
               <p>
-                COSMICに基づく機能規模測定を採用します。コードの長さを、そのまま偉さに換算するサービスではありません。
+                COSMIC規格に基づき、機能ごとのデータの動きを数えます。コードの行数をそのまま規模に置き換える方法ではありません。
               </p>
             </article>
             <article class="pillar-card">
-              <h3>判断を追える</h3>
+              <h3>判断の根拠をたどる</h3>
               <p>
-                使用モデルの申告情報、数えた機能、ソースの根拠、推論した箇所を記録します。AIの判断が常に正しいと保証するものではありません。
+                数えた機能と判断内容、参照した根拠を確認できます。機能の捉え方にはAIの判断が含まれ、測定結果は第三者の独立審査を受けたものではありません。
               </p>
             </article>
             <article class="pillar-card">
-              <h3>中身を読める</h3>
+              <h3>測定ルールを確認する</h3>
               <p>
-                アルゴリズム、コード、方法論を公開します。参考工数の換算を提供する際には、採用した実績と集計方法も公開します。
+                Open Estimateの測定ルールと実装コードはGitHubで公開しています。工数・金額への換算は、現在は試験用の架空の係数を使用しています。
               </p>
             </article>
           </div>
@@ -644,73 +338,81 @@
             <a href="https://github.com/mkisama94/open-estimate#cosmic%E6%A9%9F%E8%83%BD%E8%A6%8F%E6%A8%A1%E6%B8%AC%E5%AE%9A%E8%A6%8F%E6%A0%BC" target="_blank" rel="noopener" class="tag-link">
               測定のしくみ（COSMIC規格） ↗
             </a>
-            <a href="https://github.com/mkisama94/open-estimate#%E6%A7%8B%E9%80%A0%E5%AE%9A%E7%BE%A9%E3%81%A8%E6%A4%9C%E8%A8%BC" target="_blank" rel="noopener" class="tag-link">
-              方法論と参照データ ↗
+            <a href="https://github.com/mkisama94/open-estimate/blob/main/docs/DESKTOP-PLUGIN.md" target="_blank" rel="noopener" class="tag-link">
+              測定ルールを見る ↗
             </a>
             <a href="https://github.com/mkisama94/open-estimate" target="_blank" rel="noopener" class="tag-link">
-              GitHub リポジトリ ↗
+              実装コードを見る ↗
             </a>
           </div>
         </div>
       </section>
 
-      <!-- ⑥ FAQ：よくある、もっともな疑問 -->
+      <!-- ⑥ FAQ -->
       <section class="faq-section" id="faq" aria-labelledby="faq-title">
         <div class="container">
           <div class="section-header">
-            <h2 id="faq-title">よくある、もっともな疑問</h2>
+            <h2 id="faq-title">よくある質問</h2>
             <p>用途の境界や気になる点についてお答えします。</p>
           </div>
 
           <div class="faq-list">
             <details class="faq-item">
               <summary>
-                <span>Q. これ、ジョークサイトですか？</span>
+                <span>何を測定できるサービスですか</span>
                 <span class="faq-icon">+</span>
               </summary>
               <div class="faq-answer">
                 <p>
-                  入口は少しそうです。測定は真面目に作っています。<br>
-                  「自分の作ったものを、もう少し説明しやすくしたい」という気持ちから始まったOSSです。
+                  ソースコードから、ソフトウェアが実現している機能の規模を測定します。機能ごとの入力・出力・読取・書込を整理し、COSMIC規格の単位であるCFPで表します。
                 </p>
               </div>
             </details>
 
             <details class="faq-item">
               <summary>
-                <span>Q. 数字が大きいほど、すごいソフトですか？</span>
+                <span>数字が大きいほど優れたソフトウェアですか</span>
                 <span class="faq-icon">+</span>
               </summary>
               <div class="faq-answer">
                 <p>
-                  そうとは限りません。測っているのは機能規模であって、面白さや使いやすさ、事業価値の全てではありません。<br>
-                  <strong>小さくて便利なソフトも、普通にすごいです。</strong>
+                  数字が表すのは機能の規模です。使いやすさ、品質、独自性、事業価値を評価するものではありません。規模の小さいソフトウェアでも、大きな価値を生むことがあります。
                 </p>
               </div>
             </details>
 
             <details class="faq-item">
               <summary>
-                <span>Q. ソースコードを公開しないと使えませんか？</span>
+                <span>表示される工数や金額は何を意味しますか</span>
                 <span class="faq-icon">+</span>
               </summary>
               <div class="faq-answer">
                 <p>
-                  測定のために、ソースコードを一般公開する必要はありません。<br>
-                  ただし、解析する内容は利用するAIに渡ります。機密コードを扱う場合は、AIサービスの契約・データ取扱設定を確認してください。
+                  機能規模に係数を掛けた換算値です。現在のα版では工数係数と時給に試験用の架空の値を使っており、実際にかかった工数や、今後必要になる費用を示すものではありません。正式な見積書や契約価格の根拠としては使わないでください。
                 </p>
               </div>
             </details>
 
             <details class="faq-item">
               <summary>
-                <span>Q. 仕事の正式な見積書に使えますか？</span>
+                <span>ソースコードはどこに送られますか</span>
                 <span class="faq-icon">+</span>
               </summary>
               <div class="faq-answer">
                 <p>
-                  初期版は、完成済みソフトウェアを測って試すための開発者向けα版です。<br>
-                  プロジェクト全体の費用や契約価格を保証するものではありません。RFPからの見積は、次のフェーズで扱う予定です。
+                  ソースコードを一般公開する必要はありません。ソース本文をOESサーバーに送信することもありません。ただし、解析内容は利用するAIサービスで処理されるため、その契約やデータの取扱設定をご確認ください。OESサーバーには、利用者の確認と同意を経て、再計算に必要な数値モデルを送信します。このモデルにはソース本文やファイルパスは含みませんが、機能の構成に関する情報が含まれます。
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary>
+                <span>測定結果を保存したり公開したりできますか</span>
+                <span class="faq-icon">+</span>
+              </summary>
+              <div class="faq-answer">
+                <p>
+                  現行版では、測定記録はローカルの作業セッション内に保持されます。OESサーバーへの評価保存、証明書発行、公開共有ページの作成は提供していません。長期保管が必要な場合の扱いは、<a href="https://github.com/mkisama94/open-estimate/blob/main/docs/DESKTOP-PLUGIN.md" target="_blank" rel="noopener">導入資料</a>をご確認ください。
                 </p>
               </div>
             </details>
@@ -718,27 +420,22 @@
         </div>
       </section>
 
-      <!-- ⑦ 最後のCTA：そのソフト、ちょっと測ってみませんか？ -->
+      <!-- ⑦ 最後の行動案内 -->
       <section class="cta-section" aria-labelledby="cta-title">
         <div class="container">
           <div class="cta-box">
-            <h2 id="cta-title">工数見積は、相変わらず嫌いです。</h2>
+            <h2 id="cta-title">あなたが作ったソフトウェアも、測ってみませんか。</h2>
             <p class="cta-lead">
-              <strong>でも、作ったものを振り返るための見積なら、<br>案外悪くないかもしれません。</strong>
+              <strong>何をどれだけ作ったのか。測定結果と根拠から、振り返ってみましょう。</strong>
             </p>
             <p class="cta-body">
-              週末に作ったアプリも。<br>
-              仕事の合間に育てたツールも。<br>
-              AIと格闘して、ようやく動いたあのソフトも。<br><br>
-              何をどれだけ作ったのか。<br>
-              ちょっと測ってみませんか？
+              週末に作ったアプリも、仕事の合間に育てたツールも。自分が作ったものを、もう少し具体的に説明するために。
             </p>
             <div class="cta-button-wrap">
-              <a href="#start" class="btn btn-primary btn-large">自分のソフトを測ってみる</a>
+              <a href="#start" class="btn btn-primary btn-large">導入手順を見る</a>
             </div>
             <p class="cta-feedback">
-              変な結果が出たら、教えてください。<br>
-              その違和感が、次の改善材料になります。<br>
+              測定結果や数え方に疑問があれば、GitHub Issuesでお知らせください。公開の場にソースコードや機密情報を記載しないようご注意ください。<br>
               <a href="https://github.com/mkisama94/open-estimate/issues" target="_blank" rel="noopener">GitHub Issues でフィードバックを送る →</a>
             </p>
           </div>
@@ -782,9 +479,9 @@
             <div class="footer-nav-group">
               <h4>提供について</h4>
               <ul>
-                <li><span>開発者向けα版 (M1)</span></li>
-                <li><span>ローカルMCP動作</span></li>
-                <li><span>証明書・台帳は準備中</span></li>
+                <li><span>開発者向けα版</span></li>
+                <li><span>Work／Codexのローカル実行環境が必要</span></li>
+                <li><span>サーバー保存・証明書発行・公開共有は未提供</span></li>
               </ul>
             </div>
           </div>
@@ -795,7 +492,7 @@
             &copy; 2026 Open Estimate contributors · powered by <a href="https://ai-orchestration.jp/" target="_blank" rel="noopener" style="color: #9da6a0;">AI Orchestration</a>
           </div>
           <div>
-            本サイトはプロジェクトの案内ページです。ソースコードのアップロードや保存は行いません。
+            このWebサイトはサービスの案内ページです。このページでソースコードをアップロードすることはありません。
           </div>
         </div>
       </div>
@@ -832,15 +529,6 @@
             } catch (e) {
               console.error('クリップボードコピーに失敗しました', e);
             }
-          });
-        }
-
-        // ヒーローカードの内訳リンクを押した際にアコーディオンを開く
-        const heroOpenDetails = document.getElementById('hero-open-details');
-        const accordion = document.getElementById('accordion-basis');
-        if (heroOpenDetails && accordion) {
-          heroOpenDetails.addEventListener('click', function() {
-            accordion.open = true;
           });
         }
       })();
