@@ -8,7 +8,7 @@
     
     <!-- OGP -->
     <meta property="og:title" content="Open Estimate — 何をどれだけ作ったかを、数字で伝える">
-    <meta property="og:description" content="ソフトウェアの機能規模を測り、何を数えたのか、どう判断したのかを確認。現在は開発者向けα版です。工数・金額への換算には試験用の架空の係数を使用します。">
+    <meta property="og:description" content="ソフトウェアの機能規模を測り、何を数えたのか、どう判断したのかを確認。現在は開発者向けα版です。工数係数と時給には試験用の架空の値を使用します。">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://open-estimate.ai-orchestration.jp/">
     <meta property="og:image" content="https://open-estimate.ai-orchestration.jp/images/ai-orchestration-logo.png">
@@ -46,25 +46,25 @@
           <div class="hero-grid">
             <div class="hero-content">
               <p class="hero-intro">2026年、AIエージェントがソフトウェアを記述する時代。<br>
-人類は依然として見積を「人日」に縛られていた――。</p>
+人類は依然として魂を「人日」に縛られていた――。</p>
  
               <h1 class="hero-hate" id="hero-title">オープン工数見積</h1>
               <p class="hero-catch">
-                <strong>何を、どれだけ作ったか。根拠のある数字で伝えよう。</strong>
+                <strong>何を、どれだけ作ったか。”人日”で数字で伝えよう。</strong>
               </p>
               <div class="hero-oss-banner">
-                <strong>Open Estimate</strong>
-                <span>ソースコードから実装された機能を読み解き、COSMIC規格に基づいて機能規模を測定します。</span>
+                <strong>オープン工数見積</strong>
+                <span>ソースコードから実装された機能を読み解き、COSMIC規格に基づいて機能規模を測定。参考工数を人日で示します。</span>
               </div>
               <p class="hero-plugin-desc">
-                Open Estimateは、Work／Codexのローカル実行環境で使う開発者向けプラグインです。どの機能を数えたのか、どのように判断したのかを確認できます。
+                オープン工数見積は、Work／Codexのローカル実行環境で使う開発者向けプラグインです。どの機能を数え、どのように工数へ換算したのかを確認できます。
               </p>
               <div class="hero-actions">
                 <a href="#start" class="btn btn-primary">導入手順を見る</a>
                 <a href="#sample" class="btn-link">測定結果のサンプルを見る ↓</a>
               </div>
               <p class="hero-note">
-                開発者向けα版です。工数・金額の換算には試験用の架空の係数を使用しており、実際の開発工数や費用を示すものではありません。
+                開発者向けα版です。工数係数と時給には試験用の架空の値を使用しており、換算結果は実際の開発工数や費用を示すものではありません。
               </p>
             </div>
 
@@ -86,7 +86,7 @@
                       <span class="card-days-number">45</span>
                       <span class="card-days-unit">人日相当</span>
                     </div>
-                    <div class="card-subtext">360人時 · 1人日=8人時</div>
+                    <div class="card-subtext">360人時 · 1人日＝8人時</div>
                   </div>
                   <div class="metric-col-right">
                     <div class="card-metric-title">金額換算例</div>
@@ -94,7 +94,7 @@
                       <span class="card-jpy-number">約270</span>
                       <span class="card-jpy-unit">万円</span>
                     </div>
-                    <div class="card-subtext">USD 18,000 · 試算例</div>
+                    <div class="card-subtext">18,000米ドル · 試算例</div>
                   </div>
                 </div>
 
@@ -109,7 +109,7 @@
                   </div>
                   <div class="qa-item">
                     <dt>何を数えた？</dt>
-                    <dd>機能ごとの入力・出力・読取・書込</dd>
+                    <dd>機能ごとの入力・出力・読み取り・書き込み</dd>
                   </div>
                   <div class="qa-item">
                     <dt>どう換算した？</dt>
@@ -162,7 +162,7 @@
           <div class="section-header">
             <h2 id="sample-title">測定すると、こんな結果が見られます。</h2>
             <p>
-              機能の規模と換算の内訳を確認できます。以下は、架空のアプリと条件を使った表示例です。現在のプラグインがこのWebレポートを生成することを示すものではありません。
+              機能規模と換算の内訳を、架空のアプリで紹介します。このWebレポートは表示サンプルです。現在のプラグインには、Webレポートの生成機能はありません。
             </p>
           </div>
 
@@ -187,7 +187,7 @@
                     <span class="sheet-days-unit">人日相当</span>
                   </div>
                   <div class="sheet-metric-sub">
-                    360 人時 ／ OESの表示規約（1人日＝8人時）
+                    360人時 ／ 1人日＝8人時で換算
                   </div>
                 </div>
                 <div class="sheet-hero-col-right">
@@ -275,7 +275,7 @@
           </div>
 
           <div style="background-color: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 18px 24px; margin-bottom: 32px; font-size: 0.92rem; color: var(--text-muted); line-height: 1.7;">
-            利用には、対象フォルダーの読み取りとローカル実行が可能なWork／Codex環境、およびNode.js 24以上が必要です。Chatにフォルダーパスを送るだけでは解析できません。Workでの評価完了は実機未確認です。
+            利用には、対象フォルダーの読み取りとローカル実行が可能なWork／Codex環境、およびNode.js 24以上が必要です。Chatにフォルダーパスを送るだけでは解析できません。Workで測定を完了できることは、実機では未確認です。
           </div>
 
           <!-- AIへの依頼文プロンプトボックス -->
@@ -307,7 +307,7 @@
           <div class="mechanism-lead">
             <h2 id="mechanism-title">測定方法と、判断の根拠を確認できます。</h2>
             <p style="font-size: 1.08rem; color: var(--text-muted); line-height: 1.8;">
-              AIがソースコードを読み解き、機能ごとの入力・出力・読取・書込を整理します。その内容をCOSMIC規格に基づくルールで集計し、機能規模を算出します。
+              AIがソースコードを読み解き、機能ごとの入力・出力・読み取り・書き込みを整理します。その内容をCOSMIC規格に基づくルールで集計し、機能規模を算出します。
             </p>
             <div class="mechanism-manifesto">
               AIがどう判断したか。何を数えたか。その根拠を確認できます。
@@ -330,16 +330,16 @@
             <article class="pillar-card">
               <h3>測定ルールを確認する</h3>
               <p>
-                Open Estimateの測定ルールと実装コードはGitHubで公開しています。工数・金額への換算は、現在は試験用の架空の係数を使用しています。
+                Open Estimateの測定ルールと実装コードはGitHubで公開しています。現在、工数係数と時給には試験用の架空の値を使用しています。
               </p>
             </article>
           </div>
 
           <div class="mechanism-links">
-            <a href="https://github.com/mkisama94/open-estimate#cosmic%E6%A9%9F%E8%83%BD%E8%A6%8F%E6%A8%A1%E6%B8%AC%E5%AE%9A%E8%A6%8F%E6%A0%BC" target="_blank" rel="noopener" class="tag-link">
-              測定のしくみ（COSMIC規格） ↗
+            <a href="https://github.com/mkisama94/open-estimate/blob/main/README.md" target="_blank" rel="noopener" class="tag-link">
+              プロジェクトの概要（README） ↗
             </a>
-            <a href="https://github.com/mkisama94/open-estimate/blob/main/docs/DESKTOP-PLUGIN.md" target="_blank" rel="noopener" class="tag-link">
+            <a href="https://github.com/mkisama94/open-estimate/blob/main/skills/open-estimate-assessor/SKILL.md" target="_blank" rel="noopener" class="tag-link">
               測定ルールを見る ↗
             </a>
             <a href="https://github.com/mkisama94/open-estimate" target="_blank" rel="noopener" class="tag-link">
@@ -354,7 +354,7 @@
         <div class="container">
           <div class="section-header">
             <h2 id="faq-title">よくある質問</h2>
-            <p>用途の境界や気になる点についてお答えします。</p>
+            <p>測定結果の見方や、データの取り扱いについてお答えします。</p>
           </div>
 
           <div class="faq-list">
@@ -365,7 +365,7 @@
               </summary>
               <div class="faq-answer">
                 <p>
-                  ソースコードから、ソフトウェアが実現している機能の規模を測定します。機能ごとの入力・出力・読取・書込を整理し、COSMIC規格の単位であるCFPで表します。
+                  ソースコードから、ソフトウェアが実現している機能の規模を測定します。機能ごとの入力・出力・読み取り・書き込みを整理し、COSMIC規格の単位であるCFPで表します。
                 </p>
               </div>
             </details>
@@ -377,7 +377,7 @@
               </summary>
               <div class="faq-answer">
                 <p>
-                  数字が表すのは機能の規模です。使いやすさ、品質、独自性、事業価値を評価するものではありません。規模の小さいソフトウェアでも、大きな価値を生むことがあります。
+                  CFPが大きいほど機能規模は大きくなりますが、使いやすさ、品質、独自性、事業価値の高さを示すものではありません。規模の小さいソフトウェアでも、大きな価値を生むことがあります。
                 </p>
               </div>
             </details>
@@ -401,7 +401,10 @@
               </summary>
               <div class="faq-answer">
                 <p>
-                  ソースコードを一般公開する必要はありません。ソース本文をOESサーバーに送信することもありません。ただし、解析内容は利用するAIサービスで処理されるため、その契約やデータの取扱設定をご確認ください。OESサーバーには、利用者の確認と同意を経て、再計算に必要な数値モデルを送信します。このモデルにはソース本文やファイルパスは含みませんが、機能の構成に関する情報が含まれます。
+                  ソースコードを一般公開する必要はありません。ソース本文をOpen Estimateのサーバーに送信することもありません。ただし、解析内容は利用するAIサービスで処理されるため、その契約やデータの取り扱い設定をご確認ください。
+                </p>
+                <p>
+                  Open Estimateのサーバーには、利用者の確認と同意を経て、再計算に必要な数値モデルを送信します。このモデルにはソース本文やファイルパスは含みませんが、機能の構成に関する情報が含まれます。
                 </p>
               </div>
             </details>
@@ -413,7 +416,7 @@
               </summary>
               <div class="faq-answer">
                 <p>
-                  現行版では、測定記録はローカルの作業セッション内に保持されます。OESサーバーへの評価保存、証明書発行、公開共有ページの作成は提供していません。長期保管が必要な場合の扱いは、<a href="https://github.com/mkisama94/open-estimate/blob/main/docs/DESKTOP-PLUGIN.md" target="_blank" rel="noopener">導入資料</a>をご確認ください。
+                  現行版では、測定記録はローカルの作業セッション内に保持されます。Open Estimateのサーバーへの評価保存、証明書発行、公開共有ページの作成は提供していません。長期保管が必要な場合の扱いは、<a href="https://github.com/mkisama94/open-estimate/blob/main/docs/DESKTOP-PLUGIN.md" target="_blank" rel="noopener">導入資料</a>をご確認ください。
                 </p>
               </div>
             </details>
