@@ -25,7 +25,7 @@ export async function handleGetAssessorContract(): Promise<any> {
   return {
     contract_version: `${skillManifest.skill_version}-local-preview`, environment: "TEST", workspace_root: getWorkspaceRoot(),
     measurement_client_protocol: CLIENT_PROTOCOL,
-    assessment_formats: { recommended: "oes/assessment/v2", legacy: ["unversioned", "oes/assessment/v1"],
+    assessment_formats: { recommended: "oes/assessment/v2", quality_extension: "oes/quality-records/v1", remote_model_formats:["oes/remote-model/v1","oes/remote-model/v2"], legacy: ["unversioned", "oes/assessment/v1"],
       legacy_notice: "旧形式・判断記録不足。過去の数値とhashは維持し、新要件への適合は主張しません。",
       analysis_complete: "v2 input.analysis_completeは収集器が確認した走査・取得完了。範囲内の読取・候補・判断の完了はlocal.recordsから導出し、remote-modelのanalysis_completeへ投影。v1の意味は変更しない。" },
     capabilities: { local_evaluation: true, persistent_evaluations: true, display_time_frb: true, html_report: true, web_management: false, certificates: false, publishing: false },

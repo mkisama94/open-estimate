@@ -130,3 +130,9 @@ FRB実取得の再確認は `node scripts/check-remote-frb.mjs https://open-esti
 解析前にget_skill_policyとCLIのskill-integrityで実計算値を照合します。AI向けコピーとserver側コピーを検査し、prepare・exportで開始時との変更を拒否します。exportは送信せず、modelとskill_integrityを別フィールドで返します。認証や実行証明ではありません。旧モデルの生成履歴を証明せず、過去Assessmentへの遡及記入は行いません。
 
 移行期間は初回公開日を起点に14日以上とし、申告なしだけLEGACY_UNCHECKEDを返します。不一致は移行中も拒否します。単独plugin:packはrelease/local-marketplaceへのローカル検証用で、正規公開は統合release経路です。[公開・復旧手順](implementation/SKILL-INTEGRITY-OPERATIONS.md)。過去の本番配信確認は、今回追加した照合の本番確認を意味しません。
+
+## 0.8.0 品質記録・実行保存への更新
+
+現行の追加契約は`oes/quality-records/v1`です。7項目の差分、契約の互換性、保存物、更新・再インストール・実使用版確認、受入結果、Web工程への引継ぎは[0.8.0実装・運用記録](implementation/PLUGIN-QUALITY-0.8.0.md)を参照してください。過去節のセッション内保存・手動コピーの説明は旧版の記録です。0.8.0のexportは毎回別UUIDの対象外runへ標準成果物を自動保存し、purge後も利用できます。サーバー保存は行いません。
+
+show-run／record-remote／compare-runsの入力はstdin JSONです。詳細根拠を含むrunはローカルに保持し、数値モデルへ混ぜて送らないでください。中央ルール本文の変更は本リポジトリで準備したもので、この作業による本番反映・証明書発行は行っていません。

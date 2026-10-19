@@ -1,6 +1,6 @@
 {
   "name": "open-estimate",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Open Estimate — functional size measurement and estimation based on COSMIC",
   "type": "module",
   "main": "dist/index.js",

@@ -29,7 +29,7 @@ const schema = { $schema: 'https://json-schema.org/draft/2020-12/schema', title:
 fs.writeFileSync(new URL('../contracts/local-preview.schema.json', import.meta.url), JSON.stringify(schema, null, 2)+'\n');
 const { remoteArgsSchema } = await import('../dist/remote/model.js');
 fs.writeFileSync(new URL('../contracts/remote-model.schema.json', import.meta.url), JSON.stringify({
-  $schema: 'https://json-schema.org/draft/2020-12/schema', title: 'Open Estimate remote model v1', ...remoteArgsSchema
+  $schema: 'https://json-schema.org/draft/2020-12/schema', title: 'Open Estimate remote model v1/v2', ...remoteArgsSchema
 }, null, 2)+'\n');
 const { measurementRulesArgsSchema } = await import('../dist/remote/measurement-rules.js');
 const { rulesBundleSchema, rulesetRefSchema } = await import('../dist/rules/measurement-contract.js');

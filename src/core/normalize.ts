@@ -64,6 +64,8 @@ export function normalizeAssessment(assessment: Assessment): { normalized: Asses
     norm.scope_record = sortSets(norm.scope_record);
     norm.function_candidates = sortSets(norm.function_candidates);
     norm.judgments = sortSets(norm.judgments);
+    if (norm.quality) norm.quality = sortSets(norm.quality);
+    if (norm.input.acquisition) norm.input.acquisition = sortSets(norm.input.acquisition);
     for (const p of norm.functional_processes) p.boundary = sortSets(p.boundary);
     for (const g of norm.data_groups) g.definition = sortSets(g.definition);
     for (const f of norm.findings) f.targets = sortSets(f.targets);

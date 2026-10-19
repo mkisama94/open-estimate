@@ -4,7 +4,7 @@
 
 ## OES-MEASURE-001
 
-測定目的はas_built_functional_size、単一アプリケーション境界とし内部APIを重複計上しない。ただし単一アプリ・共有内部関数だけで機能を統合せず、別ファイル・API・ジョブだけで分割しない。開始・要求ユーザー・機能目的・完了・非同期／定期／手動の関係をboundaryに残す。
+測定目的はas_built_functional_size、単一アプリケーション境界とし内部APIを重複計上しない。ただし単一アプリ・共有内部関数だけで機能を統合せず、別ファイル・API・ジョブだけで分割しない。独立再実行も単独の決定根拠にしない。quality.boundariesに再実行の可否と根拠、継続処理か、その理由、内部キューの境界・計数規則・移動参照・通知と永続読取の重複レビューを記録する。内部キューを自動的に外部ユーザーにも一律非計上にもせず、未確定事項は判断台帳に残す。開始・要求ユーザー・機能目的・完了・非同期／定期／手動の関係をboundaryに残す。
 
 ## OES-MEASURE-002
 
@@ -32,7 +32,7 @@ scopeの目的・境界説明とscope_recordの範囲ID・revisionを整合さ�
 
 ## OES-COVERAGE-001
 
-scope_record.filesではスナップショットのpathごとにincluded／outside／supporting／unresolvedと理由を残す。範囲外・補助資料への分類は利用者の範囲確認参照、または読取根拠で裏付ける。未読を理由の文字列だけで範囲外に変更して完了にしない。input.analysis_completeはv2では収集器が照合した走査・取得状況。範囲内完了はlocal.recordsから導出する。取得打ち切りは範囲への影響不明で未完了を維持する。
+scope_record.filesではスナップショットのpathごとにincluded／outside／supporting／unresolvedと理由を残す。範囲外・補助資料への分類は利用者の範囲確認参照、または読取根拠で裏付ける。未読を理由の文字列だけで範囲外に変更して完了にしない。input.analysis_completeはv2では収集器が照合した走査・取得状況。範囲内完了はlocal.recordsから導出する。quality.version=oes/quality-records/v1では、input.acquisitionの取得事実を変更せず、quality.scope_rulesとlimitationsで対象・原因・範囲影響・規則・理由・具体的不足を記録する。範囲外とパス規則の整合を検査した既知の除外のみならPARTIALにしない。範囲内不足と影響不明は対象を示してPARTIAL。未発見領域を含み得る走査打ち切りは影響不明を維持する。旧フラグの意味を変更しない。
 
 ## OES-CANDIDATE-001
 
@@ -40,11 +40,11 @@ function_candidatesは識別した計上／範囲外／統合／未解決をす�
 
 ## OES-DATA-001
 
-data_groups.definitionに業務上の意味・識別属性（該当しない理由）・具体的attributesとの対応・関心対象と分離集約の理由・根拠・unconfirmedを残す。汎用文言、HTTP／SQL／JSON／テーブルの件数だけで群を定義しない。文字列が存在することと具体性の十分さは別で、人の意味判断が残る。
+data_groups.definitionに業務上の意味・識別属性（該当しない理由）・具体的attributesとの対応・関心対象と分離集約の理由・根拠・unconfirmedを残す。汎用文言、HTTP／SQL／JSON／テーブルの件数だけで群を定義しない。文字列が存在することと具体性の十分さは別で、人の意味判断が残る。quality.attributesに属性ごとの具体的実装項目と根拠参照を残し、「同名または対応する項目」だけを対応記録にしない。
 
 ## OES-JUDGMENT-001
 
-judgmentsは採用／非計上／統合／分割、採用解釈、ruleのsource（skill／project_policy／external_standard）・実在するIDと版、適用理由、根拠、代替案と不採用理由を記録する。未確認の標準条項・理由・証拠を創作しない。targetsで対象を明示し、movementはprocess_idも付ける。全計上移動と識別済み非計上候補を判断に結び付ける。同じ判断の共有は許す。
+judgmentsは採用／非計上／統合／分割、採用解釈、ruleのsource（skill／project_policy／external_standard）・実在するIDと版、適用理由、根拠、代替案と不採用理由を記録する。未確認の標準条項・理由・証拠を創作しない。targetsで対象を明示し、movementはprocess_idも付ける。全計上移動と識別済み非計上候補を判断に結び付ける。同じ判断の共有は許す。実際の争点があるときだけ成立し得る代替案を記録し、全機能に架空の代替案を作らない。
 
 ## OES-STATUS-001
 
@@ -52,11 +52,11 @@ acceptedは現在のモデルでの採用のみ。判断statusはrecorded／prov
 
 ## OES-FINDING-001
 
-findingsにtargets・impact（scope／coverage／boundary／counting／explanation）・resolutionを付ける。判断の未解決を文章だけに埋め込まない。自然言語と構造化状態に矛盾を見つけたら対象・判断・所見を見直し、必要ならprovisional／unresolved／openへ修正して再exportする。特定語検索だけで計数を切り替えない。
+findingsにtargets・impact（scope／coverage／boundary／counting／explanation）・resolutionを付ける。判断の未解決を文章だけに埋め込まない。自然言語と構造化状態に矛盾を見つけたら対象・判断・所見を見直し、必要ならprovisional／unresolved／openへ修正して再exportする。特定語検索だけで計数を切り替えない。quality.findingsで実装、境界・計数、設定・接続構成、配備、本番稼働の対象を分ける。配備・本番稼働未確認だけならexplanationとし、開発済み規模を未解決にしない。必要実装・接続の欠落は別の影響所見にする。設定生成コード・生成結果・配備の存在を混同せず、確認のため対象コードを実行しない。
 
 ## OES-COMPARE-001
 
-前回評価が明示された場合だけcomparison.previous_assessmentに元データを保持し、previous_hashには元の正規化hashを付ける。前後の範囲・改訂・候補／process対応・追加／除外／統合／分割の理由と根拠をscope_changesへ、移動対応・非計上と判断をmovement_changesへ残す。ID番号・配列順から対応を推定しない。削除・統合した移動も追跡する。CFP差はlocal.comparisonの保存モデル由来の値を使い、未作成の代替モデルの上下限を推測しない。未対応は未説明として示す。過去評価の自動探索は不要。
+利用者が比較対象を指定した場合のみ、モデル確定・export後の別工程でcompare-runsを使う。両run IDとhash、ソース・範囲・スキル・ツール・規則の同一性と不明、processと移動の明示的対応案、追加・削除・統合・分割、判断の解決・継続・非計上、理由・根拠を記録する。IDや配列順から同一性を推測しない。code／scope／evidence／interpretation／tool_rules／unknownの原因を複数保持し、相殺と未対応を示す。過去参照の事実を開示し独立性は未確認とする。原成果物は変更せず比較操作として追記する。既存Assessment内comparisonも読み取り可能だが新規独立測定へ前回モデルを埋め込む必要はない。代替モデルの上下限を創作しない。
 
 ## OES-LEGACY-001
 
@@ -81,10 +81,12 @@ model_id不明はnull、名前不明はunknown。finished_atは現在時刻。Sk
 3. 暫定対象のprocessとCFP小計（合計の内数）、未採用の未解決候補数・論点・規模未確定。
 4. local.recordsの走査状況・範囲内未読・範囲外／補助資料未読・範囲不明・候補処理状況・partial_reasons。
 5. 除外候補と理由、記録不足、旧形式の注意。
-6. local.assessment_pathと判断台帳の参照先。セッション有効期限・purge前に必要なJSONを利用者の指定先へ保持する。
+6. local.assessment_pathと判断台帳の参照先。run_id・run_directoryを示す。標準成果物は対象外の永続runへ自動保存し、セッション期限・purgeに依存しない。runの削除は利用者が行い、自動削除しない。
 7. 比較があれば範囲変更、計数差、説明済み／未説明、対応未確定。解析判断差とTEST係数のp25／中央値／p75を混同しない。
 8. サーバーが受領数値モデルに対して行った形式・参照検査と再計算、ソース内容・意味解釈の独立監査は未実施。
 
 COMPLETEは宣言範囲の読取・識別済み候補処理・判断記録の完了と結果に影響する未解決がない状態。全行読取を機能抽出完了や意味解釈の正しさと同一視しない。
+
+数値・状態・理由・候補数は保存済み構造化summary、送信後は原応答とreconciliationに従う。record-remoteで送信成功／失敗・再表示・為替を別の操作IDで保存し、ローカル値とサーバー値を上書きしない。定型文反復や属性対応の曖昧さは記録品質の注意であり自動的な誤り判定ではない。ハッシュは署名でも第三者の真正性保証でもない。
 
 サーバーが保証するのは受領モデルに対する形式・参照検査と規則による再計算。モデル・根拠・読取履歴はクライアント申告で、ソースの実在性・網羅性・意味解釈を独立検証していない。未署名・未保存・未公開である。

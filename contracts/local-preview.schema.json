@@ -189,6 +189,41 @@
               "enum": [
                 "client_reported"
               ]
+            },
+            "acquisition": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "discovery_complete": {
+                  "type": "boolean"
+                },
+                "issues": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "pattern": "\\S"
+                      },
+                      "cause": {
+                        "type": "string",
+                        "pattern": "\\S"
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "cause"
+                    ]
+                  },
+                  "minItems": 0
+                }
+              },
+              "required": [
+                "discovery_complete",
+                "issues"
+              ]
             }
           }
         },
@@ -1402,6 +1437,322 @@
               "uniqueItems": true
             }
           }
+        },
+        "quality": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "version": {
+              "const": "oes/quality-records/v1"
+            },
+            "scope_rules": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "rule_id": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "path_prefix": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "membership": {
+                    "enum": [
+                      "included",
+                      "outside",
+                      "supporting"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  }
+                },
+                "required": [
+                  "rule_id",
+                  "path_prefix",
+                  "membership",
+                  "reason"
+                ]
+              },
+              "minItems": 0
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "cause": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "impact": {
+                    "enum": [
+                      "outside",
+                      "in_scope",
+                      "unknown"
+                    ]
+                  },
+                  "rule_id": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "\\S"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "missing": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "\\S"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "path",
+                  "cause",
+                  "impact",
+                  "rule_id",
+                  "reason",
+                  "missing"
+                ]
+              },
+              "minItems": 0
+            },
+            "boundaries": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "process_id": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "rerun": {
+                    "enum": [
+                      "yes",
+                      "no",
+                      "unknown"
+                    ]
+                  },
+                  "rerun_basis": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "continuation": {
+                    "enum": [
+                      "yes",
+                      "no",
+                      "unknown"
+                    ]
+                  },
+                  "continuation_reason": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "queues": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "store_id": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        },
+                        "boundary": {
+                          "enum": [
+                            "inside",
+                            "outside",
+                            "unknown"
+                          ]
+                        },
+                        "rule": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        },
+                        "reason": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        },
+                        "movement_refs": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "id",
+                              "process_id"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "candidate",
+                                  "process",
+                                  "data_group",
+                                  "movement",
+                                  "judgment"
+                                ]
+                              },
+                              "id": {
+                                "type": "string",
+                                "pattern": "\\S"
+                              },
+                              "process_id": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "minLength": 1
+                              }
+                            }
+                          },
+                          "minItems": 0
+                        },
+                        "duplicate_review": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        },
+                        "unresolved": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "\\S"
+                          },
+                          "minItems": 0
+                        }
+                      },
+                      "required": [
+                        "store_id",
+                        "boundary",
+                        "rule",
+                        "reason",
+                        "movement_refs",
+                        "duplicate_review",
+                        "unresolved"
+                      ]
+                    },
+                    "minItems": 0
+                  }
+                },
+                "required": [
+                  "process_id",
+                  "rerun",
+                  "rerun_basis",
+                  "continuation",
+                  "continuation_reason",
+                  "queues"
+                ]
+              },
+              "minItems": 0
+            },
+            "attributes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "data_group_id": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "mappings": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "attribute": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        },
+                        "implementation": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        },
+                        "evidence_refs": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "\\S"
+                          },
+                          "minItems": 1
+                        }
+                      },
+                      "required": [
+                        "attribute",
+                        "implementation",
+                        "evidence_refs"
+                      ]
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "data_group_id",
+                  "mappings"
+                ]
+              },
+              "minItems": 0
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "finding_id": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "subject": {
+                    "enum": [
+                      "implementation",
+                      "boundary_counting",
+                      "configuration",
+                      "deployment",
+                      "production"
+                    ]
+                  }
+                },
+                "required": [
+                  "finding_id",
+                  "subject"
+                ]
+              },
+              "minItems": 0
+            }
+          },
+          "required": [
+            "version",
+            "scope_rules",
+            "limitations",
+            "boundaries",
+            "attributes",
+            "findings"
+          ]
         }
       },
       "allOf": [
@@ -1533,6 +1884,28 @@
                     ]
                   }
                 }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "quality"
+            ]
+          },
+          "then": {
+            "required": [
+              "format_version"
+            ],
+            "properties": {
+              "format_version": {
+                "const": "oes/assessment/v2"
+              },
+              "input": {
+                "required": [
+                  "acquisition"
+                ]
               }
             }
           }

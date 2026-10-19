@@ -74,7 +74,8 @@ describe("recorded assessment contract and uncertainty",()=>{
     expect(validateAssessment(a)).toBe(a);const model=projectModel(a);
     expect(model.processes).toHaveLength(1);expect(recordState(a).unresolved_processes).toHaveLength(1);
     const remote=await evaluateRemote({model,display_currency:"USD"},getLocalProfile());
-    expect(remote.report.measurement.cfp).toBe(measureAssessment(a).cfp);
+    expect(model.version).toBe("oes/remote-model/v2");
+    expect(remote.report.measurement).toEqual(measureAssessment(a));
     expect(remote.report.measurement.status).toBe("PARTIAL");
   });
   it.each(["missing", "unresolved"] as const)("prevents %s judgment from supporting counted movements",value=>{

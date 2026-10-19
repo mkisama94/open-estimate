@@ -39,6 +39,7 @@ export interface AssessorInfo {
 }
 
 export interface AssessmentInput {
+  acquisition?: { discovery_complete: boolean; issues: Array<{ path: string; cause: string }> };
   repository_label: string;
   snapshot_type: "worktree" | "git_commit";
   commit: string | null;
@@ -192,6 +193,7 @@ export interface AssessmentComparison {
     before: TargetRef[]; after: TargetRef[]; judgment_refs: string[]; reason: string }>;
 }
 export interface Assessment {
+  quality?: QualityRecords;
   format_version?: "oes/assessment/v1" | "oes/assessment/v2";
   scope_record?: ScopeRecord;
   function_candidates?: FunctionCandidate[];
@@ -210,6 +212,19 @@ export interface Assessment {
   functional_processes: FunctionalProcess[];
   findings: Finding[];
   human_amendments: HumanAmendment[];
+}
+
+/** Local-only, versioned extension. Missing records are never inferred for older assessments. */
+export interface QualityRecords {
+  version: "oes/quality-records/v1";
+  scope_rules: Array<{ rule_id: string; path_prefix: string; membership: "included" | "outside" | "supporting"; reason: string }>;
+  limitations: Array<{ path: string; cause: string; impact: "outside" | "in_scope" | "unknown"; rule_id: string | null; reason: string; missing: string | null }>;
+  boundaries: Array<{ process_id: string; rerun: "yes" | "no" | "unknown"; rerun_basis: string;
+    continuation: "yes" | "no" | "unknown"; continuation_reason: string;
+    queues: Array<{ store_id: string; boundary: "inside" | "outside" | "unknown"; rule: string; reason: string;
+      movement_refs: TargetRef[]; duplicate_review: string; unresolved: string[] }> }>;
+  attributes: Array<{ data_group_id: string; mappings: Array<{ attribute: string; implementation: string; evidence_refs: string[] }> }>;
+  findings: Array<{ finding_id: string; subject: "implementation" | "boundary_counting" | "configuration" | "deployment" | "production" }>;
 }
 
 export interface QuartileValues {

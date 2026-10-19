@@ -24,8 +24,10 @@ import { getLocalProfile } from "../profiles/local-profile.js";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
 import { inspectSkillPackage } from "../profiles/skill-package.js";
-import { requireBoundRules, validateBoundRules, validateRuleReferences, saveMeasurementContext } from "./measurement-context.js";
+import { requireBoundRules, validateBoundRules, validateRuleReferences, saveMeasurementContext, writeContentAddressed } from "./measurement-context.js";
 import { CLIENT_PROTOCOL } from "../rules/measurement-contract.js";
+import { saveRun, showRun, saveRemoteOperation } from "./runs.js";
+import { compareRuns } from "./compare.js";
 
 function currentSkill() {
   const internal = fileURLToPath(new URL("../../skills/open-estimate-assessor/", import.meta.url));
@@ -54,10 +56,15 @@ async function input() {
 async function main() {
   const command = process.argv[2], args = await input();
   if (command === "skill-integrity") return currentSkill();
+  // Saved runs are independent of source access, snapshot lifetime, and session purge.
+  if (command === "show-run") return showRun(args.run_id);
+  if (command === "record-remote") return saveRemoteOperation(args.run_id,args);
+  if (command === "compare-runs") return compareRuns(args);
   if (command === "contract") return { ...await handleGetAssessorContract(), contract_version: `${currentSkill().skill_version}-desktop`,
     measurement_client_protocol: CLIENT_PROTOCOL,
     workspace_root: null, execution: "one_shot_cli", capabilities: { local_evidence_validation: true,
       assessment_drafts: true, local_assessment_artifacts: true, recorded_assessment_v2: true,
+      quality_records: "oes/quality-records/v1", immutable_local_runs: true, offline_run_comparison: true,
       remote_recalculation_required: true, persistent_evaluations: false, html_report: false, web_management: false, certificates: false, publishing: false } };
   await privateDirectory(base);
   if (command === "scan") {
@@ -154,11 +161,12 @@ async function main() {
           const localPath = path.join(sessionCache, `assessment-${assessment_hash}.json`);
           // Content-addressed immutable local artifact; preserve the submitted input too.
           const artifact = { assessment: normalized, assessment_hash, submitted_assessment: typeof args.assessment === "string" ? parseStrictJson(args.assessment) : args.assessment };
-          try { await fs.writeFile(localPath, JSON.stringify(artifact,null,2) + "\n", { mode: 0o600, flag: "wx" }); }
-          catch (e: any) { if (e.code !== "EEXIST") throw e; }
+          await writeContentAddressed(localPath,artifact);
           const context = await saveMeasurementContext(sessionCache, assessment_hash, requireBoundRules(state));
+          const savedContext = JSON.parse(await fs.readFile(context.context_path,"utf8"));
+          const run = await saveRun(validated,artifact.submitted_assessment,savedContext,state.root);
           result = { model, skill_integrity: integrity, ruleset_ref: rules!.ruleset_ref, input_reconciled: wasReconciled, transmission: "PREVIEW_ONLY_NOT_SENT",
-            local: { assessment_path: localPath, assessment_hash, ...context, scope: validated.scope, scope_record: validated.scope_record ?? null,
+            local: { ...run, session_assessment_path: localPath, session_context_path: context.context_path, ...context, context_path: path.join(run.run_directory,"context.json"), scope: validated.scope, scope_record: validated.scope_record ?? null,
               records: recordState(validated), comparison: comparisonSummary(validated), report: createEvaluation(validated,getLocalProfile()).report,
               ledger_pointer: "/assessment/judgments", candidates_pointer: "/assessment/function_candidates" },
             notice: "数値モデル・表示通貨・配布スキルのID/版/整合性確認用ハッシュ・測定ルールの参照版を送信します。対象ソース、名称、説明、パス、根拠本文、対象ソースhash、Assessment、判断台帳、ルール本文、ローカルcontextは送信しません。送信同意を確認し、長期保管が必要なAssessmentとcontextは一緒に保持してください。" };

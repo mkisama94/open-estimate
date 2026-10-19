@@ -33,6 +33,7 @@ export async function handlePrepareRepository(args: PrepareRepositoryArgs): Prom
     assessment_input: {
       ...snapshot.source_identity, manifest_hash: snapshot.manifest_hash, manifest: snapshot.manifest,
       analysis_complete: snapshot.analysis_complete
+      , acquisition: snapshot.acquisition
     },
     snapshot_id: snapshot.snapshot_id,
     manifest: snapshot.manifest,

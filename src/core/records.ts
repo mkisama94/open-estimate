@@ -1,4 +1,5 @@
 import type { Assessment, TargetRef } from "./types.js";
+import { operationalFinding, qualityWarnings } from "./quality.js";
 
 export const isRecordedAssessment = (a: Assessment) => a.format_version === "oes/assessment/v2";
 export const targetKey = (t: TargetRef) => JSON.stringify([t.kind, t.process_id, t.id]);
@@ -24,17 +25,18 @@ export function recordState(a: Assessment) {
   const files = a.input.manifest.files;
   const membership = new Map(a.scope_record?.files.map(f => [f.path, f.membership]));
   const unread = (kind: string) => files.filter(f => membership.get(f.path) === kind && f.disposition === "unread").map(f => f.path);
-  const inScopeUnread = legacy ? files.filter(f => f.disposition === "unread").map(f => f.path) : unread("included");
+  const inScopeUnread = legacy ? files.filter(f => f.disposition === "unread").map(f => f.path) : files.filter(f => membership.get(f.path) === "included" && ["unread", "excluded"].includes(f.disposition)).map(f => f.path);
   const unknownFiles = legacy ? [] : files.filter(f => !membership.has(f.path) || membership.get(f.path) === "unresolved").map(f => f.path);
   const candidates = a.function_candidates ?? [];
   const unresolvedCandidates = candidates.filter(c => c.disposition === "unresolved");
   const pendingJudgments = (a.judgments ?? []).filter(j => j.status !== "recorded" || j.evidence_status !== "sufficient");
   const provisional = a.functional_processes.filter(p => p.status === "accepted" && pendingJudgments.some(j => processAffected(a, p.process_id, j.targets)));
-  const openFindings = a.findings.filter(f => legacy ? f.severity === "blocking" : f.resolution === "open" && f.impact !== "explanation");
+  const openFindings = a.findings.filter(f => legacy ? f.severity === "blocking" : f.resolution === "open" && f.impact !== "explanation" && !operationalFinding(a,f.finding_id));
   const unconfirmedGroups = a.data_groups.filter(g => g.definition?.unconfirmed.length);
   const missingCandidates = legacy ? [] : a.functional_processes.filter(p => !candidates.some(c => c.process_id === p.process_id));
   const reasons = [
-    ...(!a.input.analysis_complete ? ["SCAN_INCOMPLETE_SCOPE_IMPACT_UNKNOWN"] : []),
+    ...(!a.input.analysis_complete && (!a.quality || !a.input.acquisition?.discovery_complete) ? ["SCAN_INCOMPLETE_SCOPE_IMPACT_UNKNOWN"] : []),
+    ...(a.quality?.limitations.filter(l => l.impact !== "outside").map(l => `ACQUISITION_${l.impact.toUpperCase()}:${l.path}`) ?? []),
     ...inScopeUnread.map(id => `IN_SCOPE_UNREAD:${id}`), ...unknownFiles.map(id => `FILE_SCOPE_UNRESOLVED:${id}`),
     ...unresolvedCandidates.map(c => `CANDIDATE_UNRESOLVED:${c.candidate_id}`),
     ...missingCandidates.map(p => `PROCESS_CANDIDATE_MISSING:${p.process_id}`),
@@ -48,6 +50,9 @@ export function recordState(a: Assessment) {
     format: legacy ? "LEGACY_JUDGMENT_RECORDS_MISSING" : "RECORDED_V2",
     format_notice: legacy ? "旧形式・判断記録不足。旧数値とhashを保持し、新要件適合とは扱いません。" : "範囲・候補・判断を記録する形式です。意味解釈の正しさは保証しません。",
     scan_complete: a.input.analysis_complete,
+    quality_version: a.quality?.version ?? null,
+    quality_warnings: qualityWarnings(a),
+    acquisition_limitations: a.quality?.limitations ?? null,
     analysis_complete: reasons.length === 0,
     partial: reasons.length > 0,
     partial_reasons: reasons,
@@ -60,6 +65,7 @@ export function recordState(a: Assessment) {
     provisional_cfp_subtotal: provisional.reduce((n, p) => n + p.movements.length, 0),
     pending_judgments: pendingJudgments.map(j=>({ judgment_id:j.judgment_id, status:j.status, evidence_status:j.evidence_status, unresolved_points:j.unresolved_points })),
     record_gaps: legacy ? ["LEGACY_JUDGMENT_RECORDS_MISSING"] : [
+      ...(!a.quality ? ["QUALITY_RECORDS_MISSING"] : []),
       ...pendingJudgments.filter(j=>j.evidence_status!=="sufficient").map(j=>`EVIDENCE_${j.evidence_status.toUpperCase()}:${j.judgment_id}`),
       ...missingCandidates.map(p=>`PROCESS_CANDIDATE_MISSING:${p.process_id}`)
     ],

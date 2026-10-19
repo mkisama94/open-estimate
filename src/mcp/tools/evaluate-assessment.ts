@@ -29,8 +29,10 @@ export async function validateSnapshotAssessment(args: EvaluateAssessmentArgs) {
   for (const [key, value] of Object.entries(entry.snapshot.source_identity))
     if (raw.input[key] !== value) throw new Error("SNAPSHOT_SOURCE_IDENTITY_MISMATCH");
   raw.input = reconciledInput;
+  if (raw.quality) raw.input.acquisition = entry.snapshot.acquisition;
+  else if (entry.snapshot.acquisition && raw.input.acquisition) raw.input.acquisition = entry.snapshot.acquisition;
   const validated = validateAssessment(raw);
-  if (!entry.snapshot.analysis_complete && !validated.findings.some(f => f.category === "coverage_gap" && f.severity === "blocking"))
+  if (!validated.quality && !entry.snapshot.analysis_complete && !validated.findings.some(f => f.category === "coverage_gap" && f.severity === "blocking"))
     throw new Error("COVERAGE_FINDING_REQUIRED");
   for (const evidence of validated.evidence) {
     const category = classifyFile(evidence.file_path).category;

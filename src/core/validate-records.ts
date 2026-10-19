@@ -2,6 +2,7 @@ import type { Assessment, TargetRef } from "./types.js";
 import type { ValidationErrorDetail } from "./validate.js";
 import { isRecordedAssessment, processAffected, targetExists, targetKey } from "./records.js";
 import { normalizeAssessment } from "./normalize.js";
+import { validateQuality } from "./quality.js";
 
 export function validateRecords(a: Assessment): ValidationErrorDetail[] {
   if (!isRecordedAssessment(a)) return [];
@@ -34,7 +35,7 @@ export function validateRecords(a: Assessment): ValidationErrorDetail[] {
     // A reason string alone cannot relabel unread files outside to obtain completion.
     if (["outside","supporting"].includes(f.membership) && confirmation?.actor !== "user" && f.evidence_refs.length === 0)
       fail(ptr, "SCOPE_BASIS_REQUIRED", "Outside/supporting needs user scope confirmation or read evidence");
-    if (f.membership === "included" && file?.disposition === "excluded") fail(ptr,"STATE_CONFLICT","Included file excluded by collector; scope reading cannot complete");
+    if (!a.quality && f.membership === "included" && file?.disposition === "excluded") fail(ptr,"STATE_CONFLICT","Included file excluded by collector; scope reading cannot complete");
   }
   for (const [i,c] of candidates.entries()) {
     const ptr = `/function_candidates/${i}`;
@@ -120,5 +121,5 @@ export function validateRecords(a: Assessment): ValidationErrorDetail[] {
     }
     for (const change of c.scope_changes) { targets(change.before,"/comparison/scope_changes",prev); targets(change.after,"/comparison/scope_changes"); refs(change.evidence_refs,"/comparison/scope_changes"); }
   }
-  return errors;
+  return [...errors, ...validateQuality(a)];
 }

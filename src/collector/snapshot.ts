@@ -13,6 +13,7 @@ const MAX_TOTAL_BYTES = 100 * 1024 * 1024; // 100 MiB
 const MAX_SINGLE_FILE_BYTES = 2 * 1024 * 1024; // 2 MiB
 
 export interface SnapshotResult {
+  acquisition?: NonNullable<AssessmentInput["acquisition"]>;
   snapshot_id: string;
   manifest: SourceManifest;
   manifest_hash: string;
@@ -79,15 +80,25 @@ export async function createRepositorySnapshot(targetRelativePath: string = ""):
   const entries: ManifestFileEntry[] = [];
   let totalBytes = 0;
   let analysisComplete = true;
+  let discoveryComplete = true;
+  const discoveryIssues: Array<{ path: string; cause: string }> = [];
 
   // Recursive walk directory
   async function walk(currentDir: string, relativeDir: string): Promise<void> {
-    const dirEntries = await fs.readdir(currentDir, { withFileTypes: true });
+    let dirEntries;
+    try { dirEntries = await fs.readdir(currentDir, { withFileTypes: true }); }
+    catch (e: any) {
+      if (!["EACCES", "EPERM"].includes(e.code)) throw e;
+      analysisComplete = false; discoveryComplete = false;
+      discoveryIssues.push({ path: relativeDir || ".", cause: "DIRECTORY_PERMISSION" }); return;
+    }
     dirEntries.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
 
     for (const d of dirEntries) {
       if (entries.length >= MAX_TOTAL_FILES) {
         analysisComplete = false;
+        discoveryComplete = false;
+        discoveryIssues.push({ path: relativeDir || ".", cause: "FILE_COUNT_LIMIT" });
         break;
       }
 
@@ -163,7 +174,13 @@ export async function createRepositorySnapshot(targetRelativePath: string = ""):
           continue;
         }
 
-        const content = await fs.readFile(fullPath);
+        let content: Buffer;
+        try { content = await fs.readFile(fullPath); }
+        catch (e: any) {
+          if (!["EACCES", "EPERM"].includes(e.code)) throw e;
+          entries.push({ path: relativePath, sha256: "0".repeat(64), bytes: stat.size, line_count: 0, disposition: "excluded", exclusion_reason: "FILE_PERMISSION" });
+          analysisComplete = false; continue;
+        }
         if (content.length > MAX_SINGLE_FILE_BYTES || totalBytes + content.length > MAX_TOTAL_BYTES)
           throw new Error("SOURCE_CHANGED_DURING_SNAPSHOT");
         // Reject binary/invalid UTF-8 even when the extension resembles source.
@@ -212,6 +229,9 @@ export async function createRepositorySnapshot(targetRelativePath: string = ""):
   const excludedFiles = entries.filter(e => e.disposition === "excluded").length;
 
   return {
+    acquisition: { discovery_complete: discoveryComplete, issues: [
+      ...entries.filter(e => e.disposition === "excluded").map(e => ({ path: e.path, cause: e.exclusion_reason! })), ...discoveryIssues
+    ] },
     snapshot_id,
     manifest,
     manifest_hash,

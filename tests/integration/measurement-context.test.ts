@@ -64,7 +64,9 @@ it("rejects altered or incomplete server responses before binding", async () => 
 }));
 it("keeps a fixed revision after current changes, saves immutable context, and rejects withdrawal", async () => session(async c => {
   const { input } = prepared(c), first = c.run("export", input), second = c.run("export", input);
-  expect(second.local.context_path).toBe(first.local.context_path);
+  expect(second.local.context_path).not.toBe(first.local.context_path);
+  expect(second.local.context_hash).toBe(first.local.context_hash);
+  expect(second.local.session_context_path).toBe(first.local.session_context_path);
   const saved = JSON.parse(await fs.readFile(first.local.context_path, "utf8"));
   const { context_hash, ...body } = saved;
   expect(context_hash).toBe(jcsSha256(body)); expect(body.assessment_hash).toBe(first.local.assessment_hash);
@@ -87,6 +89,6 @@ it("checks judgment references and ignores no caller override of the fixed revis
   expect(c.run("export", { ...input, assessment: JSON.stringify(a) }, false).error.code).toBe("RULE_REFERENCE_MISMATCH");
   expect(c.run("export", { ...input, ruleset_ref: { revision: "0".repeat(64) } }, false).error.code).toBe("INVALID_RULESET_REF");
   expect(await fs.readFile(saved.local.assessment_path, "utf8")).toBe(original);
-  await fs.writeFile(saved.local.context_path, "modified context");
+  await fs.writeFile(saved.local.session_context_path, "modified context");
   expect(c.run("export", input, false).error.code).toBe("RULESET_CHANGED");
 }));

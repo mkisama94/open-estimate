@@ -17,8 +17,9 @@ const id = { type: "integer", minimum: 0, maximum: 9999 };
 const nullableId = { anyOf: [id, { type: "null" }] };
 const array = (items: unknown, maxItems = 10000) => ({ type: "array", items, maxItems });
 const bool = { type: "boolean" };
-export const modelSchema = object({
-  version: { const: "oes/remote-model/v1" },
+const modelProperties = {
+  version: { enum: ["oes/remote-model/v1", "oes/remote-model/v2"] },
+  unadopted_process_count: { type: "integer", minimum: 1, maximum: 1000 },
   analysis_complete: bool, partial: bool, applicability_limit: bool,
   users: id, stores: id, groups: array(id),
   processes: array(object({
@@ -26,7 +27,11 @@ export const modelSchema = object({
     movements: array(object({ type: { enum: ["Entry", "Exit", "Read", "Write"] }, group: id,
       peer: nullableId, store: nullableId, distinct: bool, variant: nullableId }), 1000)
   }), 1000)
-});
+};
+// v2 adds only the number of unadopted processes whose trigger cannot be transported.
+// No placeholder user/group or movement is invented. Existing v1 retains its exact shape.
+export const modelSchema = { ...object(modelProperties), required:Object.keys(modelProperties).filter(k=>k!=="unadopted_process_count"),
+  allOf:[{if:{properties:{version:{const:"oes/remote-model/v2"}}},then:{required:["unadopted_process_count"]},else:{not:{required:["unadopted_process_count"]}}}] };
 export const remoteArgsSchema = { ...object({ model: modelSchema, display_currency: { enum: [...CURRENCIES] }, skill_integrity: skillIntegritySchema, ruleset_ref: rulesetRefSchema }), required: ["model", "display_currency"] };
 const validate = new Ajv2020({ strict: false }).compile(remoteArgsSchema);
 
@@ -43,7 +48,9 @@ export function projectModel(a: Assessment) {
   const processes = a.functional_processes.filter(p => !state || p.status === "accepted"
     || p.movements.some(m => m.movement_id === p.trigger_movement_id));
   return {
-    version: "oes/remote-model/v1", analysis_complete: state?.analysis_complete ?? a.input.analysis_complete,
+    version: processes.length === a.functional_processes.length ? "oes/remote-model/v1" : "oes/remote-model/v2",
+    ...(processes.length < a.functional_processes.length ? {unadopted_process_count:a.functional_processes.length-processes.length} : {}),
+    analysis_complete: state?.analysis_complete ?? a.input.analysis_complete,
     partial: state?.partial ?? (a.components.some(c => c.status === "unresolved" || (c.status === "excluded" && c.scope_impact))
       || a.findings.some(f => f.severity === "blocking")),
     applicability_limit: a.findings.some(f => f.category === "applicability_limit")
@@ -86,6 +93,10 @@ export async function evaluateRemote(args: unknown, profile: LocalProfile, provi
   const measurement = measureAssessment({ input: { analysis_complete: m.analysis_complete }, components: [],
     findings: [...(m.partial ? [{ severity: "blocking" }] : []), ...(m.applicability_limit ? [{ category: "applicability_limit" }] : [])],
     functional_processes: m.processes } as unknown as Assessment);
+  if (m.unadopted_process_count) {
+    if (!m.partial || m.analysis_complete || m.processes.length+m.unadopted_process_count>1000) throw new Error("INVALID_REMOTE_MODEL");
+    measurement.counts.total_processes += m.unadopted_process_count;
+  }
   const estimation = estimateAssessment(measurement, { locale: "en-US", display_currency: "USD", benchmarkProfile: profile.benchmark, wageProfile: profile.wage });
   const report = { measurement, effort: estimation.effort, reference_usd: estimation.reference_usd, limitation_codes: estimation.limitation_codes };
   const report_hash = jcsSha256({ model: m, profile, report });

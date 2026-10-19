@@ -49,6 +49,8 @@ for (const dir of ['dist', 'contracts', 'profiles', 'skills'])
 await fs.cp(path.join(repo, 'skills'), path.join(plugin, 'skills'), { recursive: true });
 try { await fs.copyFile(path.join(repo, 'LICENSE'), path.join(plugin, 'LICENSE')); } catch(e) { if(e.code !== 'ENOENT') throw e; }
 await fs.copyFile(path.join(repo, 'docs/DESKTOP-PLUGIN.md'), path.join(plugin, 'README.md'));
+await fs.mkdir(path.join(plugin, 'implementation'), { recursive: true });
+await fs.copyFile(path.join(repo, 'docs/implementation/PLUGIN-QUALITY-0.8.0.md'), path.join(plugin, 'implementation/PLUGIN-QUALITY-0.8.0.md'));
 await fs.copyFile(path.join(repo, 'package.json'), path.join(plugin, 'server/package.json'));
 await fs.copyFile(path.join(repo, 'package-lock.json'), path.join(plugin, 'server/package-lock.json'));
 const npm = process.env.npm_execpath;
@@ -72,6 +74,8 @@ await json(path.join(marketplace, '.agents/plugins/marketplace.json'), {
     policy: { installation: 'AVAILABLE', authentication: 'ON_INSTALL' }, category: 'Productivity' }]
 });
 await fs.copyFile(path.join(repo, 'docs/DESKTOP-PLUGIN.md'), path.join(marketplace, 'INSTALL.md'));
+await fs.mkdir(path.join(marketplace, 'implementation'), { recursive: true });
+await fs.copyFile(path.join(repo, 'docs/implementation/PLUGIN-QUALITY-0.8.0.md'), path.join(marketplace, 'implementation/PLUGIN-QUALITY-0.8.0.md'));
 const files = [];
 async function inventory(dir, prefix = '') {
   for (const entry of await fs.readdir(dir, { withFileTypes: true })) {

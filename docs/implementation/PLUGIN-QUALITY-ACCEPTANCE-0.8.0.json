@@ -1,0 +1,39 @@
+{
+  "version": "0.8.0",
+  "status": "LOCAL_ACCEPTANCE_PASSED",
+  "verified_on_jst": "2026-10-20",
+  "tests": {
+    "passed": 205,
+    "failed": 0,
+    "files": 23
+  },
+  "typecheck": "PASSED",
+  "build": "PASSED",
+  "relocated_package": "PASSED",
+  "immutable_run_after_purge": "PASSED",
+  "package_files": 3765,
+  "production_dependencies": 96,
+  "build_sha256": "7e827bc28af5dd611d6f5681bf0ebefcb10a61d55e858dcf74cb3cfc3d91047f",
+  "remote_model_formats": [
+    "oes/remote-model/v1",
+    "oes/remote-model/v2"
+  ],
+  "not_performed": [
+    "production_deployment",
+    "production_requests",
+    "host_installation_conversation",
+    "certificate",
+    "signing",
+    "publication"
+  ],
+  "limits": [
+    "semantic_interpretation_not_independently_audited",
+    "response_transmission_is_client_reported",
+    "production_server_registration_and_v2_receiver_pending"
+  ],
+  "archive": {
+    "bytes": 5733360,
+    "sha256": "a79ebf50f3367a1be02568c968037416259e0b4425546c45d3ef17a1371de770",
+    "path": "C:\\git\\open-estimate\\release\\open-estimate-desktop-0.8.0-local-validation.zip"
+  }
+}

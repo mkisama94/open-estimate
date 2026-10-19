@@ -20,7 +20,7 @@ try {
   assert.deepEqual(mcp, { type: 'http', url: 'https://open-estimate.ai-orchestration.jp/mcp' });
   const run = (command, input) => {
     const child = spawnSync(process.execPath, [path.join(plugin, 'skills/open-estimate-assessor/scripts/oes.mjs'), command], {
-      cwd: temp, input: JSON.stringify(input), encoding: 'utf8', env: { ...process.env, OES_HELPER_STATE: path.join(temp, 'state') }, windowsHide: true
+      cwd: temp, input: JSON.stringify(input), encoding: 'utf8', env: { ...process.env, OES_HELPER_STATE: path.join(temp, 'state'), OES_RUNS_ROOT: path.join(temp, 'runs') }, windowsHide: true
     });
     assert.equal(child.status, 0, child.stdout + child.stderr); return JSON.parse(child.stdout);
   };
@@ -28,9 +28,12 @@ try {
   assert.equal(run('skill-integrity', {}).skill_version, pkg.version);
   assert.equal(contract.workspace_root, null);
   assert.equal(contract.skill.skill_version, pkg.version);
+  assert.equal(contract.capabilities.immutable_local_runs, true);
+  assert.equal(contract.capabilities.quality_records, 'oes/quality-records/v1');
   const root = path.join(temp, 'sample-project'); await fs.mkdir(root);
   await fs.writeFile(path.join(root, 'main.js'), 'export const value = 1;\n');
   await fs.writeFile(path.join(root, '.env'), 'CANARY=do-not-read\n');
+  await fs.copyFile(path.join(repo, 'examples/quality-check/notes.js'), path.join(root, 'notes.js'));
   const scan = run('scan', { root }), common = { root, session_id: scan.session_id };
   assert.equal(scan.summary.source_content_read, false);
   const actual = run('skill-integrity', {});
@@ -44,6 +47,26 @@ try {
   assert.equal(prepared.manifest.files.find(f => f.path === '.env').disposition, 'excluded');
   const read = run('read', { ...common, snapshot_id: prepared.snapshot_id, file_id: 'main.js' });
   assert.equal(read.content, '1: export const value = 1;');
+  run('read', { ...common, snapshot_id: prepared.snapshot_id, file_id: 'notes.js' });
+  const a = JSON.parse(await fs.readFile(path.join(repo, 'examples/recorded-assessment.json'), 'utf8'));
+  a.assessment_id = prepared.assessment_id; a.input = prepared.assessment_input;
+  a.assessor = { ...prepared.assessor_defaults, finished_at: new Date().toISOString() };
+  a.components[0].path_prefixes = ['notes.js'];
+  a.scope_record.files = a.input.manifest.files.map(f => ({ path:f.path, membership:f.path==='notes.js'?'included':f.path==='main.js'?'supporting':'outside',
+    reason:'Explicit sample scope', confirmation_ref:a.scope_record.confirmations[0].confirmation_id, evidence_refs:[] }));
+  a.evidence[0] = {...a.evidence[0],file_path:'notes.js',line_start:5,line_end:14};
+  a.evidence[1] = {...a.evidence[1],file_path:'notes.js',line_start:16,line_end:21};
+  for (const j of a.judgments) j.rule = {source:'skill',id:response.bundle.rule_ids[0],version:response.ruleset_ref.revision};
+  a.quality = {version:'oes/quality-records/v1',scope_rules:[
+    {rule_id:'notes',path_prefix:'notes.js',membership:'included',reason:'Notes implementation'},
+    {rule_id:'main',path_prefix:'main.js',membership:'supporting',reason:'Sample constant'},
+    {rule_id:'secret',path_prefix:'.env',membership:'outside',reason:'Excluded secret configuration'}],
+    limitations:a.input.acquisition.issues.map(i=>({...i,impact:'outside',rule_id:'secret',reason:'Secret file outside declared implementation scope',missing:null})),
+    boundaries:a.functional_processes.map(p=>({process_id:p.process_id,rerun:'no',rerun_basis:'One HTTP request',continuation:'no',continuation_reason:'Independent user request',queues:[]})),
+    attributes:a.data_groups.map(g=>({data_group_id:g.data_group_id,mappings:g.attributes.map(attribute=>({attribute,implementation:'notes.'+attribute,evidence_refs:[a.evidence[0].evidence_id]}))})),findings:[]};
+  const exported = run('export', {...common,snapshot_id:prepared.snapshot_id,assessment:a});
+  assert.equal(exported.local.summary.measurement.cfp,6);
   run('purge', common);
-  console.log(JSON.stringify({ status: 'PASS', relocated_package: true, local_mcp_required: false, version: manifest.version }));
+  assert.equal(run('show-run',{run_id:exported.local.run_id}).summary.measurement.cfp,6);
+  console.log(JSON.stringify({ status: 'PASS', relocated_package: true, immutable_run_after_purge:true, local_mcp_required: false, version: manifest.version }));
 } finally { await fs.rm(temp, { recursive: true, force: true }); }
