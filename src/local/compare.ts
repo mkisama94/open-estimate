@@ -1,8 +1,8 @@
-import { jcsSha256 } from "../core/canonical.js";
 import { targetExists, targetKey } from "../core/records.js";
 import { measureAssessment } from "../core/measure.js";
 import type { Assessment, TargetRef } from "../core/types.js";
 import { appendOperation, readRun } from "./runs.js";
+import { assessmentIdentity, executionRecord, identity } from "./comparison-identity.js";
 
 const causes = ["code","scope","evidence","interpretation","tool_rules","unknown"];
 export interface Mapping {
@@ -51,7 +51,6 @@ export async function compareRuns(args: any) {
   const delta=b===null || a===null ? null : a-b;
   if (delta !== null && !process.unmapped_before.length && !process.unmapped_after.length && !process.changes.some(x=>x.kind==="unmatched") && process.explained_cfp_delta !== delta) throw new Error("COMPARISON_DELTA_MISMATCH");
   if (delta !== null && !movement.unmapped_before.length && !movement.unmapped_after.length && !movement.changes.some(x=>x.kind==="unmatched") && movement.explained_cfp_delta !== delta) throw new Error("COMPARISON_DELTA_MISMATCH");
-  const identity = (key: string, left: unknown,right: unknown) => ({key,status:left==null || right==null ? "UNKNOWN" : jcsSha256(left)===jcsSha256(right) ? "SAME" : "DIFFERENT",before:left??null,after:right??null});
   const transitions=args.judgment_transitions??[];
   if (!Array.isArray(transitions)) throw new Error("INVALID_JUDGMENT_TRANSITIONS");
   const seen=new Set<string>();
@@ -68,11 +67,12 @@ export async function compareRuns(args: any) {
       || (t.state==="merged" && !current.some(j=>j.kind==="merge")) || (t.state==="not_counted" && !current.some(j=>j.kind==="not_counted"))) throw new Error("JUDGMENT_TRANSITION_CONFLICT");
   }
   const pending=(run: typeof before, side: string)=>(run.assessment.judgments??[]).filter(j=>j.status!=="recorded" && !seen.has(side+":"+j.judgment_id)).map(j=>j.judgment_id);
-  const summary={format:"oes/run-comparison/v1",before:{run_id:args.before_run_id,assessment_hash:before.metadata.assessment_hash,checksums_hash:before.checksums_hash},
+  const summary={format:"oes/run-comparison/v2",before:{run_id:args.before_run_id,assessment_hash:before.metadata.assessment_hash,checksums_hash:before.checksums_hash},
     after:{run_id:args.after_run_id,assessment_hash:after.metadata.assessment_hash,checksums_hash:after.checksums_hash},
-    identity:[identity("source_manifest",before.metadata.manifest_hash,after.metadata.manifest_hash),identity("commit",before.assessment.input.commit,after.assessment.input.commit),
-      identity("scope",before.assessment.scope_record,after.assessment.scope_record),identity("skill",before.metadata.skill,after.metadata.skill),identity("helper",before.metadata.helper,after.metadata.helper),
+    identity:[...assessmentIdentity(before.assessment,after.assessment),identity("commit",before.assessment.input.commit,after.assessment.input.commit),
+      identity("skill",before.metadata.skill,after.metadata.skill),identity("helper",before.metadata.helper,after.metadata.helper),
       identity("rules",before.metadata.rules_context?.ruleset_ref,after.metadata.rules_context?.ruleset_ref)],
+    execution_records:{before:executionRecord(before.assessment),after:executionRecord(after.assessment)},
     before_cfp:b,after_cfp:a,cfp_delta:delta,process,movement,unexplained_cfp_delta:delta===null?null:delta-movement.explained_cfp_delta,
     judgment_transitions:transitions,unmapped_pending_before:pending(before,"before"),unmapped_pending_after:pending(after,"after"),
     prior_information_consulted:args.prior_information_consulted,independence:"NOT_VERIFIABLE",proposal_source:args.proposal_source??"unknown",

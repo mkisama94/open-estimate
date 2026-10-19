@@ -37,6 +37,11 @@ export function validateQuality(a: Assessment): ValidationErrorDetail[] {
   for (const b of q.boundaries) {
     const p = a.functional_processes.find(p => p.process_id === b.process_id);
     if (!p) fail("UNRESOLVED_REFERENCE",b.process_id);
+    if ((b.rerun === "unknown" || b.continuation === "unknown") && !p?.boundary?.judgment_refs.some(id =>
+      a.judgments?.some(j => j.judgment_id === id && j.status !== "recorded"
+        && j.targets.some(t => t.kind === "process" && t.id === b.process_id)))) {
+      fail("PROVISIONAL_JUDGMENT_REQUIRED", `Unknown rerun/continuation requires a pending boundary judgment for ${b.process_id}`);
+    }
     unique(b.queues.map(x => x.store_id));
     for (const m of p?.movements ?? []) if (a.persistent_stores.some(s => s.store_id === m.store_id && s.storage_type === "queue")
       && !b.queues.some(x => x.store_id === m.store_id)) fail("QUEUE_REVIEW_REQUIRED",m.movement_id);

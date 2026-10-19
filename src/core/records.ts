@@ -37,6 +37,10 @@ export function recordState(a: Assessment) {
   const reasons = [
     ...(!a.input.analysis_complete && (!a.quality || !a.input.acquisition?.discovery_complete) ? ["SCAN_INCOMPLETE_SCOPE_IMPACT_UNKNOWN"] : []),
     ...(a.quality?.limitations.filter(l => l.impact !== "outside").map(l => `ACQUISITION_${l.impact.toUpperCase()}:${l.path}`) ?? []),
+    ...(a.quality?.boundaries.flatMap(b => [
+      ...(b.rerun === "unknown" ? [`BOUNDARY_RERUN_UNKNOWN:${b.process_id}`] : []),
+      ...(b.continuation === "unknown" ? [`BOUNDARY_CONTINUATION_UNKNOWN:${b.process_id}`] : [])
+    ]) ?? []),
     ...inScopeUnread.map(id => `IN_SCOPE_UNREAD:${id}`), ...unknownFiles.map(id => `FILE_SCOPE_UNRESOLVED:${id}`),
     ...unresolvedCandidates.map(c => `CANDIDATE_UNRESOLVED:${c.candidate_id}`),
     ...missingCandidates.map(p => `PROCESS_CANDIDATE_MISSING:${p.process_id}`),

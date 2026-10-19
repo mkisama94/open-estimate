@@ -4,7 +4,7 @@
 
 ## OES-MEASURE-001
 
-測定目的はas_built_functional_size、単一アプリケーション境界とし内部APIを重複計上しない。ただし単一アプリ・共有内部関数だけで機能を統合せず、別ファイル・API・ジョブだけで分割しない。独立再実行も単独の決定根拠にしない。quality.boundariesに再実行の可否と根拠、継続処理か、その理由、内部キューの境界・計数規則・移動参照・通知と永続読取の重複レビューを記録する。内部キューを自動的に外部ユーザーにも一律非計上にもせず、未確定事項は判断台帳に残す。開始・要求ユーザー・機能目的・完了・非同期／定期／手動の関係をboundaryに残す。
+測定目的はas_built_functional_size、単一アプリケーション境界とし内部APIを重複計上しない。ただし単一アプリ・共有内部関数だけで機能を統合せず、別ファイル・API・ジョブだけで分割しない。独立再実行も単独の決定根拠にしない。quality.boundariesに再実行の可否と根拠、継続処理か、その理由、内部キューの境界・計数規則・移動参照・通知と永続読取の重複レビューを記録する。内部キューを自動的に外部ユーザーにも一律非計上にもせず、未確定事項は判断台帳に残す。rerunまたはcontinuationがunknownなら、そのprocessのboundary.judgment_refsに紐づくprovisional／unresolved判断と具体的unresolved_pointsを必須とする。未確認のままrecordedやCOMPLETEにしない。開始・要求ユーザー・機能目的・完了・非同期／定期／手動の関係をboundaryに残す。
 
 ## OES-MEASURE-002
 
@@ -56,7 +56,7 @@ findingsにtargets・impact（scope／coverage／boundary／counting／explanati
 
 ## OES-COMPARE-001
 
-利用者が比較対象を指定した場合のみ、モデル確定・export後の別工程でcompare-runsを使う。両run IDとhash、ソース・範囲・スキル・ツール・規則の同一性と不明、processと移動の明示的対応案、追加・削除・統合・分割、判断の解決・継続・非計上、理由・根拠を記録する。IDや配列順から同一性を推測しない。code／scope／evidence／interpretation／tool_rules／unknownの原因を複数保持し、相殺と未対応を示す。過去参照の事実を開示し独立性は未確認とする。原成果物は変更せず比較操作として追記する。既存Assessment内comparisonも読み取り可能だが新規独立測定へ前回モデルを埋め込む必要はない。代替モデルの上下限を創作しない。
+利用者が比較対象を指定した場合のみ、モデル確定・export後の別工程でcompare-runsを使う。両run IDとhash、ソース・範囲・スキル・ツール・規則の同一性と不明、processと移動の明示的対応案、追加・削除・統合・分割、判断の解決・継続・非計上、理由・根拠を記録する。IDや配列順から同一性を推測しない。code／scope／evidence／interpretation／tool_rules／unknownの原因を複数保持し、相殺と未対応を示す。過去参照の事実を開示し独立性は未確認とする。原成果物は変更せず比較操作として追記する。既存Assessment内comparisonも読み取り可能だが新規独立測定へ前回モデルを埋め込む必要はない。代替モデルの上下限を創作しない。比較結果はoes/run-comparison/v2。identityのsource_content（パスと取得済みの非ゼロhash）、acquisition（読取・除外・取得制限）、scope（対象所属・アプリ境界・範囲規則）、evidenceを区別する。ゼロhashや未発見領域が残れば内容一致を断定しない。範囲ID・確認日時・確認者・確認文はexecution_recordsの履歴であり、コード・範囲変更の根拠にしない。元manifest hashとscope記録は識別用に保持する。
 
 ## OES-LEGACY-001
 

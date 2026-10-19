@@ -18,6 +18,33 @@ function limited(impact: "outside" | "in_scope" | "unknown") {
   a.quality!.limitations.push({path:"generated/large.js",cause:"FILE_SIZE_LIMIT",impact,rule_id:impact==="unknown"?null:"generated",reason:"Collector limit mapped to declared scope",missing:impact==="unknown"?"Unknown whether generated output contains application behavior":null});
   return a;
 }
+it.each(["rerun","continuation","both"] as const)("requires a pending boundary judgment for unknown %s and keeps both counting paths PARTIAL",async(field)=>{
+  const a=withQuality(),b=a.quality!.boundaries[0],p=a.functional_processes[0];
+  if(field!=="continuation"){b.rerun="unknown";b.rerun_basis="Independent retry is not confirmed";}
+  if(field!=="rerun"){b.continuation="unknown";b.continuation_reason="Continuation relationship is not confirmed";}
+  expect(()=>validateAssessment(a)).toThrow(SemanticValidationError);
+  try {validateAssessment(a);} catch(e) {
+    expect((e as SemanticValidationError).errors.some(x=>x.code==="PROVISIONAL_JUDGMENT_REQUIRED" && x.message.includes(p.process_id))).toBe(true);
+  }
+  // Even before validation, the summary cannot claim completion for unknown boundaries.
+  expect(recordState(a).partial).toBe(true);
+  if(field!=="continuation")expect(recordState(a).partial_reasons).toContain(`BOUNDARY_RERUN_UNKNOWN:${p.process_id}`);
+  if(field!=="rerun")expect(recordState(a).partial_reasons).toContain(`BOUNDARY_CONTINUATION_UNKNOWN:${p.process_id}`);
+  const unrelated=a.judgments![1];unrelated.status="provisional";unrelated.unresolved_points=["Review another function"];
+  expect(()=>validateAssessment(a)).toThrow();
+  const judgment=a.judgments!.find(j=>p.boundary!.judgment_refs.includes(j.judgment_id))!;
+  judgment.status="provisional";judgment.unresolved_points=["Confirm retry and continuation relationships"];
+  validateAssessment(a);const local=measureAssessment(a);expect(local.status).toBe("PARTIAL");
+  expect((await evaluateRemote({model:projectModel(a),display_currency:"USD"},getLocalProfile())).report.measurement).toEqual(local);
+});
+it("allows unresolved boundaries only with their unresolved process judgment, and leaves confirmed boundaries complete",()=>{
+  const a=withQuality(),p=a.functional_processes[0],j=a.judgments![0];
+  expect(measureAssessment(validateAssessment(a)).status).toBe("COMPLETE");
+  a.quality!.boundaries[0].rerun="unknown";p.status="unresolved";p.movements=[];
+  a.function_candidates![0].disposition="unresolved";j.status="unresolved";j.unresolved_points=["Independent request boundary unconfirmed"];
+  j.targets=j.targets.filter(t=>t.kind!=="movement");
+  expect(measureAssessment(validateAssessment(a)).status).toBe("PARTIAL");
+});
 it("separates acquisition from scope completion and keeps local/remote counting identical",async()=>{
   for (const impact of ["outside","in_scope","unknown"] as const) {
     const a=limited(impact);validateAssessment(a);

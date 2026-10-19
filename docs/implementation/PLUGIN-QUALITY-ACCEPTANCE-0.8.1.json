@@ -1,0 +1,58 @@
+{
+  "version": "0.8.1",
+  "status": "LOCAL_ACCEPTANCE_PASSED",
+  "verified_on_jst": "2026-10-20",
+  "addressed_reviews": [
+    "P1_UNKNOWN_BOUNDARY_REQUIRES_PENDING_JUDGMENT",
+    "P2_SEPARATE_CONTENT_ACQUISITION_SCOPE_EXECUTION"
+  ],
+  "tests": {
+    "note": "Focused suite rerun after final handling of missing legacy scope rules; full suite passed immediately before that change.",
+    "full_suite": {
+      "files": 24,
+      "failed": 0,
+      "passed": 223
+    },
+    "final_targeted": {
+      "files": 3,
+      "failed": 0,
+      "passed": 26
+    }
+  },
+  "typecheck": "PASSED",
+  "build": "PASSED",
+  "relocated_package": "PASSED",
+  "immutable_run_after_purge": "PASSED",
+  "saved_comparison_v2": "PASSED",
+  "package_files": 3768,
+  "production_dependencies": 96,
+  "build_sha256": "8cd3a0f022d07b3a2d6fbff34bf4f25cb7c79819b632b2cb4bcc26c8371918a5",
+  "comparison_format": "oes/run-comparison/v2",
+  "original_0_8_0_archive": {
+    "sha256": "a79ebf50f3367a1be02568c968037416259e0b4425546c45d3ef17a1371de770",
+    "unchanged": true
+  },
+  "pending_migration": [
+    "register_new_skill_and_rules",
+    "deploy_remote_model_v2_receiver",
+    "verify_installed_host_end_to_end_including_v1_path"
+  ],
+  "not_performed": [
+    "production_deployment",
+    "production_measurement_requests",
+    "host_installation_conversation",
+    "certificate",
+    "signing",
+    "publication"
+  ],
+  "limits": [
+    "semantic_interpretation_not_independently_audited",
+    "response_transmission_is_client_reported",
+    "zero_hash_or_undiscovered_content_is_not_equality_evidence"
+  ],
+  "archive": {
+    "path": "C:\\git\\open-estimate\\release\\open-estimate-desktop-0.8.1-local-validation.zip",
+    "bytes": 5744496,
+    "sha256": "7a32464102c9276c9ac81dbb23c2ae1a9ae51d1df0f7a163dd1738e83b951c07"
+  }
+}

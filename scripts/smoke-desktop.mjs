@@ -30,6 +30,7 @@ try {
   assert.equal(contract.skill.skill_version, pkg.version);
   assert.equal(contract.capabilities.immutable_local_runs, true);
   assert.equal(contract.capabilities.quality_records, 'oes/quality-records/v1');
+  assert.equal(contract.capabilities.run_comparison_format, 'oes/run-comparison/v2');
   const root = path.join(temp, 'sample-project'); await fs.mkdir(root);
   await fs.writeFile(path.join(root, 'main.js'), 'export const value = 1;\n');
   await fs.writeFile(path.join(root, '.env'), 'CANARY=do-not-read\n');
@@ -68,5 +69,10 @@ try {
   assert.equal(exported.local.summary.measurement.cfp,6);
   run('purge', common);
   assert.equal(run('show-run',{run_id:exported.local.run_id}).summary.measurement.cfp,6);
+  const comparison = run('compare-runs',{before_run_id:exported.local.run_id,after_run_id:exported.local.run_id,
+    process_changes:[],movement_changes:[],prior_information_consulted:true});
+  assert.equal(comparison.summary.format,'oes/run-comparison/v2');
+  assert.equal(comparison.summary.identity.find(x=>x.key==='scope').status,'SAME');
+  assert.equal(comparison.summary.identity.find(x=>x.key==='source_content').status,'UNKNOWN'); // Excluded .env has no content hash.
   console.log(JSON.stringify({ status: 'PASS', relocated_package: true, immutable_run_after_purge:true, local_mcp_required: false, version: manifest.version }));
 } finally { await fs.rm(temp, { recursive: true, force: true }); }

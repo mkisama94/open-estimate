@@ -1,6 +1,6 @@
 {
   "name": "open-estimate",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "正規MCPの測定ルールを取得・固定し、Work／Codexの許可済みソースからTEST参考工数を算出します。",
   "author": {
     "name": "Open Estimate"

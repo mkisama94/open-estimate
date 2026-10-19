@@ -64,7 +64,7 @@ async function main() {
     measurement_client_protocol: CLIENT_PROTOCOL,
     workspace_root: null, execution: "one_shot_cli", capabilities: { local_evidence_validation: true,
       assessment_drafts: true, local_assessment_artifacts: true, recorded_assessment_v2: true,
-      quality_records: "oes/quality-records/v1", immutable_local_runs: true, offline_run_comparison: true,
+      quality_records: "oes/quality-records/v1", immutable_local_runs: true, offline_run_comparison: true, run_comparison_format: "oes/run-comparison/v2",
       remote_recalculation_required: true, persistent_evaluations: false, html_report: false, web_management: false, certificates: false, publishing: false } };
   await privateDirectory(base);
   if (command === "scan") {

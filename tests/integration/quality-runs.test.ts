@@ -10,6 +10,7 @@ import { compareRuns } from "../../src/local/compare.js";
 import { evaluateRemote } from "../fixtures/skill-policy.js";
 import { projectModel } from "../../src/remote/model.js";
 import { getLocalProfile } from "../../src/profiles/local-profile.js";
+import { jcsSha256 } from "../../src/core/canonical.js";
 
 vi.mock("node:crypto",async()=>{
   const actual=await vi.importActual<typeof import("node:crypto")>("node:crypto");
@@ -60,6 +61,13 @@ it("checks explicit add/delete/merge/split mappings, offsets, pending transition
   try {
     const a=withQuality();a.judgments![0].status="provisional";a.judgments![0].unresolved_points=["Retry boundary"];
     const b=withQuality();
+    for (const x of [a,b]) {
+      x.input.manifest.files.push({path:"docs/guide.md",sha256:"a".repeat(64),bytes:10,line_count:1,disposition:x===a?"unread":"supporting",exclusion_reason:null});
+      x.scope_record!.files.push({path:"docs/guide.md",membership:"supporting",reason:"Supporting guide",confirmation_ref:"scope-confirmed",evidence_refs:[]});
+      x.quality!.scope_rules.push({rule_id:"docs",path_prefix:"docs",membership:"supporting",reason:"Supporting documentation"});
+      x.input.manifest_hash=jcsSha256(x.input.manifest);
+    }
+    b.scope_record!.scope_id="second-run-scope";b.scope_record!.confirmations[0].confirmed_at="2026-10-20T01:00:00Z";
     const first=await saveRun(a,a,{},path.join(temp,"target")),second=await saveRun(b,b,{},path.join(temp,"target"));
     const beforeFile=await fs.readFile(first.assessment_path,"utf8"),afterFile=await fs.readFile(second.assessment_path,"utf8");
     const refs=(x: typeof a)=>x.functional_processes.flatMap(p=>p.movements.map(m=>target("movement",m.movement_id,p.process_id)));
@@ -70,6 +78,13 @@ it("checks explicit add/delete/merge/split mappings, offsets, pending transition
       movement_changes:[row("merge",br.slice(0,2),ar.slice(0,1)),row("split",br.slice(2,3),ar.slice(1,3)),row("delete",br.slice(3,4),[]),row("add",[],ar.slice(3,4)),row("retained",br.slice(4,5),ar.slice(4,5))],
       judgment_transitions:[{before:[a.judgments![0].judgment_id],after:[b.judgments![0].judgment_id],state:"resolved",reason:"Additional code evidence resolves retry"}]};
     const result=await compareRuns(args);
+    expect(result.summary.format).toBe("oes/run-comparison/v2");
+    expect(result.summary.identity.find(x=>x.key==="source_content")!.status).toBe("SAME");
+    expect(result.summary.identity.find(x=>x.key==="scope")!.status).toBe("SAME");
+    expect(result.summary.identity.find(x=>x.key==="acquisition")!.status).toBe("DIFFERENT");
+    expect(result.summary.execution_records.before.scope_record).not.toEqual(result.summary.execution_records.after.scope_record);
+    const history=await showRun(second.run_id);
+    expect(history.operations.find(x=>x.operation_id===result.operation_id).payload).toEqual(JSON.parse(JSON.stringify(result.summary)));
     expect(result.summary.movement.counts).toMatchObject({add:1,delete:1,merge:1,split:1});
     expect(result.summary.movement.cancelled_cfp).toBe(2);
     expect(result.summary.movement.unmapped_before).toHaveLength(1);expect(result.summary.independence).toBe("NOT_VERIFIABLE");
