@@ -3,7 +3,9 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { evaluateRemote, projectModel } from "../../src/remote/model.js";
+import { projectModel, evaluateRemote as evaluateVerified } from "../../src/remote/model.js";
+import { evaluateRemote, legacyRegistry, legacyIntegrity } from "../fixtures/skill-policy.js";
+import { bindRules, measurementRegistry, skillRegistry } from "../fixtures/measurement.js";
 import { getLocalProfile } from "../../src/profiles/local-profile.js";
 import worker from "../../src/remote/worker.js";
 import { FrbProvider } from "../../src/profiles/frb.js";
@@ -12,7 +14,7 @@ import type { Assessment } from "../../src/core/types.js";
 
 const fixture: Assessment = JSON.parse(await fs.readFile("examples/basic-assessment.json", "utf8"));
 const model = () => projectModel(structuredClone(fixture));
-const args = () => ({ model: model(), display_currency: "USD" });
+const args = () => ({ model: model(), display_currency: "USD", skill_integrity: legacyIntegrity });
 
 describe("remote boundary", () => {
   it("recomputes CFP, effort, USD and FRB display from the numeric model", async () => {
@@ -59,11 +61,11 @@ describe("remote boundary", () => {
       const response = await worker.fetch(new Request("https://example.test/mcp", {
         method: "POST", headers: { "content-type": "application/json", accept: "application/json, text/event-stream" },
         body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params })
-      }));
+      }), legacyRegistry, measurementRegistry());
       expect(response.status).toBe(200); return response.json() as Promise<any>;
     };
     expect((await call("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "test", version: "1" } })).result.serverInfo.name).toBe("open-estimate-remote");
-    expect((await call("tools/list", {})).result.tools.map((t: any) => t.name)).toEqual(["evaluate_model"]);
+    expect((await call("tools/list", {})).result.tools.map((t: any) => t.name)).toEqual(["get_skill_policy", "get_measurement_rules", "evaluate_model"]);
     const result = (await call("tools/call", { name: "evaluate_model", arguments: args() })).result;
     expect(result.isError).not.toBe(true);
     expect(result.structuredContent.report.measurement.cfp).toBe(6);
@@ -93,6 +95,7 @@ describe("one-shot helper", () => {
     try {
       expect(scan.summary.source_content_read).toBe(false);
       expect(run("prepare", common, false).error.code).toBe("WORKSPACE_CONFIRMATION_REQUIRED");
+      bindRules(run, common);
       run("confirm", { ...common, user_confirmed: true });
       expect(run("prepare", { ...common, root: path.resolve("examples") }, false).error.code).toBe("PROJECT_CHANGED_RECONFIRM_REQUIRED");
       const prep = run("prepare", common), a = structuredClone(fixture);
@@ -111,8 +114,9 @@ describe("one-shot helper", () => {
       const exported = run("export", input);
       expect(exported.transmission).toBe("PREVIEW_ONLY_NOT_SENT");
       expect(JSON.stringify(exported.model)).not.toContain("notes.js");
-      const result = await evaluateRemote({ model: exported.model, display_currency: "USD" }, getLocalProfile());
+      const result = await evaluateVerified({ model: exported.model, skill_integrity: exported.skill_integrity, ruleset_ref: exported.ruleset_ref, display_currency: "USD" }, getLocalProfile(), undefined, skillRegistry(exported.skill_integrity), Date.now(), measurementRegistry());
       expect(result.report.measurement.cfp).toBe(6);
+      expect(result.assurance.skill_integrity.status).toBe("MATCHED_CLIENT_REPORTED");
       await fs.writeFile(path.join(state, scan.session_id, prep.snapshot_id, "files", "notes.js"), "tampered");
       expect(run("export", input, false).error.code).toBe("SNAPSHOT_CONTENT_CHANGED");
       const file = path.join(state, scan.session_id + ".json"), saved = JSON.parse(await fs.readFile(file, "utf8"));

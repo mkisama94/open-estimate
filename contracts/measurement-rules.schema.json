@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Open Estimate central measurement rules v1",
+  "$defs": {
+    "GetMeasurementRulesRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "skill_integrity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "format",
+            "skill_id",
+            "skill_version",
+            "hash_rule",
+            "package_sha256"
+          ],
+          "properties": {
+            "format": {
+              "const": "oes/skill-integrity/v1"
+            },
+            "skill_id": {
+              "const": "open-estimate-assessor"
+            },
+            "skill_version": {
+              "type": "string",
+              "maxLength": 64,
+              "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+            },
+            "hash_rule": {
+              "const": "oes/skill-package/v1"
+            },
+            "package_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "client_protocol": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "ruleset_ref": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ruleset_id": {
+              "const": "oes-measurement"
+            },
+            "revision": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "ruleset_id",
+            "revision"
+          ]
+        }
+      },
+      "required": [
+        "skill_integrity",
+        "client_protocol"
+      ]
+    },
+    "RulesBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "oes/measurement-rules/v1"
+        },
+        "ruleset_id": {
+          "const": "oes-measurement"
+        },
+        "compatibility": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "client_protocol": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[a-zA-Z0-9/_.-]+$"
+            },
+            "assessment_format": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[a-zA-Z0-9/_.-]+$"
+            },
+            "model_format": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[a-zA-Z0-9/_.-]+$"
+            },
+            "engine_contract_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[a-zA-Z0-9/_.-]+$"
+            }
+          },
+          "required": [
+            "client_protocol",
+            "assessment_format",
+            "model_format",
+            "engine_contract_id"
+          ]
+        },
+        "instructions_markdown": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rule_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1000,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^OES-[A-Z]+-[0-9]{3}$"
+          }
+        }
+      },
+      "required": [
+        "format",
+        "ruleset_id",
+        "compatibility",
+        "instructions_markdown",
+        "rule_ids"
+      ]
+    },
+    "RulesetRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ruleset_id": {
+          "const": "oes-measurement"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "ruleset_id",
+        "revision"
+      ]
+    }
+  }
+}

@@ -8,6 +8,9 @@ import { createDisplayQuote } from "../core/display-quote.js";
 import type { FixedEvaluation, LocalProfile } from "../core/evaluation.js";
 import { jcsSha256 } from "../core/canonical.js";
 import { frbProvider, CURRENCIES, type FxProvider } from "../profiles/frb.js";
+import { checkSkillIntegrity, skillIntegritySchema, defaultRegistry, type SkillRegistry } from "./skill-integrity.js";
+import { checkRulesetReference, clientRelease, defaultRulesRegistry, evaluationContextHash } from "./measurement-rules.js";
+import { rulesetRefSchema, type RulesRegistry } from "../rules/measurement-contract.js";
 
 const object = (properties: Record<string, unknown>) => ({ type: "object", properties, required: Object.keys(properties), additionalProperties: false });
 const id = { type: "integer", minimum: 0, maximum: 9999 };
@@ -24,7 +27,7 @@ export const modelSchema = object({
       peer: nullableId, store: nullableId, distinct: bool, variant: nullableId }), 1000)
   }), 1000)
 });
-export const remoteArgsSchema = object({ model: modelSchema, display_currency: { enum: [...CURRENCIES] } });
+export const remoteArgsSchema = { ...object({ model: modelSchema, display_currency: { enum: [...CURRENCIES] }, skill_integrity: skillIntegritySchema, ruleset_ref: rulesetRefSchema }), required: ["model", "display_currency"] };
 const validate = new Ajv2020({ strict: false }).compile(remoteArgsSchema);
 
 /** Only enums, booleans and generated integers cross the OES boundary. */
@@ -55,7 +58,9 @@ export function projectModel(a: Assessment) {
   };
 }
 
-export async function evaluateRemote(args: unknown, profile: LocalProfile, provider: FxProvider = frbProvider) {
+export async function evaluateRemote(args: unknown, profile: LocalProfile, provider: FxProvider = frbProvider, registry: SkillRegistry = defaultRegistry, now = Date.now(), rules: RulesRegistry = defaultRulesRegistry) {
+  const skill_integrity = checkSkillIntegrity((args as any)?.skill_integrity, registry, now);
+  const measurement_rules = checkRulesetReference((args as any)?.ruleset_ref, clientRelease((args as any)?.skill_integrity, registry), rules, now, skill_integrity);
   if (!validate(args)) throw new Error("INVALID_REMOTE_MODEL");
   const input = args as { model: ReturnType<typeof projectModel>; display_currency: string };
   const m = input.model;
@@ -85,7 +90,7 @@ export async function evaluateRemote(args: unknown, profile: LocalProfile, provi
   const report = { measurement, effort: estimation.effort, reference_usd: estimation.reference_usd, limitation_codes: estimation.limitation_codes };
   const report_hash = jcsSha256({ model: m, profile, report });
   const display_quote = await createDisplayQuote({ report, basis: profile, report_hash } as unknown as FixedEvaluation, provider, "en-US", input.display_currency);
-  return { report, report_hash, profile_set_id: profile.profile_set_id, display_quote,
-    assurance: { input: "CLIENT_REPORTED", source_audit: "NOT_INDEPENDENTLY_VERIFIED", signed: false, persisted: false, published: false },
+  return { report, report_hash, evaluation_context_hash: evaluationContextHash(report_hash, measurement_rules.ruleset_ref), profile_set_id: profile.profile_set_id, display_quote,
+    assurance: { input: "CLIENT_REPORTED", source_audit: "NOT_INDEPENDENTLY_VERIFIED", signed: false, persisted: false, published: false, skill_integrity, measurement_rules },
     notice: "受領した機能モデルにサーバーの計数規則とTEST換算基準を適用しました。ソースの実在性・網羅性・意味解釈は独立検証していません。" };
 }

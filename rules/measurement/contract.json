@@ -1,0 +1,10 @@
+{
+  "format": "oes/measurement-rules/v1",
+  "ruleset_id": "oes-measurement",
+  "compatibility": {
+    "client_protocol": "oes/measurement-client/v1",
+    "assessment_format": "oes/assessment/v2",
+    "model_format": "oes/remote-model/v1",
+    "engine_contract_id": "oes-cosmic-ph1-v1"
+  }
+}

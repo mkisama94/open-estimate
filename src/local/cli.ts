@@ -21,6 +21,24 @@ import { normalizeAssessment } from "../core/normalize.js";
 import { comparisonSummary, recordState } from "../core/records.js";
 import { createEvaluation } from "../core/evaluation.js";
 import { getLocalProfile } from "../profiles/local-profile.js";
+import { fileURLToPath } from "node:url";
+import { existsSync } from "node:fs";
+import { inspectSkillPackage } from "../profiles/skill-package.js";
+import { requireBoundRules, validateBoundRules, validateRuleReferences, saveMeasurementContext } from "./measurement-context.js";
+import { CLIENT_PROTOCOL } from "../rules/measurement-contract.js";
+
+function currentSkill() {
+  const internal = fileURLToPath(new URL("../../skills/open-estimate-assessor/", import.meta.url));
+  const index = process.argv.indexOf("--skill-root");
+  if (index < 0 && existsSync(new URL("../../../.codex-plugin/plugin.json", import.meta.url))) throw new Error("SKILL_ROOT_REQUIRED");
+  if (index >= 0 && process.argv.lastIndexOf("--skill-root") !== index) throw new Error("SKILL_ROOT_REQUIRED");
+  const root = index < 0 ? internal : process.argv[index + 1];
+  if (!root || !path.isAbsolute(root)) throw new Error("SKILL_ROOT_REQUIRED");
+  const actual = inspectSkillPackage(root);
+  const bundled = inspectSkillPackage(internal);
+  if (JSON.stringify(actual) !== JSON.stringify(bundled)) throw new Error("SKILL_INTEGRITY_MISMATCH");
+  return actual;
+}
 
 const base = path.resolve(process.env.OES_HELPER_STATE ?? path.join(os.tmpdir(), "open-estimate-helper"));
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -35,7 +53,9 @@ async function input() {
 }
 async function main() {
   const command = process.argv[2], args = await input();
-  if (command === "contract") return { ...await handleGetAssessorContract(), contract_version: "0.5.0-desktop",
+  if (command === "skill-integrity") return currentSkill();
+  if (command === "contract") return { ...await handleGetAssessorContract(), contract_version: `${currentSkill().skill_version}-desktop`,
+    measurement_client_protocol: CLIENT_PROTOCOL,
     workspace_root: null, execution: "one_shot_cli", capabilities: { local_evidence_validation: true,
       assessment_drafts: true, local_assessment_artifacts: true, recorded_assessment_v2: true,
       remote_recalculation_required: true, persistent_evaluations: false, html_report: false, web_management: false, certificates: false, publishing: false } };
@@ -45,7 +65,7 @@ async function main() {
     const root = await resolveSafePath("", path.resolve(args.root));
     if (classifyFile(path.basename(root) + "/dummy").isExcluded) throw new Error("EXCLUDED_TARGET_DIRECTORY");
     const summary = await scanStructure(root), session_id = randomUUID();
-    const state = { root, created: Date.now(), confirmed: false, snapshots: {} };
+    const state = { root, created: Date.now(), confirmed: false, snapshots: {}, skill_integrity: currentSkill() };
     await fs.writeFile(path.join(base, `${session_id}.json`), JSON.stringify(state), { mode: 0o600, flag: "wx" });
     return { session_id, workspace_root: root, summary, status: "AWAITING_USER_CONFIRMATION", cache_root: base, retention_hours: 24 };
   }
@@ -63,18 +83,50 @@ async function main() {
       await fs.unlink(stateFile); return { status: "PURGED" };
     }
     if (Date.now() - state.created > TTL) throw new Error("SESSION_EXPIRED_PURGE_REQUIRED");
+    let integrity: ReturnType<typeof currentSkill> | undefined;
+    if (command === "prepare" || command === "export") {
+      try { integrity = currentSkill(); }
+      catch { throw new Error("SKILL_CHANGED_DURING_ANALYSIS"); }
+      if (JSON.stringify(integrity) !== JSON.stringify(state.skill_integrity)) throw new Error("SKILL_CHANGED_DURING_ANALYSIS");
+    }
     if (args.root !== state.root) throw new Error("PROJECT_CHANGED_RECONFIRM_REQUIRED");
     await resolveSafePath("", state.root);
+    if (command === "bind-rules") {
+      const actual = currentSkill();
+      if (JSON.stringify(actual) !== JSON.stringify(state.skill_integrity)) throw new Error("SKILL_CHANGED_DURING_ANALYSIS");
+      const response = validateBoundRules(args.rules_response, actual);
+      if (state.measurement_rules) {
+        const old = requireBoundRules(state);
+        if (old.ruleset_ref.revision !== response.ruleset_ref.revision) throw new Error("RULESET_CHANGED");
+      }
+      state.measurement_rules = response;
+      const temp = path.join(base, `${args.session_id}.${randomUUID()}.tmp`);
+      await fs.writeFile(temp, JSON.stringify(state), { flag: "wx", mode: 0o600 }); await fs.rename(temp, stateFile);
+      return { status: "RULESET_BOUND", ruleset_ref: response.ruleset_ref, rule_ids: response.bundle.rule_ids };
+    }
+    if (command === "draft") {
+      const raw = typeof args.assessment === "string" ? parseStrictJson(args.assessment) : args.assessment;
+      if (!raw || typeof raw !== "object") throw new Error("ASSESSMENT_INPUT_REQUIRED");
+      await privateDirectory(sessionCache);
+      const draftPath = path.join(sessionCache, `draft-${randomUUID()}.json`);
+      await fs.writeFile(draftPath, JSON.stringify(raw, null, 2) + "\n", { flag: "wx", mode: 0o600 });
+      let errors: unknown[] = [];
+      try { validateAssessment(raw); } catch (e) { if (e instanceof SemanticValidationError) errors = e.errors; else throw e; }
+      return { status: "DRAFT_SAVED", local_path: draftPath, validation_errors: errors, exported: false };
+    }
     if (command === "confirm") {
       if (args.user_confirmed !== true) throw new Error("WORKSPACE_CONFIRMATION_REQUIRED");
       state.confirmed = true;
     } else if (!state.confirmed) throw new Error("WORKSPACE_CONFIRMATION_REQUIRED");
+    const rules = ["prepare", "read", "export"].includes(command) ? requireBoundRules(state) : null;
+    if (command === "export" && Object.hasOwn(args, "ruleset_ref")) throw new Error("INVALID_RULESET_REF");
     process.env.OES_CACHE_ROOT = sessionCache;
     let result: unknown;
     await workspaceContext.run(state.root, async () => {
       if (command === "confirm") result = { status: "CONFIRMED", confirmation: "assistant_reports_user_confirmation" };
       else if (command === "prepare") {
         result = await handlePrepareRepository({ relative_path: "." });
+        Object.assign(result as object, { ruleset_ref: rules!.ruleset_ref, rule_ids: rules!.bundle.rule_ids });
         const id = (result as any).snapshot_id;
         state.snapshots[id] = { snapshot: mcpState.getSnapshot(id)!.snapshot, reads: [] };
       } else {
@@ -85,22 +137,18 @@ async function main() {
         mcpState.registerSnapshot(entry.snapshot);
         const tracker = mcpState.getSnapshot(args.snapshot_id)!.tracker;
         tracker.restoreReads(entry.reads);
-        if (command === "draft") {
-          const raw = typeof args.assessment === "string" ? parseStrictJson(args.assessment) : args.assessment;
-          if (!raw || typeof raw !== "object") throw new Error("ASSESSMENT_INPUT_REQUIRED");
-          const draftPath = path.join(sessionCache, `draft-${randomUUID()}.json`);
-          await fs.writeFile(draftPath, JSON.stringify(raw,null,2) + "\n", { mode: 0o600, flag: "wx" });
-          let errors: unknown[] = [];
-          try { validateAssessment(raw); } catch (e) { if (e instanceof SemanticValidationError) errors=e.errors; else throw e; }
-          result = { status: "DRAFT_SAVED", local_path: draftPath, validation_errors: errors, exported: false };
-        }
-        else if (command === "read") result = await handleReadRepositoryFile(args);
+        if (command === "read") result = await handleReadRepositoryFile(args);
         else if (command === "export") {
           for (const file of entry.snapshot.manifest.files) if (file.disposition !== "excluded") {
             const full = await resolveSafePath(file.path, path.join(entry.snapshot.cache_dir, "files"));
             if (sha256Hex(await fs.readFile(full)) !== file.sha256) throw new Error("SNAPSHOT_CONTENT_CHANGED");
           }
           const { validated, wasReconciled } = await validateSnapshotAssessment(args);
+          validateRuleReferences(validated, rules!);
+          try {
+            integrity = currentSkill();
+            if (JSON.stringify(integrity) !== JSON.stringify(state.skill_integrity)) throw new Error("SKILL_CHANGED_DURING_ANALYSIS");
+          } catch { throw new Error("SKILL_CHANGED_DURING_ANALYSIS"); }
           const model = projectModel(validated);
           const { normalized, assessment_hash } = normalizeAssessment(validated);
           const localPath = path.join(sessionCache, `assessment-${assessment_hash}.json`);
@@ -108,11 +156,12 @@ async function main() {
           const artifact = { assessment: normalized, assessment_hash, submitted_assessment: typeof args.assessment === "string" ? parseStrictJson(args.assessment) : args.assessment };
           try { await fs.writeFile(localPath, JSON.stringify(artifact,null,2) + "\n", { mode: 0o600, flag: "wx" }); }
           catch (e: any) { if (e.code !== "EEXIST") throw e; }
-          result = { model, input_reconciled: wasReconciled, transmission: "PREVIEW_ONLY_NOT_SENT",
-            local: { assessment_path: localPath, assessment_hash, scope: validated.scope, scope_record: validated.scope_record ?? null,
+          const context = await saveMeasurementContext(sessionCache, assessment_hash, requireBoundRules(state));
+          result = { model, skill_integrity: integrity, ruleset_ref: rules!.ruleset_ref, input_reconciled: wasReconciled, transmission: "PREVIEW_ONLY_NOT_SENT",
+            local: { assessment_path: localPath, assessment_hash, ...context, scope: validated.scope, scope_record: validated.scope_record ?? null,
               records: recordState(validated), comparison: comparisonSummary(validated), report: createEvaluation(validated,getLocalProfile()).report,
               ledger_pointer: "/assessment/judgments", candidates_pointer: "/assessment/function_candidates" },
-            notice: "連番ID・分類・状態のみ。ソース、名称、説明、パス、根拠、ハッシュは送信対象外。送信前にこのモデルの送信同意を確認してください。" };
+            notice: "数値モデル・表示通貨・配布スキルのID/版/整合性確認用ハッシュ・測定ルールの参照版を送信します。対象ソース、名称、説明、パス、根拠本文、対象ソースhash、Assessment、判断台帳、ルール本文、ローカルcontextは送信しません。送信同意を確認し、長期保管が必要なAssessmentとcontextは一緒に保持してください。" };
         } else throw new Error("UNKNOWN_COMMAND");
         entry.reads = tracker.exportReads();
       }

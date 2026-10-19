@@ -7,6 +7,7 @@ if (Number(process.versions.node.split('.')[0]) < 24) {
 }
 const packaged = new URL('../../../server/dist/local/cli.js', import.meta.url);
 const entry = existsSync(packaged) ? packaged : new URL('../../../dist/local/cli.js', import.meta.url);
-const child = spawn(process.execPath, [fileURLToPath(entry), ...process.argv.slice(2)], { stdio: 'inherit', windowsHide: true });
+if (process.argv.slice(2).includes('--skill-root')) throw new Error('SKILL_ROOT_IS_INTERNAL');
+const child = spawn(process.execPath, [fileURLToPath(entry), ...process.argv.slice(2), '--skill-root', fileURLToPath(new URL('../', import.meta.url))], { stdio: 'inherit', windowsHide: true });
 child.on('error', () => { process.stderr.write('HELPER_START_FAILED\n'); process.exitCode = 1; });
 child.on('exit', code => { process.exitCode = code ?? 1; });

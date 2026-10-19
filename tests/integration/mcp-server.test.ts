@@ -45,7 +45,7 @@ describe("Local preview end-to-end", () => {
     expect(OES_RESOURCES.length).toBe(3);
     expect((await handleReadResource("open-estimate://contracts/local-preview")).text).toContain("DisplayQuote");
     const c = await handleGetAssessorContract();
-    expect(c.skill.skill_version).toBe("0.5.0");
+    expect(c.skill.skill_version).toBe(JSON.parse(await fs.readFile("package.json", "utf8")).version);
     expect(c.profile.environment).toBe("TEST");
     expect(c.capabilities.publishing).toBe(false);
   });

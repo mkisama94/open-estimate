@@ -1,5 +1,37 @@
 # MCP・ChatGPTプラグインの受入試験
 
+## 中央測定ルール：2026-10-19追加
+
+0.7.0の受入は [中央ルールの実装指示](CENTRAL-MEASUREMENT-RULES-IMPLEMENTATION.md) A01〜A22と、[実装・検証の対応記録](CENTRAL-MEASUREMENT-RULES-RESULT.md) に従います。原本はrules/measurement/source.md一つ、配信bundleの版は内容から計算します。ルール専用更新ではプラグイン入力・版・hash・配布物を比較し、実WorkerのローカルHTTP試験も行います。
+
+2026-10-19（JST）、最終全体試験は **20ファイル／196件PASS**。0.7.0の固定候補、CLI移動試験、通常／ルール専用WorkerのローカルHTTP試験、no-bundle dry-runと候補の再利用も確認しました。ルール専用試験は隔離環境の履歴を使い、実本番へのデプロイは行っていません。
+
+自動試験・ローカル候補生成、本番配信、正規配布先への昇格、外部提出、Work／Codex実機受入を分けて記録します。下記0.6.0の成功記録は、中央ルールの本番反映を意味しません。
+
+## スキル整合性の申告確認：2026-10-19追加
+
+0.6.0の対象は[実装計画](SKILL-INTEGRITY-IMPLEMENTATION-PLAN.md)第9節です。[運用手順](SKILL-INTEGRITY-OPERATIONS.md)を参照してください。以下の旧計画の未実施表示は各旧機能の記録であり、今回の自動検証と区別します。
+
+実行日：2026-10-19（JST）、Windows／Node.js 24.18.1。`npm run release:prepare -- --version 0.6.0` のbuild・Vitest **17ファイル／153件PASS**、移動した配布物のsmoke PASS、Worker dry-run PASS、ローカルWorkerの実HTTP試験 PASS。見積プロファイルは既存TEST基準です。配布候補は `release/staging/0.6.0/`、候補記録は `candidate.json` に保存します。試験ランタイムは一時領域へコピーして起動し、候補自体を変更しません。
+
+同じprepareの再実行で `Existing frozen candidate` を確認し、`npm run deploy:mcp:check -- --version 0.6.0` もPASS。no-bundleのdry-run後に候補を再検査し、一時ファイルが候補へ混入しないことを確認しました。
+
+| 計画の受入番号 | ローカルでの確認方法・範囲 |
+| --- | --- |
+| 1 | 同じ数値modelを移行中と照合ありで評価し、CFP・工数・USD・report_hashの完全一致を比較 |
+| 2–5 | 実ファイルのSKILL.md・CLI・追加規則・欠損・junction・読取拒否、manifest再生成、AI向けコピーだけの変更、scan後のprepare/export停止を検査。読取拒否はファイル読取APIのEACCESを再現 |
+| 6、8 | evaluateRemote直接呼出しとHTTP MCPで、欠落・書式不正・未知ID/規則/版・不一致・停止版を拒否。FX呼出し前に拒否し、isErrorと構造化エラーだけを返す |
+| 7、10 | 正規hashの意図的な偽装申告まで排除できない境界とMATCHED_CLIENT_REPORTED／独立監査未実施の表示を検査 |
+| 9 | 送信schemaの未知フィールド拒否、自由記述の投影除外、skill_integrityが配布スキル情報だけであることを検査 |
+| 11–12、14 | package.jsonからの版同期、実配布物の両コピーから候補を生成。同版同hashの再登録、版衝突、既存版保持、停止版保持を検査 |
+| 13、15–16 | deploy/本番確認アダプター失敗、履歴保存失敗、昇格失敗後の再開、候補両コピー・Worker・registryの変更、履歴欠落を検査。実本番での故障試験ではない |
+| 17 | buildで古いdistを安全に除去してからコンパイル。リリーススクリプトの初期importは未生成distに依存しない。Workerは隔離したsrc/profiles/package.jsonからbundleする |
+| 18 | 固定時計で期限直前・期限時の許可/拒否、初回publishで日時設定、再実行で期限維持を検査 |
+
+実配布ディレクトリを一時領域へ移してCLIのcontract・skill-integrity・scan・prepare・read・purgeを検査します。生成したWorkerをローカルWorkersランタイムで起動し、HTTP MCPで登録hashの受理と不一致拒否、USD合成モデルの2 CFPを確認します。Worker dry-runは外部デプロイではありません。
+
+本番へのデプロイ・実MCPでのポリシー反映確認・正規配布先への昇格、Work／Codexの新しいチャットでの全手順受入、外部ストア提出は **NOT_RUN** です。CLI subprocessの成功をWork／Codexホストでの実機評価完了とは扱いません。
+
 > **改訂基準（2026-10-11）**：[製品構成とデータの扱い](PRODUCT-ARCHITECTURE.md)のN01〜N12を追加要件とします。本文の利用環境・Owner認証・Webフォームでの初回公開に依存する条件は改訂前であり、そのまま現行方針の合否条件にはできません。計数・換算・署名・公開情報の分離等の条件は継続します。追加条件は未実施です。
 
 文書ID：OES-IMPL-ACCEPTANCE-0.2.0-draft.1  

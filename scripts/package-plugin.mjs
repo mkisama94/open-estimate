@@ -3,18 +3,33 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { hashSkillPackage } from '../dist/profiles/skill-package.js';
+import { hashSkillPackage, inspectSkillPackage } from '../dist/profiles/skill-package.js';
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
 const args = process.argv.slice(2);
+const outputIndex = args.indexOf('--output');
+const output = outputIndex < 0 ? null : args.splice(outputIndex, 2)[1];
+if (outputIndex >= 0 && !output) throw new Error('OUTPUT_REQUIRED');
 if (args.length && (args.length !== 2 || args[0] !== '--workspace')) throw new Error('Usage: npm run plugin:pack -- --workspace ABSOLUTE_DIRECTORY');
 if (args.length) throw new Error('Workspace is now selected in chat; run npm run plugin:pack without --workspace');
 const workspace = null;
 const release = path.resolve(repo, 'release');
-const marketplace = path.join(release, 'desktop-marketplace');
+const marketplace = output ? path.resolve(repo, output) : path.join(release, 'local-marketplace');
 const plugin = path.join(marketplace, 'plugins', 'open-estimate');
 // The only replacement target is this generated directory, contained in release/.
-if (path.relative(release, marketplace) !== 'desktop-marketplace') throw new Error('Unsafe output path');
+if (!path.relative(release, marketplace) || path.relative(release, marketplace).startsWith('..') || path.isAbsolute(path.relative(release, marketplace))) throw new Error('Unsafe output path');
+const outputRelative = path.relative(release, marketplace).split(path.sep).join('/');
+if (outputRelative !== 'local-marketplace' && !/^staging\/[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?\/marketplace$/.test(outputRelative)) throw new Error('PACK_OUTPUT_MUST_BE_LOCAL_OR_STAGING');
+let ancestor = release;
+for (const part of outputRelative.split('/')) {
+  ancestor = path.join(ancestor, part);
+  try { if ((await fs.lstat(ancestor)).isSymbolicLink()) throw new Error('Unsafe output ancestor'); }
+  catch (e) { if (e.code !== 'ENOENT') throw e; }
+}
+if (outputRelative.startsWith('staging/')) {
+  try { await fs.access(path.join(path.dirname(marketplace), 'candidate.json')); throw new Error('FROZEN_CANDIDATE_EXISTS'); }
+  catch (e) { if (e.code !== 'ENOENT') throw e; }
+}
 try { if ((await fs.lstat(release)).isSymbolicLink()) throw new Error('Unsafe release directory'); }
 catch (e) { if (e.code !== 'ENOENT') throw e; }
 try { if ((await fs.lstat(marketplace)).isSymbolicLink()) throw new Error('Unsafe marketplace directory'); }
@@ -48,6 +63,9 @@ for (const dep of dependencies) {
 const skill = hashSkillPackage(path.join(plugin, 'skills/open-estimate-assessor'));
 const skillManifest = JSON.parse(await fs.readFile(path.join(plugin, 'skills/open-estimate-assessor/skill.manifest.json'), 'utf8'));
 if (skill.package_sha256 !== skillManifest.package_sha256) throw new Error('Packaged skill hash mismatch');
+const first = inspectSkillPackage(path.join(plugin, 'skills/open-estimate-assessor'));
+const second = inspectSkillPackage(path.join(plugin, 'server/skills/open-estimate-assessor'));
+if (JSON.stringify(first) !== JSON.stringify(second) || manifest.version !== first.skill_version) throw new Error('SKILL_INTEGRITY_MISMATCH');
 await json(path.join(marketplace, '.agents/plugins/marketplace.json'), {
   name: 'open-estimate-desktop', interface: { displayName: 'Open Estimate（Work／Codex・ローカル実行向け）' },
   plugins: [{ name: 'open-estimate', source: { source: 'local', path: './plugins/open-estimate' },
@@ -65,5 +83,5 @@ async function inventory(dir, prefix = '') {
 }
 await inventory(plugin);
 files.sort((a,b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
-await json(path.join(marketplace, 'BUILD.json'), { plugin_version: manifest.version, built_at: new Date().toISOString(), workspace_root: workspace, node_version: process.version, production_dependencies: dependencies.length, files });
+await json(path.join(marketplace, 'BUILD.json'), { release_status: 'LOCAL_VALIDATION_ONLY', plugin_version: manifest.version, built_at: new Date().toISOString(), workspace_root: workspace, node_version: process.version, production_dependencies: dependencies.length, files });
 console.log(JSON.stringify({ marketplace, plugin, workspace, production_dependencies: dependencies.length, files: files.length }, null, 2));

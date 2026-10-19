@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { hashSkillPackage } from "../../profiles/skill-package.js";
 import { getLocalProfile } from "../../profiles/local-profile.js";
 import { getWorkspaceRoot } from "../../collector/safe-paths.js";
+import { CLIENT_PROTOCOL } from "../../rules/measurement-contract.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,7 +23,8 @@ export async function handleGetAssessorContract(): Promise<any> {
     throw new Error("BUNDLED_SKILL_INTEGRITY_ERROR");
 
   return {
-    contract_version: "0.5.0-local-preview", environment: "TEST", workspace_root: getWorkspaceRoot(),
+    contract_version: `${skillManifest.skill_version}-local-preview`, environment: "TEST", workspace_root: getWorkspaceRoot(),
+    measurement_client_protocol: CLIENT_PROTOCOL,
     assessment_formats: { recommended: "oes/assessment/v2", legacy: ["unversioned", "oes/assessment/v1"],
       legacy_notice: "旧形式・判断記録不足。過去の数値とhashは維持し、新要件への適合は主張しません。",
       analysis_complete: "v2 input.analysis_completeは収集器が確認した走査・取得完了。範囲内の読取・候補・判断の完了はlocal.recordsから導出し、remote-modelのanalysis_completeへ投影。v1の意味は変更しない。" },

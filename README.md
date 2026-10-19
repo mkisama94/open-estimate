@@ -1,10 +1,14 @@
-# Open Estimate (OES) — Work／Codex・ローカル実行向け 0.5.0
+# Open Estimate (OES) — Work／Codex・ローカル実行向け 0.7.0
 
 **ソース解析には、対象フォルダーを読み取り、補助スクリプトを実行できるWorkまたはCodexのローカル実行環境とNode.js 24以上が必要です。** Chatモードでフォルダーパスを指定するだけでは解析できません。Work／Codexでも対象へアクセスできないクラウド環境では実行できません。[初めての導入・開始手順とエラー別の案内](docs/DESKTOP-PLUGIN.md)を参照してください。Assessmentの下書きと検査済み入力をセッション内にローカル保持します。評価ID・サーバー保存・確認用HTML・証明書は未提供です。Workでの評価完了は実機未確認です。
 
-**現在の構成**：同梱CLIとHTTPリモートMCPを使用します。`npm run build` → `npm test` → `npm run plugin:pack` → `npm run plugin:smoke`。新配布先は`release/desktop-marketplace`です。[利用・送信契約・検証範囲](docs/DESKTOP-PLUGIN.md)と[Assessment v2の実装内容](docs/implementation/ASSESSMENT-RECORDS-V2.md)を参照してください。サーバー保存・認証・発行は未提供で、0.5.0の本番デプロイは実施していません。以下の0.3.0記述は従来実装の記録で、現行版の導入手順には使いません。
+**現在の構成**：同梱CLIとHTTPリモートMCPを使用します。`npm run build` → `npm test` → `npm run plugin:pack` → `npm run plugin:smoke`。単独packはローカル検証用の`release/local-marketplace`です。正規配布先`release/desktop-marketplace`への昇格は統合リリース経路を使います。[利用・送信契約・検証範囲](docs/DESKTOP-PLUGIN.md)と[Assessment v2の実装内容](docs/implementation/ASSESSMENT-RECORDS-V2.md)を参照してください。サーバー保存・認証・発行は未提供で、0.5.0の本番デプロイは実施していません。以下の0.3.0記述は従来実装の記録で、現行版の導入手順には使いません。
 
-**次期構成（2026-10-18、未実装）**：公開版はローカルMCPを必須とせず、Work／CodexのSkill・標準ツール・補助スクリプトとリモートMCPに分けます。ローカルの測定記録を独立検証済みの証拠として扱いません。[構成変更と検証の境界](docs/implementation/LOCAL-EXECUTION-BOUNDARY.md)。以下は現在の0.3.0の導入・実装情報です。
+**中央測定ルール（0.7.0）**：原本は`rules/measurement/source.md`一つです。contract・skill-integrity → `get_measurement_rules`で全文取得 → scan・`bind-rules`で版固定 → 既存の対象確認と解析 → export → リモート評価の順です。数値モデル・表示通貨・配布スキルのID/版/整合性確認用ハッシュ・固定した測定ルールのruleset_refを送信します。対象ソース、対象パス、Assessment、判断台帳、ルール本文、ローカルcontextは送信しません。 初回対応後の本文更新は `npm run rules:release` だけで行い、プラグインの再配布・版採番・hash転記を不要にします。[運用手順](docs/implementation/CENTRAL-MEASUREMENT-RULES-OPERATIONS.md)／[実装・検証記録](docs/implementation/CENTRAL-MEASUREMENT-RULES-RESULT.md)。本番反映・正規配布先への昇格・実ホスト受入は別工程です。
+
+**0.6.0時点のスキル整合性の記録**：数値モデルと、利用する配布スキルのID・版・整合性確認用ハッシュを送信します。対象ソースコード、名称、説明、ファイルパス、根拠本文、対象ソースのハッシュは送信しません。 `get_skill_policy` → CLIの`skill-integrity` → exportの`skill_integrity`を評価へ送ります。正規版との申告一致であり、独立監査・認証・実行証明ではありません。公開は `npm run release -- --version <次の版>`、事前検証は `release:prepare` です。[運用手順](docs/implementation/SKILL-INTEGRITY-OPERATIONS.md)。本変更の本番反映とWork実機受入は未実施です。
+
+**過去の構成検討（2026-10-18、現在は実装済み）**：公開版はローカルMCPを必須とせず、Work／CodexのSkill・標準ツール・補助スクリプトとリモートMCPに分けます。ローカルの測定記録を独立検証済みの証拠として扱いません。[構成変更と検証の境界](docs/implementation/LOCAL-EXECUTION-BOUNDARY.md)。以下は現在の0.3.0の導入・実装情報です。
 
 **0.3.0：対象パスの固定を廃止しました。** 現在のプロジェクトを`discover_workspace`で構成走査し、ユーザーの回答後に`confirm_workspace`で確定して解析します。MCP rootsを優先し、非対応時は会話の現在のプロジェクト情報を候補として明示します。対象変更や再起動後は再確認します。[最新の導入・利用手順](docs/LOCAL-PLUGIN.md)を参照してください。ツールは8個です。
 

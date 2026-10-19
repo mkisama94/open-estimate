@@ -168,6 +168,54 @@
         "KRW",
         "SGD"
       ]
+    },
+    "skill_integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "skill_id",
+        "skill_version",
+        "hash_rule",
+        "package_sha256"
+      ],
+      "properties": {
+        "format": {
+          "const": "oes/skill-integrity/v1"
+        },
+        "skill_id": {
+          "const": "open-estimate-assessor"
+        },
+        "skill_version": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+        },
+        "hash_rule": {
+          "const": "oes/skill-package/v1"
+        },
+        "package_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "ruleset_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ruleset_id": {
+          "const": "oes-measurement"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "ruleset_id",
+        "revision"
+      ]
     }
   },
   "required": [

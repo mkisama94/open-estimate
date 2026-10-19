@@ -4,8 +4,9 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { recorded } from "../fixtures/recorded.js";
-import { evaluateRemote } from "../../src/remote/model.js";
+import { evaluateRemote } from "../fixtures/skill-policy.js";
 import { getLocalProfile } from "../../src/profiles/local-profile.js";
+import { bindRules, setRuleReferences } from "../fixtures/measurement.js";
 
 it("saves invalid drafts and recorded exports across helper processes; only model crosses remote boundary", async()=>{
   const state=await fs.mkdtemp(path.join(os.tmpdir(),"oes-recorded-test-"));
@@ -17,8 +18,10 @@ it("saves invalid drafts and recorded exports across helper processes; only mode
   try {
     const contract=run("contract",{});expect(contract.assessment_formats.recommended).toBe("oes/assessment/v2");
     const scan=run("scan",{root}), common={root,session_id:scan.session_id};
+    bindRules(run,common);
     run("confirm",{...common,user_confirmed:true});const prep=run("prepare",common),a=recorded();
     a.assessment_id=prep.assessment_id; a.input=prep.assessment_input;a.assessor={...prep.assessor_defaults,finished_at:new Date().toISOString()};
+    setRuleReferences(a);
     a.components[0].path_prefixes=["notes.js"];
     a.scope_record!.files=a.input.manifest.files.map(f=>({path:f.path,membership:"included",reason:"Notes implementation",confirmation_ref:"scope-confirmed",evidence_refs:[]}));
     a.evidence[0]={...a.evidence[0],file_path:"notes.js",line_start:5,line_end:14};

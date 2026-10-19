@@ -4,7 +4,8 @@ import { validateAssessment, SemanticValidationError } from "../../src/core/vali
 import { normalizeAssessment } from "../../src/core/normalize.js";
 import { measureAssessment } from "../../src/core/measure.js";
 import { recordState, comparisonSummary } from "../../src/core/records.js";
-import { evaluateRemote, projectModel } from "../../src/remote/model.js";
+import { projectModel } from "../../src/remote/model.js";
+import { evaluateRemote } from "../fixtures/skill-policy.js";
 import { getLocalProfile } from "../../src/profiles/local-profile.js";
 import { SnapshotCoverageTracker } from "../../src/collector/coverage.js";
 import fs from "node:fs";

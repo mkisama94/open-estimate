@@ -1,5 +1,11 @@
 # 算定根拠・不確実性の記録改善（0.5.0）
 
+**0.7.0の中央ルール対応**：数値モデル・表示通貨・配布スキルのID/版/整合性確認用ハッシュ・固定した測定ルールのruleset_refを送信します。対象ソース、対象パス、Assessment、判断台帳、ルール本文、ローカルcontextは送信しません。 過去Assessmentの形式・hashは維持し、取得bundleと版の対応は別の内容アドレスcontextへ保存します。source=skillは互換用ラベルで、配信規則ID／revisionを参照します。[実装記録](CENTRAL-MEASUREMENT-RULES-RESULT.md)。以下の0.6.0以前の記述は当時の記録です。
+
+
+**現行の追記（2026-10-19）**：数値モデルと、利用する配布スキルのID・版・整合性確認用ハッシュを送信します。対象ソースコード、名称、説明、ファイルパス、根拠本文、対象ソースのハッシュは送信しません。 model.versionはoes/remote-model/v1を維持し、外側の契約にskill_integrityを追加しました。対象ソースhashの非送信と配布スキルhashの送信を区別します。以下の旧版の記述は当時の実装記録です。[現行の運用](SKILL-INTEGRITY-OPERATIONS.md)。
+
+
 ## 実装内容
 
 新規Assessmentは `format_version: oes/assessment/v2`。版なし／明示v1は旧形式として読取可能。旧数値・hashを変える移行処理や、根拠を推測して補う処理は入れていない。

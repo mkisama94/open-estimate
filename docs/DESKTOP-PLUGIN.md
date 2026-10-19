@@ -1,5 +1,8 @@
 # Open Estimate 0.5.0（Work／Codex・ローカル実行向け）
 
+**現行（0.7.0）**：測定ルール全文はget_measurement_rulesで取得し、scan後・confirm前でもbind-rulesで固定できます。prepare前の固定は必須です。contractは入口とSchemaだけを返します。評価にはruleset_refも含め、新方式で版を省略した旧方式への降格は認めません。数値モデル・表示通貨・配布スキルのID/版/整合性確認用ハッシュ・固定した測定ルールのruleset_refを送信します。対象ソース、対象パス、Assessment、判断台帳、ルール本文、ローカルcontextは送信しません。 [現行運用](implementation/CENTRAL-MEASUREMENT-RULES-OPERATIONS.md)。以下の0.4〜0.6の記録と手順は、中央ルールの取得・固定・提出を追加して読みます。
+
+
 **ソースコードの解析には、対象フォルダーを読み取り、補助スクリプトを実行できるWorkまたはCodexのローカル実行環境が必要です。Chatモードでフォルダーパスを指定するだけでは解析できません。補助スクリプトにはNode.js 24以上を使用します。** Work／Codexでも、クラウド実行などでPCの対象フォルダーにアクセスできない環境では解析を開始できません。
 
 ## 導入して評価を始める
@@ -74,11 +77,11 @@ MCP接続先は `https://open-estimate.ai-orchestration.jp/mcp`。2026-10-18にM
 | export | root・session_id・snapshot_id・assessment（JSON文字列）。根拠と読取台帳を検査し、送信用modelをプレビュー。ネット送信しない |
 | purge | session_id。当該sessionのコピーと台帳を削除 |
 
-送信同意後にホストがリモートMCPのevaluate_modelへmodelとdisplay_currencyを渡します。読取対象の同意、送信の同意、将来の保存の同意は別です。
+送信同意後にホストがリモートMCPのevaluate_modelへmodel・skill_integrity・display_currencyを渡します。読取対象の同意、送信の同意、将来の保存の同意は別です。
 
 ## 送信契約 v1
 
-`contracts/remote-model.schema.json` が許可リストです。元のAssessmentはローカルに保持し、サーバーへは送信しません。送るのは、連番のユーザー・ストア・データグループ・関心対象・意味バリアント、プロセスの状態、トリガー、E/X/R/W、完全性・適用困難の申告、表示通貨です。名前、説明、パス、根拠本文、原ID、ソースhashを含みません。任意文字列の説明欄はありません。
+`contracts/remote-model.schema.json` が許可リストです。元のAssessmentはローカルに保持し、サーバーへは送信しません。数値モデル内で送るのは、連番のユーザー・ストア・データグループ・関心対象・意味バリアント、プロセスの状態、トリガー、E/X/R/W、完全性・適用困難の申告、表示通貨です。名前、説明、パス、根拠本文、原ID、ソースhashを含みません。任意文字列の説明欄はありません。数値モデルと、利用する配布スキルのID・版・整合性確認用ハッシュを送信します。対象ソースコード、名称、説明、ファイルパス、根拠本文、対象ソースのハッシュは送信しません。
 
 サーバーは未知フィールド・値域・件数・参照・peer/store・トリガー・重複を検査し、サーバー同梱のTESTプロファイルからCFP・工数・USD額・表示時FRB換算を算出します。HTTP本文は1MiB、全movementは1万件まで。計算済みCFP・金額・任意プロファイルは受け付けません。
 
@@ -106,7 +109,7 @@ findingsは構造化targets（judgmentも可）・impact・resolutionを保持�
 
 v2の`input.analysis_complete`は収集器が照合した走査・取得状況です。範囲内の読取完了は別に導出します。リモートv1の`analysis_complete`へは`local.records.analysis_complete`、`partial`へは同じ判定規則の部分測定状態を投影します。範囲外・補助資料の未読だけでは範囲内未完了にしません。所属不明・走査打ち切り・範囲内未読・候補未解決・暫定判断は完了にしません。範囲外への分類は利用者の範囲確認参照、または読取根拠を要します。COMPLETEも未知の機能がないことや意味解釈の正しさを保証しません。
 
-リモート送信Schema v1は変更せず、追加台帳・名称・パス・根拠・hashは送信しません。既存の数値・分類・状態で表現できるためリモート契約改訂は不要です。`analysis_complete`の送信側での導出元を明確にし、受信側の「申告されたモデルの完了状態」という扱いを維持します。この実装に伴う本番デプロイは行いません。
+0.5.0時点の記録：当時はリモート送信Schema v1を変更せず、追加台帳・名称・パス・根拠・hashは送信しませんでした。現行はmodel.versionを維持し、外側の契約へskill_integrityを追加しています。`analysis_complete`の送信側での導出元を明確にし、受信側の「申告されたモデルの完了状態」という扱いを維持します。この実装に伴う本番デプロイは行いません。
 
 比較対象を明示した場合は`comparison.previous_assessment`に元データを保持し、`previous_hash`で照合します。scope_changesに前後のcandidate／process対応、追加／除外／統合／分割の理由と根拠、movement_changesに移動の追加／削除／統合／分割／対応未確定と判断参照を記録します。CFP差は保存モデルから計算し、未対応移動・未説明差分を分けて返します。IDや配列順から同一性を推定しません。比較履歴は最大12段、CLI入力は8MiBです。
 
@@ -119,3 +122,11 @@ v2の`input.analysis_complete`は収集器が照合した走査・取得状況�
 0.4.1のWork／Codexそれぞれでの会話受入は[会話テスト手順](implementation/WORK-CODEX-ACCEPTANCE.md)に記録します。「対応対象」と「評価完了まで実機確認済み」は別です。0.4.1のリモート側の案内変更は、上記FRB修正とともに公開MCPへ反映済みです。紹介サイトの案内変更は未デプロイです。
 
 FRB実取得の再確認は `node scripts/check-remote-frb.mjs https://open-estimate.ai-orchestration.jp/mcp`。リポジトリの合成数値モデルだけを送ります。既定URLはローカルWorkerです。HTTP失敗・リダイレクト拒否・タイムアウト・解析エラー等はlimitation_codesのFRB_*コードで区別します。為替取得に失敗しても、算出済みCFP・工数・USDを0に置き換えません。
+
+## 0.6.0時点のスキル整合性と公開操作
+
+数値モデルと、利用する配布スキルのID・版・整合性確認用ハッシュを送信します。対象ソースコード、名称、説明、ファイルパス、根拠本文、対象ソースのハッシュは送信しません。
+
+解析前にget_skill_policyとCLIのskill-integrityで実計算値を照合します。AI向けコピーとserver側コピーを検査し、prepare・exportで開始時との変更を拒否します。exportは送信せず、modelとskill_integrityを別フィールドで返します。認証や実行証明ではありません。旧モデルの生成履歴を証明せず、過去Assessmentへの遡及記入は行いません。
+
+移行期間は初回公開日を起点に14日以上とし、申告なしだけLEGACY_UNCHECKEDを返します。不一致は移行中も拒否します。単独plugin:packはrelease/local-marketplaceへのローカル検証用で、正規公開は統合release経路です。[公開・復旧手順](implementation/SKILL-INTEGRITY-OPERATIONS.md)。過去の本番配信確認は、今回追加した照合の本番確認を意味しません。

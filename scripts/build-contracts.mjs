@@ -31,3 +31,9 @@ const { remoteArgsSchema } = await import('../dist/remote/model.js');
 fs.writeFileSync(new URL('../contracts/remote-model.schema.json', import.meta.url), JSON.stringify({
   $schema: 'https://json-schema.org/draft/2020-12/schema', title: 'Open Estimate remote model v1', ...remoteArgsSchema
 }, null, 2)+'\n');
+const { measurementRulesArgsSchema } = await import('../dist/remote/measurement-rules.js');
+const { rulesBundleSchema, rulesetRefSchema } = await import('../dist/rules/measurement-contract.js');
+fs.writeFileSync(new URL('../contracts/measurement-rules.schema.json', import.meta.url), JSON.stringify({
+  $schema: 'https://json-schema.org/draft/2020-12/schema', title: 'Open Estimate central measurement rules v1',
+  $defs: { GetMeasurementRulesRequest: measurementRulesArgsSchema, RulesBundle: rulesBundleSchema, RulesetRef: rulesetRefSchema }
+}, null, 2)+'\n');
