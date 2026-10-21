@@ -28,6 +28,8 @@ import { requireBoundRules, validateBoundRules, validateRuleReferences, saveMeas
 import { CLIENT_PROTOCOL } from "../rules/measurement-contract.js";
 import { saveRun, showRun, saveRemoteOperation } from "./runs.js";
 import { compareRuns } from "./compare.js";
+import { preparePublicResult } from "./public-result.js";
+import { prepareCertificate, verifyCertificateFile } from "./certificate-submissions.js";
 
 function currentSkill() {
   const internal = fileURLToPath(new URL("../../skills/open-estimate-assessor/", import.meta.url));
@@ -55,6 +57,10 @@ async function input() {
 }
 async function main() {
   const command = process.argv[2], args = await input();
+  if (command === "prepare-certificate") return prepareCertificate(args);
+  if (command === "verify-certificate") return verifyCertificateFile(args);
+  if (["preview-certificate","publish-certificate","resume-certificate"].includes(command)) throw new Error("AUTH_CONSENT_NOT_READY");
+  if (command === "prepare-public-result") return preparePublicResult(args);
   if (command === "skill-integrity") return currentSkill();
   // Saved runs are independent of source access, snapshot lifetime, and session purge.
   if (command === "show-run") return showRun(args.run_id);
@@ -65,6 +71,8 @@ async function main() {
     workspace_root: null, execution: "one_shot_cli", capabilities: { local_evidence_validation: true,
       assessment_drafts: true, local_assessment_artifacts: true, recorded_assessment_v2: true,
       quality_records: "oes/quality-records/v1", immutable_local_runs: true, offline_run_comparison: true, run_comparison_format: "oes/run-comparison/v2",
+      local_public_result_candidate: true,
+      local_certificate_preparation: true, offline_certificate_verification: true,
       remote_recalculation_required: true, persistent_evaluations: false, html_report: false, web_management: false, certificates: false, publishing: false } };
   await privateDirectory(base);
   if (command === "scan") {

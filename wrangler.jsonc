@@ -1,11 +1,22 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "open-estimate",
+  "account_id": "461a49a5bd16d90b629e8583ff7d7ec2",
+  "workers_dev": false,
+  "routes": [{"pattern": "open-estimate.ai-orchestration.jp", "custom_domain": true}],
+  "main": "src/web/worker.ts",
+  "compatibility_flags": ["nodejs_compat"],
   "compatibility_date": "2026-09-25",
   // The Node.js stdio MCP entry point is not an HTTP Worker.
   // Only this directory is published; dist/ and local snapshots stay private.
   "assets": {
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/v1/*", "/e/*", "/verify/*", "/manage", "/manage/*", "/.well-known/oes-signing-keys.json"],
     "directory": "./public",
     "not_found_handling": "404-page"
-  }
+  },
+  "vars": {"ISSUANCE_ENABLED": "false", "PUBLICATION_READ_ENABLED": "false", "WEB_LOGIN_ENABLED": "true", "AUTH0_ISSUER": "https://auth.ai-orchestration.jp/", "AUTH0_WEB_CLIENT_ID": "csqN2pYPrG6jnMz00qm44pFi1CjAvv2v"},
+  "ratelimits": [{"name":"BROWSER_LOGIN_LIMITER","namespace_id":"2026102001","simple":{"limit":60,"period":60}}],
+  "triggers": {"crons":["*/15 * * * *"]},
+  "d1_databases": [{"binding": "CERTIFICATES_DB", "database_name": "open-estimate-certificates", "database_id": "bdb25739-fcee-4fa8-8dd2-9453a75bbaca", "migrations_dir": "migrations"}]
 }

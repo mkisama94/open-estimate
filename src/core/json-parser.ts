@@ -30,13 +30,14 @@ export function validateNoDuplicateKeys(rawJson: string): void {
     if (rawJson[pos] !== '"') {
       throw new JsonParseError(`Expected '"' at position ${pos}`);
     }
+    const stringStart = pos;
     pos++; // skip initial quote
     let str = "";
     while (pos < len) {
       const ch = rawJson[pos];
       if (ch === '"') {
         pos++;
-        return str;
+        return JSON.parse(rawJson.slice(stringStart, pos));
       }
       if (ch === "\\") {
         pos++;
@@ -72,7 +73,12 @@ export function validateNoDuplicateKeys(rawJson: string): void {
     throw new JsonParseError("Unterminated string");
   }
 
+  let depth = 0;
   function parseValue(): void {
+    if (++depth > 128) throw new JsonParseError("JSON nesting limit exceeded");
+    try { parseValueAtDepth(); } finally { depth--; }
+  }
+  function parseValueAtDepth(): void {
     skipWhitespace();
     if (pos >= len) {
       throw new JsonParseError("Unexpected end of JSON");

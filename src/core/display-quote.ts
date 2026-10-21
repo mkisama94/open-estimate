@@ -12,7 +12,13 @@ export function resolveCurrency(locale = "ja-JP", explicit?: string): Currency {
   try { return byRegion[new Intl.Locale(locale).region ?? ""] ?? "USD"; } catch { return "USD"; }
 }
 
-export async function createDisplayQuote(evaluation: FixedEvaluation, provider: FxProvider, locale = "ja-JP", explicit?: string, now = () => new Date()) {
+export interface DisplayQuoteInput {
+  report: Pick<FixedEvaluation["report"], "measurement"|"effort"|"reference_usd"|"limitation_codes">;
+  basis: Pick<FixedEvaluation["basis"], "benchmark"|"wage">;
+  report_hash: string;
+}
+
+export async function createDisplayQuote(evaluation: DisplayQuoteInput, provider: FxProvider, locale = "ja-JP", explicit?: string, now = () => new Date()) {
   const currency = resolveCurrency(locale, explicit);
   const { report, basis } = evaluation;
   const upstream = report.effort.status !== "AVAILABLE" || report.reference_usd.status !== "AVAILABLE";

@@ -1,0 +1,110 @@
+{
+  "schema_version": "oes/public-result-candidate/v1",
+  "projection_version": "oes/public-result-projection/1.0.0",
+  "measurement": {
+    "status": "PARTIAL",
+    "cfp": 6,
+    "counts": {
+      "entry": 2,
+      "exit": 2,
+      "read": 1,
+      "write": 1,
+      "total_processes": 2,
+      "accepted_processes": 2
+    }
+  },
+  "quality": {
+    "record_format": "RECORDED_V2",
+    "quality_version": "oes/quality-records/v1",
+    "analysis_complete": false,
+    "scan_complete": true,
+    "provisional_process_count": 1,
+    "provisional_cfp_subtotal": 3,
+    "unresolved_process_count": 0,
+    "candidate_counts": {
+      "identified": 2,
+      "counted": 2,
+      "outside": 0,
+      "merged": 0,
+      "unresolved": 0
+    },
+    "unread_counts": {
+      "in_scope": 0,
+      "outside": 0,
+      "supporting": 0,
+      "scope_unknown": 0
+    },
+    "unknown_boundary_counts": {
+      "rerun": 1,
+      "continuation": 1
+    },
+    "partial_reason_codes": [
+      "BOUNDARY_CONTINUATION_UNKNOWN",
+      "BOUNDARY_RERUN_UNKNOWN",
+      "JUDGMENT_PENDING"
+    ],
+    "record_gap_codes": []
+  },
+  "calculation": {
+    "environment": "TEST",
+    "effort_scope_id": "oes-design-implementation-test-v1",
+    "hours_per_day": 8,
+    "basis": {
+      "profile_set_id": "oes-local-test-2026-10-v1",
+      "engine_version": "0.8.1-quality",
+      "mapping_version": "oes-cosmic-ph1-v1",
+      "benchmark": {
+        "id": "oes-test-benchmark-design-implementation-test-v1",
+        "is_test": true,
+        "sample_size": 0,
+        "min_cfp": 1,
+        "max_cfp": 10000,
+        "hours_per_cfp": {
+          "p25": "2",
+          "median": "3",
+          "p75": "5"
+        }
+      },
+      "wage": {
+        "id": "oes-test-wage-50usd-v1",
+        "is_test": true,
+        "hourly_wage_usd": "50"
+      }
+    },
+    "effort": {
+      "status": "AVAILABLE",
+      "hours_per_cfp": {
+        "p25": "2",
+        "median": "3",
+        "p75": "5"
+      },
+      "person_hours": {
+        "p25": "12",
+        "median": "18",
+        "p75": "30"
+      }
+    },
+    "reference_usd": {
+      "status": "AVAILABLE",
+      "hourly_wage_usd": "50",
+      "amount_usd": {
+        "p25": "600",
+        "median": "900",
+        "p75": "1500"
+      }
+    }
+  },
+  "assurance": {
+    "input": "CLIENT_REPORTED",
+    "calculation_check": "LOCAL_RECOMPUTED_MATCH",
+    "semantic_assessment": "NOT_INDEPENDENTLY_VERIFIED",
+    "signed": false
+  },
+  "limitation_codes": [
+    "AI_SEMANTICS_UNVERIFIED",
+    "COMMUNITY_CLAIMS_UNATTESTED",
+    "PARTIAL_MEASUREMENT",
+    "REFERENCE_NOT_MARKET_VALUE",
+    "TEST_DATA_ONLY"
+  ]
+}

@@ -1,0 +1,583 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Open Estimate public result candidate v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "oes/public-result-candidate/v1"
+    },
+    "projection_version": {
+      "const": "oes/public-result-projection/1.0.0"
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "COMPLETE",
+            "PARTIAL",
+            "UNSUPPORTED",
+            "INCOMPLETE"
+          ]
+        },
+        "cfp": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "entry": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "exit": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "read": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "write": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "total_processes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "accepted_processes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "entry",
+            "exit",
+            "read",
+            "write",
+            "total_processes",
+            "accepted_processes"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "cfp",
+        "counts"
+      ]
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "record_format": {
+          "const": "RECORDED_V2"
+        },
+        "quality_version": {
+          "const": "oes/quality-records/v1"
+        },
+        "analysis_complete": {
+          "type": "boolean"
+        },
+        "scan_complete": {
+          "type": "boolean"
+        },
+        "provisional_process_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "provisional_cfp_subtotal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "unresolved_process_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "candidate_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "identified": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "counted": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "outside": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "merged": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "unresolved": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "identified",
+            "counted",
+            "outside",
+            "merged",
+            "unresolved"
+          ]
+        },
+        "unread_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "in_scope": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "outside": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "supporting": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "scope_unknown": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "in_scope",
+            "outside",
+            "supporting",
+            "scope_unknown"
+          ]
+        },
+        "unknown_boundary_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "rerun": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "continuation": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "rerun",
+            "continuation"
+          ]
+        },
+        "partial_reason_codes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "ACQUISITION_IN_SCOPE",
+              "ACQUISITION_SCOPE_UNKNOWN",
+              "BOUNDARY_CONTINUATION_UNKNOWN",
+              "BOUNDARY_RERUN_UNKNOWN",
+              "CANDIDATE_UNRESOLVED",
+              "COMPONENT_SCOPE_IMPACT",
+              "DATA_GROUP_UNCONFIRMED",
+              "FILE_SCOPE_UNRESOLVED",
+              "FINDING_OPEN",
+              "IN_SCOPE_UNCONFIRMED",
+              "JUDGMENT_PENDING",
+              "PROCESS_CANDIDATE_MISSING",
+              "PROCESS_UNRESOLVED",
+              "SCAN_SCOPE_IMPACT_UNKNOWN"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "record_gap_codes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "EVIDENCE_INSUFFICIENT",
+              "PROCESS_CANDIDATE_MISSING"
+            ]
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "record_format",
+        "quality_version",
+        "analysis_complete",
+        "scan_complete",
+        "provisional_process_count",
+        "provisional_cfp_subtotal",
+        "unresolved_process_count",
+        "candidate_counts",
+        "unread_counts",
+        "unknown_boundary_counts",
+        "partial_reason_codes",
+        "record_gap_codes"
+      ]
+    },
+    "calculation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "environment": {
+          "const": "TEST"
+        },
+        "effort_scope_id": {
+          "const": "oes-design-implementation-test-v1"
+        },
+        "hours_per_day": {
+          "const": 8
+        },
+        "basis": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "profile_set_id": {
+              "const": "oes-local-test-2026-10-v1"
+            },
+            "engine_version": {
+              "const": "0.8.1-quality"
+            },
+            "mapping_version": {
+              "const": "oes-cosmic-ph1-v1"
+            },
+            "benchmark": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "const": "oes-test-benchmark-design-implementation-test-v1"
+                },
+                "is_test": {
+                  "const": true
+                },
+                "sample_size": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "min_cfp": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "max_cfp": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "hours_per_cfp": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "p25": {
+                      "type": "string",
+                      "maxLength": 256,
+                      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                    },
+                    "median": {
+                      "type": "string",
+                      "maxLength": 256,
+                      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                    },
+                    "p75": {
+                      "type": "string",
+                      "maxLength": 256,
+                      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                    }
+                  },
+                  "required": [
+                    "p25",
+                    "median",
+                    "p75"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "is_test",
+                "sample_size",
+                "min_cfp",
+                "max_cfp",
+                "hours_per_cfp"
+              ]
+            },
+            "wage": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "const": "oes-test-wage-50usd-v1"
+                },
+                "is_test": {
+                  "const": true
+                },
+                "hourly_wage_usd": {
+                  "type": "string",
+                  "maxLength": 256,
+                  "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                }
+              },
+              "required": [
+                "id",
+                "is_test",
+                "hourly_wage_usd"
+              ]
+            }
+          },
+          "required": [
+            "profile_set_id",
+            "engine_version",
+            "mapping_version",
+            "benchmark",
+            "wage"
+          ]
+        },
+        "effort": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "AVAILABLE",
+                "BENCHMARK_UNAVAILABLE",
+                "OUTSIDE_REFERENCE_RANGE",
+                "UNSUPPORTED"
+              ]
+            },
+            "hours_per_cfp": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "p25": {
+                      "type": "string",
+                      "maxLength": 256,
+                      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                    },
+                    "median": {
+                      "type": "string",
+                      "maxLength": 256,
+                      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                    },
+                    "p75": {
+                      "type": "string",
+                      "maxLength": 256,
+                      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                    }
+                  },
+                  "required": [
+                    "p25",
+                    "median",
+                    "p75"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "person_hours": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "p25": {
+                      "type": "string",
+                      "maxLength": 256,
+                      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                    },
+                    "median": {
+                      "type": "string",
+                      "maxLength": 256,
+                      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                    },
+                    "p75": {
+                      "type": "string",
+                      "maxLength": 256,
+                      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                    }
+                  },
+                  "required": [
+                    "p25",
+                    "median",
+                    "p75"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "status",
+            "hours_per_cfp",
+            "person_hours"
+          ]
+        },
+        "reference_usd": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "AVAILABLE",
+                "WAGE_UNAVAILABLE",
+                "UNSUPPORTED"
+              ]
+            },
+            "hourly_wage_usd": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 256,
+                  "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "amount_usd": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "p25": {
+                      "type": "string",
+                      "maxLength": 256,
+                      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                    },
+                    "median": {
+                      "type": "string",
+                      "maxLength": 256,
+                      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                    },
+                    "p75": {
+                      "type": "string",
+                      "maxLength": 256,
+                      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                    }
+                  },
+                  "required": [
+                    "p25",
+                    "median",
+                    "p75"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "status",
+            "hourly_wage_usd",
+            "amount_usd"
+          ]
+        }
+      },
+      "required": [
+        "environment",
+        "effort_scope_id",
+        "hours_per_day",
+        "basis",
+        "effort",
+        "reference_usd"
+      ]
+    },
+    "assurance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "const": "CLIENT_REPORTED"
+        },
+        "calculation_check": {
+          "const": "LOCAL_RECOMPUTED_MATCH"
+        },
+        "semantic_assessment": {
+          "const": "NOT_INDEPENDENTLY_VERIFIED"
+        },
+        "signed": {
+          "const": false
+        }
+      },
+      "required": [
+        "input",
+        "calculation_check",
+        "semantic_assessment",
+        "signed"
+      ]
+    },
+    "limitation_codes": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "TEST_DATA_ONLY",
+          "AI_SEMANTICS_UNVERIFIED",
+          "COMMUNITY_CLAIMS_UNATTESTED",
+          "REFERENCE_NOT_MARKET_VALUE",
+          "PARTIAL_MEASUREMENT",
+          "BENCHMARK_UNAVAILABLE",
+          "BENCHMARK_OUT_OF_RANGE",
+          "WAGE_UNAVAILABLE"
+        ]
+      },
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "schema_version",
+    "projection_version",
+    "measurement",
+    "quality",
+    "calculation",
+    "assurance",
+    "limitation_codes"
+  ]
+}

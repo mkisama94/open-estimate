@@ -1,16 +1,6 @@
 import crypto from "node:crypto";
-import canonicalizePkg from "canonicalize";
-
-const canonicalize: (input: unknown) => string | undefined =
-  typeof canonicalizePkg === "function" ? canonicalizePkg : (canonicalizePkg as any).default;
-
-export function jcsCanonicalize(obj: any): string {
-  const result = canonicalize(obj);
-  if (result === undefined) {
-    throw new Error("Cannot canonicalize undefined value");
-  }
-  return result;
-}
+import { jcsCanonicalize } from "./canonical-json.js";
+export { jcsCanonicalize } from "./canonical-json.js";
 
 export function sha256Hex(data: string | Buffer): string {
   return crypto.createHash("sha256").update(data).digest("hex").toLowerCase();

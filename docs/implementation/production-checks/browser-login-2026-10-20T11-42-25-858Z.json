@@ -1,0 +1,35 @@
+{
+  "schema_version": "oes/browser-login-production-check/v1",
+  "checked_at": "2026-10-20T11:42:25.858Z",
+  "scope": "PRE_AUTHENTICATION_ONLY",
+  "real_user_login_verified": false,
+  "certificate_issued": false,
+  "result": "PASS",
+  "checks": [
+    {
+      "name": "LOGIN_PAGE",
+      "status": 200,
+      "result": "PASS"
+    },
+    {
+      "name": "PKCE_LOGIN_START",
+      "status": 303,
+      "result": "PASS"
+    },
+    {
+      "name": "WRONG_STATE_REFUSED",
+      "status": 401,
+      "result": "PASS"
+    },
+    {
+      "name": "LOGOUT_WITHOUT_SESSION_REFUSED",
+      "status": 401,
+      "result": "PASS"
+    },
+    {
+      "name": "CERTIFICATE_PUBLICATION_STILL_REFUSED",
+      "status": 403,
+      "result": "PASS"
+    }
+  ]
+}

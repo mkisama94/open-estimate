@@ -1,0 +1,23 @@
+// Synthetic fixture only. The RFC 8032 public test seed is never an operational secret.
+import fs from 'node:fs';
+import { createPrivateKey } from 'node:crypto';
+import { projectModel } from '../dist/core/numeric-model.js';
+import { createRulesBundle, CLIENT_PROTOCOL } from '../dist/rules/measurement-contract.js';
+import { createApprovedDraft, createSignedObject } from '../dist/core/certificate.js';
+import { createCertificateSigner } from '../dist/web/signing.js';
+const candidate=JSON.parse(fs.readFileSync('examples/public-results/complete.json','utf8'));
+const assessment=JSON.parse(fs.readFileSync('examples/basic-assessment.json','utf8'));
+const generated=createRulesBundle(fs.readFileSync('rules/measurement/source.md','utf8'),JSON.parse(fs.readFileSync('rules/measurement/contract.json','utf8')));
+const integrity={format:'oes/skill-integrity/v1',skill_id:'open-estimate-assessor',skill_version:'0.1.0',hash_rule:'oes/skill-package/v1',package_sha256:'e'.repeat(64)};
+const input={schema_version:'oes/certificate-input/v1',model:projectModel(assessment),candidate,skill_integrity:integrity,ruleset_ref:generated.ruleset_ref};
+const now=Date.parse('2026-10-20T00:00:00.000Z'),origin='https://certificate-test.example.org',key_id='key_test_'+'5'.repeat(32);
+const catalog={now,skills:{policy_version:'oes/skill-integrity-policy/v1',enforcement_at:null,releases:[{...integrity,publication:'published',acceptance:'accepted',measurement_client_protocol:CLIENT_PROTOCOL}]},rules:{format:'oes/measurement-rules-registry/v1',rules_enforcement_at:null,current_revision:generated.ruleset_ref.revision,revisions:[{revision:generated.ruleset_ref.revision,status:'available',bundle:generated.bundle}]}};
+const draft=createApprovedDraft(input,Buffer.alloc(32,7).toString('base64url'),{title:'合成テスト証明書',description:'Synthetic fixture only',publisher_label:null,scope_note:null,project_url:null,model_label:null},{origin,environment:'test',certificate_id:'cert_'+'1'.repeat(32),share_id:'sh_'+'2'.repeat(32),status_generation:'sg_'+'3'.repeat(32),engine:{engine_version:'synthetic-test-engine',artifact_sha256:'4'.repeat(64)},now},catalog);
+const privateKey=createPrivateKey({key:Buffer.from('302e020100300506032b6570042204209d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60','hex'),format:'der',type:'pkcs8'});
+const sign=await createCertificateSigner(privateKey.export({format:'der',type:'pkcs8'}).toString('base64url'));
+const envelope=await sign(createSignedObject(draft,key_id,now));
+const keys=[{key_id,algorithm:'Ed25519',public_key:'11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo',issuer_origin:origin,deployment_environment:'test'}];
+fs.mkdirSync('tests/fixtures/certificates',{recursive:true});
+fs.writeFileSync('tests/fixtures/certificates/complete.json',JSON.stringify(envelope,null,2)+'\n');
+fs.writeFileSync('tests/fixtures/certificates/trusted-test-keys.json',JSON.stringify(keys,null,2)+'\n');
+console.log(JSON.stringify({key_id,signed_object_hash:envelope.signed_object_hash,environment:'test'}));

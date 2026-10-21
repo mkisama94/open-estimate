@@ -143,3 +143,10 @@ show-run／record-remote／compare-runsの入力はstdin JSONです。詳細根�
 0.8.0レビューの2件を修正しました。rerun／continuationのunknownには対応する暫定・未解決の境界判断を必須とし、完全測定にしません。比較はソース内容・読取取得状況・測定範囲・根拠・実行履歴を分離し、比較記録をoes/run-comparison/v2に更新しました。[修正内容・受入・移行作業](implementation/PLUGIN-QUALITY-0.8.1.md)を参照してください。
 
 0.8.1もローカル受入用です。新スキルの本番登録が未実施のため、数値モデルv1を使う通常経路を含め、本番で一連の評価ができる状態とは扱いません。新スキル登録・v2受信側反映・実ホスト確認は移行作業として残します。
+
+
+## 公開候補JSONのローカル生成（作業ツリー実装）
+
+prepare-public-resultへstdinで{run_id}のみを渡すと、対応する検査済みrunの保存basisで再計算・照合し、公開候補を別ディレクトリへ保存します。contractのlocal_public_result_candidate=trueが対応状況を示します。公開候補candidate.jsonと、元runへの対応を含むローカル専用local-receipt.jsonは別ファイルです。元runは変更せず、通信・公開・署名・為替取得は行いません。生成成功はLOCAL_CANDIDATE_READYで、transmitted／publishedはfalseです。
+
+対象入力・公開項目・保存先・受入結果・生成例・後続APIの未実施事項は[公開用結果データ生成の受入記録](implementation/PUBLIC-RESULT-PROJECTION-ACCEPTANCE.md)を参照してください。旧public-estimate契約とは別のpublic-result-candidate契約です。本機能は作業ツリーの実装・ビルドまでであり、既存0.8.1配布ZIPには含めていません。配布版更新は別工程です。

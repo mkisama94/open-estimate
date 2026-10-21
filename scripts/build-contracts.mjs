@@ -32,8 +32,43 @@ fs.writeFileSync(new URL('../contracts/remote-model.schema.json', import.meta.ur
   $schema: 'https://json-schema.org/draft/2020-12/schema', title: 'Open Estimate remote model v1/v2', ...remoteArgsSchema
 }, null, 2)+'\n');
 const { measurementRulesArgsSchema } = await import('../dist/remote/measurement-rules.js');
+const { publicResultCandidateSchema } = await import('../dist/core/public-result.js');
+fs.writeFileSync(new URL('../contracts/public-result-candidate.schema.json', import.meta.url), JSON.stringify(publicResultCandidateSchema, null, 2)+'\n');
 const { rulesBundleSchema, rulesetRefSchema } = await import('../dist/rules/measurement-contract.js');
 fs.writeFileSync(new URL('../contracts/measurement-rules.schema.json', import.meta.url), JSON.stringify({
   $schema: 'https://json-schema.org/draft/2020-12/schema', title: 'Open Estimate central measurement rules v1',
   $defs: { GetMeasurementRulesRequest: measurementRulesArgsSchema, RulesBundle: rulesBundleSchema, RulesetRef: rulesetRefSchema }
 }, null, 2)+'\n');
+
+const certificate = await import('../dist/core/certificate-contract.js');
+const { publicDisplayQuoteSchema } = await import('../dist/core/public-display-quote.js');
+for (const [file, schema] of Object.entries({
+  'certificate-input': certificate.frozenInputSchema,
+  'certificate-approved-draft': certificate.approvedDraftSchema,
+  'signed-calculation-certificate': certificate.envelopeSchema,
+  'certificate-status': certificate.statusSchema,
+  'certificate-calculation-basis': certificate.calculationBasisSchema,
+  'public-display-quote': publicDisplayQuoteSchema
+})) fs.writeFileSync(new URL(`../contracts/${file}.schema.json`, import.meta.url), JSON.stringify({$schema:'https://json-schema.org/draft/2020-12/schema',...schema},null,2)+'\n');
+const error=certificate.obj({error:certificate.obj({code:{type:'string'},request_id:{type:'string'},retryable:{type:'boolean'}})});
+const paths={};
+for(const [path,method,request,response] of [
+  ['/certificate-previews','post',certificate.previewRequestSchema,certificate.previewResponseSchema],
+  ['/certificate-previews/{preview_id}','get',null,certificate.previewResponseSchema],
+  ['/publications','post',certificate.publishRequestSchema,certificate.publishResponseSchema],
+  ['/publications/{share_id}/withdraw','post',certificate.withdrawRequestSchema,certificate.withdrawResponseSchema],
+  ['/issuance-requests/{idempotency_key}','get',null,certificate.receiptResponseSchema],
+  ['/shared-estimates/{share_id}','get',null,certificate.sharedResponseSchema],
+  ['/shared-estimates/{share_id}/display-quote','get',null,publicDisplayQuoteSchema],
+  ['/certificates/{certificate_id}/status','get',null,certificate.statusSchema],
+  ['/shared-estimates/{share_id}/certificate.json','get',null,certificate.envelopeSchema],
+  ['/calculation-bases/{sha256}','get',null,certificate.calculationBasisSchema]
+]) {
+  const parameters=[...path.matchAll(/\{([^}]+)\}/g)].map(m=>({name:m[1],in:'path',required:true,schema:{type:'string'}}));
+  if(path==='/publications')parameters.push({name:'Idempotency-Key',in:'header',required:true,schema:{type:'string',format:'uuid'}});
+  paths[path]={[method]:{parameters,...(request?{requestBody:{required:true,content:{'application/json':{schema:request}}}}:{}),responses:{
+    ...(response?Object.fromEntries((path==='/publications'?['200','201']:['200']).map(status=>[status,{description:'Strict successful response; Cache-Control: no-store',content:{'application/json':{schema:response}}}])):{}),
+    default:{description:'Fixed code only; input bodies and diagnostics are never echoed. Unconfigured deployment refuses publication.',content:{'application/json':{schema:error}}}
+  }}};
+}
+fs.writeFileSync(new URL('../contracts/certificate-api.openapi.json',import.meta.url),JSON.stringify({openapi:'3.1.0',info:{title:'Open Estimate certificate API (development; production adapter disabled)',version:'1.0.0'},servers:[{url:'/api/v1'}],paths},null,2)+'\n');

@@ -1,0 +1,67 @@
+{
+  "schema_version": "oes/certificate-production-bootstrap-check/v1",
+  "checked_at": "2026-10-20T11:36:34.968Z",
+  "origin": "https://open-estimate.ai-orchestration.jp",
+  "scope": "DISABLED_BOOTSTRAP_ONLY",
+  "result": "PASS",
+  "user_data_sent": false,
+  "certificate_issued": false,
+  "checks": [
+    {
+      "name": "LP_UNCHANGED",
+      "path": "/",
+      "status": 200,
+      "result": "PASS",
+      "body_sha256": "8ec252a68f7265e3288dd95575e89e63d05f6c9b8161b8442a16467e7ad9a01c",
+      "cache_control": "public, max-age=0, must-revalidate"
+    },
+    {
+      "name": "D1_READY_AND_ISSUANCE_DISABLED",
+      "path": "/api/v1/certificate-readiness",
+      "status": 200,
+      "result": "PASS",
+      "body_sha256": "d02b9b20a8a44aa1167807f4e958e868e1b9c7c43bc76bc4241868e66c4ef449",
+      "cache_control": "no-store"
+    },
+    {
+      "name": "ISSUANCE_REFUSED",
+      "path": "/api/v1/publications",
+      "status": 403,
+      "result": "PASS",
+      "body_sha256": "474a94ff50aabb52deed4dbf525a96094b51e3e3f09fdf0a3dbf60a91fe01509",
+      "cache_control": "no-store"
+    },
+    {
+      "name": "PREVIEW_REFUSED",
+      "path": "/api/v1/certificate-previews",
+      "status": 403,
+      "result": "PASS",
+      "body_sha256": "1375481711e147b95eda0688a8843c1310f3753d600d74116d1a07cc4d53229e",
+      "cache_control": "no-store"
+    },
+    {
+      "name": "DETAIL_NOT_SERVED",
+      "path": "/e/sh_00000000000000000000000000000000",
+      "status": 403,
+      "result": "PASS",
+      "body_sha256": "d2c01fa3db3339f0465c96dd430f69554382039725feb3ac28f307b2762dc870",
+      "cache_control": "no-store"
+    },
+    {
+      "name": "NO_UNCONFIGURED_KEY_CATALOG",
+      "path": "/.well-known/oes-signing-keys.json",
+      "status": 403,
+      "result": "PASS",
+      "body_sha256": "39758b27b65c512cfe6b0370576ffb37e7bd0183376561f902099e0d4b72a836",
+      "cache_control": "no-store"
+    },
+    {
+      "name": "EXISTING_MCP_INITIALIZE",
+      "path": "/mcp",
+      "status": 200,
+      "result": "PASS",
+      "body_sha256": "9162aca93f7d1af55ae80ca302e7bf528ab9cd455d7074d6c582cbe7b957a30b",
+      "cache_control": null
+    }
+  ]
+}

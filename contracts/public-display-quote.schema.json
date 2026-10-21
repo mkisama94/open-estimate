@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "certificate_id",
+    "signed_object_hash",
+    "conversion_policy_version",
+    "quoted_at",
+    "locale",
+    "display_currency",
+    "person_days",
+    "localized_reference",
+    "fx",
+    "limitation_codes",
+    "signed"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "oes/public-display-quote/v1"
+    },
+    "certificate_id": {
+      "type": "string",
+      "pattern": "^cert_[a-f0-9]{32}$"
+    },
+    "signed_object_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "conversion_policy_version": {
+      "const": "frb-display-time-v1"
+    },
+    "quoted_at": {
+      "type": "string"
+    },
+    "locale": {
+      "type": "string"
+    },
+    "display_currency": {
+      "enum": [
+        "USD",
+        "JPY",
+        "EUR",
+        "GBP",
+        "AUD",
+        "NZD",
+        "CAD",
+        "CHF",
+        "CNY",
+        "HKD",
+        "INR",
+        "KRW",
+        "SGD"
+      ]
+    },
+    "person_days": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "p25",
+            "median",
+            "p75"
+          ],
+          "properties": {
+            "p25": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            },
+            "median": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            },
+            "p75": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "localized_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "currency",
+        "currency_per_usd",
+        "amount"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "AVAILABLE",
+            "UPSTREAM_UNAVAILABLE",
+            "FX_UNAVAILABLE",
+            "FX_STALE"
+          ]
+        },
+        "currency": {
+          "enum": [
+            "USD",
+            "JPY",
+            "EUR",
+            "GBP",
+            "AUD",
+            "NZD",
+            "CAD",
+            "CHF",
+            "CNY",
+            "HKD",
+            "INR",
+            "KRW",
+            "SGD"
+          ]
+        },
+        "currency_per_usd": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "amount": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "p25",
+                "median",
+                "p75"
+              ],
+              "properties": {
+                "p25": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                },
+                "median": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                },
+                "p75": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "fx": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "currency",
+            "source_url",
+            "source_sha256",
+            "observed_on",
+            "published_on",
+            "fetched_at",
+            "checked_at",
+            "raw_value",
+            "quote_direction",
+            "currency_per_usd"
+          ],
+          "properties": {
+            "currency": {
+              "enum": [
+                "USD",
+                "JPY",
+                "EUR",
+                "GBP",
+                "AUD",
+                "NZD",
+                "CAD",
+                "CHF",
+                "CNY",
+                "HKD",
+                "INR",
+                "KRW",
+                "SGD"
+              ]
+            },
+            "source_url": {
+              "const": "https://www.federalreserve.gov/releases/h10/current/"
+            },
+            "source_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "observed_on": {
+              "type": "string"
+            },
+            "published_on": {
+              "type": "string"
+            },
+            "fetched_at": {
+              "type": "string"
+            },
+            "checked_at": {
+              "type": "string"
+            },
+            "raw_value": {
+              "type": "string"
+            },
+            "quote_direction": {
+              "enum": [
+                "currency_per_usd",
+                "usd_per_currency"
+              ]
+            },
+            "currency_per_usd": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "limitation_codes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "TEST_DATA_ONLY",
+          "AI_SEMANTICS_UNVERIFIED",
+          "COMMUNITY_CLAIMS_UNATTESTED",
+          "REFERENCE_NOT_MARKET_VALUE",
+          "PARTIAL_MEASUREMENT",
+          "BENCHMARK_UNAVAILABLE",
+          "BENCHMARK_OUT_OF_RANGE",
+          "WAGE_UNAVAILABLE",
+          "FX_UNAVAILABLE",
+          "FX_STALE",
+          "FX_CACHE_AFTER_FAILURE",
+          "FRB_BODY_MISSING",
+          "FRB_CONTENT_TYPE_INVALID",
+          "FRB_CURRENCY_UNAVAILABLE",
+          "FRB_FETCH_FAILED",
+          "FRB_HTTP_ERROR",
+          "FRB_REDIRECT_REJECTED",
+          "FRB_RESPONSE_INVALID",
+          "FRB_RESPONSE_TOO_LARGE",
+          "FRB_TIMEOUT",
+          "FRB_UTF8_INVALID"
+        ]
+      }
+    },
+    "signed": {
+      "const": false
+    }
+  }
+}

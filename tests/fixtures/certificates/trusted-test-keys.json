@@ -1,0 +1,9 @@
+[
+  {
+    "key_id": "key_test_55555555555555555555555555555555",
+    "algorithm": "Ed25519",
+    "public_key": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+    "issuer_origin": "https://certificate-test.example.org",
+    "deployment_environment": "test"
+  }
+]

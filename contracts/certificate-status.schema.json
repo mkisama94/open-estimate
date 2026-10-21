@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "certificate_id",
+    "signed_object_hash",
+    "key_id",
+    "registration",
+    "certificate_state",
+    "publication_state",
+    "key_state",
+    "status_generation",
+    "status_checked_at",
+    "reason_code"
+  ],
+  "properties": {
+    "certificate_id": {
+      "type": "string",
+      "pattern": "^cert_[a-f0-9]{32}$"
+    },
+    "signed_object_hash": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "key_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^key_(prod|test)_[a-f0-9]{32}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "registration": {
+      "enum": [
+        "REGISTERED",
+        "NOT_FOUND",
+        "UNKNOWN"
+      ]
+    },
+    "certificate_state": {
+      "enum": [
+        "ACTIVE",
+        "REVOKED",
+        "UNKNOWN"
+      ]
+    },
+    "publication_state": {
+      "enum": [
+        "PUBLIC",
+        "WITHDRAWN",
+        "UNKNOWN"
+      ]
+    },
+    "key_state": {
+      "enum": [
+        "ACTIVE",
+        "RETIRED",
+        "REVOKED",
+        "UNKNOWN"
+      ]
+    },
+    "status_generation": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^sg_[a-f0-9]{32}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "status_checked_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    },
+    "reason_code": {
+      "anyOf": [
+        {
+          "enum": [
+            "ISSUER_ERROR",
+            "OWNER_REQUEST",
+            "ABUSE",
+            "KEY_COMPROMISE",
+            "NOT_FOUND",
+            "STATUS_UNAVAILABLE",
+            "STATUS_GENERATION_MISMATCH",
+            "KEY_STATUS_UNKNOWN"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}
