@@ -67,7 +67,8 @@ export function createBrowserLogin(config:BrowserLoginConfig,database:BrowserLog
     async verifyCsrf(session,target,token){return session.expires_at>clock() && /^[A-Za-z0-9_-]{43}$/.test(token) && equal(csrf(session,target),token);}
   };
   function redirect(location:string,cookies:string[]=[]) {const h=new Headers({...safeHeaders,Location:location});for(const c of cookies)h.append("Set-Cookie",c);return new Response(null,{status:303,headers:h});}
-  function page(html:string,status=200,cookies:string[]=[]) {const h=new Headers({...safeHeaders,"Content-Security-Policy":`default-src 'none'; form-action 'self' ${issuer.origin}; frame-ancestors 'none'; base-uri 'none'`,"Content-Type":"text/html; charset=utf-8"});for(const c of cookies)h.append("Set-Cookie",c);return new Response(`<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Open Estimate ログイン確認</title><body>${html}</body></html>`,{status,headers:h});}
+  // Form POSTs need same-origin Origin; callback redirects retain no-referrer.
+  function page(html:string,status=200,cookies:string[]=[]) {const h=new Headers({...safeHeaders,"Referrer-Policy":"same-origin","Content-Security-Policy":`default-src 'none'; form-action 'self' ${issuer.origin}; frame-ancestors 'none'; base-uri 'none'`,"Content-Type":"text/html; charset=utf-8"});for(const c of cookies)h.append("Set-Cookie",c);return new Response(`<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Open Estimate ログイン確認</title><body>${html}</body></html>`,{status,headers:h});}
   async function handle(request:Request):Promise<Response> {
     const url=new URL(request.url),now=clock();
     if(url.origin!==config.origin)return page("<h1>接続先を確認してください</h1>",400);

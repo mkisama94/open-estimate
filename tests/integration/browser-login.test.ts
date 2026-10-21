@@ -40,6 +40,7 @@ it("runs PKCE callback, keeps tokens out of storage and denies certificate scope
     expect(s.response.headers.get("Set-Cookie")).not.toContain(s.state);
     const response=await f.controller.handle(f.callback(s.state,s.cookie));expect(response.status).toBe(303);
     expect(response.headers.get("Location")).toBe(origin+"/manage");
+    expect(response.headers.get("Referrer-Policy")).toBe("no-referrer");
     expect(createHash("sha256").update(f.tokenRequest!.get("code_verifier")!).digest("base64url")).toBe(s.url.searchParams.get("code_challenge"));
     const cookie=cookies(response),request=new Request(origin+"/manage",{headers:{Cookie:cookie}});
     const session=await f.controller.sessions.read(request);expect(session?.principal.scopes).toEqual([]);
@@ -76,8 +77,10 @@ it("rejects wrong/missing/tampered/browser-mismatched state before token exchang
 });
 it("logs out only after same-origin CSRF and revokes a captured session cookie",async()=>{
   const f=await setup();try{const s=await f.start(),logged=await f.controller.handle(f.callback(s.state,s.cookie)),cookie=cookies(logged);
-    const page=await f.controller.handle(new Request(origin+"/manage",{headers:{Cookie:cookie}}));const html=await page.text();const token=html.match(/name="csrf" value="([^"]+)"/)![1];
+    const page=await f.controller.handle(new Request(origin+"/manage",{headers:{Cookie:cookie}}));expect(page.headers.get("Referrer-Policy")).toBe("same-origin");const html=await page.text();const token=html.match(/name="csrf" value="([^"]+)"/)![1];
     const req=(from:string,value:string)=>new Request(origin+"/manage/auth/logout",{method:"POST",headers:{Cookie:cookie,Origin:from,"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({csrf:value})});
+    expect((await f.controller.handle(req("null",token))).status).toBe(401);
+    const missing=req(origin,token);missing.headers.delete("Origin");expect((await f.controller.handle(missing)).status).toBe(401);
     expect((await f.controller.handle(req("https://evil.example.org",token))).status).toBe(401);expect((await f.controller.handle(req(origin,"wrong"))).status).toBe(401);
     const result=await f.controller.handle(req(origin,token));expect(result.status).toBe(303);expect(new URL(result.headers.get("Location")!).searchParams.get("returnTo")).toBe(origin+"/manage");
     expect(await f.controller.sessions.read(new Request(origin+"/manage",{headers:{Cookie:cookie}}))).toBeNull();
