@@ -1,3 +1,8 @@
+import { isOwnerPreviewPath,createOwnerPreviewController } from "./owner-preview.js";
+import { PreviewTransferService } from "./preview-transfer.js";
+import { PreviewTransferRepository } from "./preview-transfer-repository.js";
+import { defaultRegistry } from "../remote/skill-integrity.js";
+import { defaultRulesRegistry } from "../remote/measurement-rules.js";
 import { randomUUID } from "node:crypto";
 import { readCertificateJson, CERTIFICATE_BODY_LIMIT } from "../core/certificate-json.js";
 import { checkContract, withdrawRequestSchema } from "../core/certificate-contract.js";
@@ -9,7 +14,7 @@ import { publicDisplayQuote } from "../core/public-display-quote.js";
 import { frbProvider } from "../profiles/frb.js";
 
 interface Assets {fetch(request:Request):Promise<Response>}
-interface Env {ASSETS:Assets;ISSUANCE_ENABLED?:string;PUBLICATION_READ_ENABLED?:string;CERTIFICATES_DB?:import("./certificate-readiness.js").ReadinessDatabase;WEB_LOGIN_ENABLED?:string;AUTH0_ISSUER?:string;AUTH0_WEB_CLIENT_ID?:string;AUTH0_WEB_CLIENT_SECRET?:string;BROWSER_SESSION_SECRET?:string;BROWSER_LOGIN_LIMITER?:{limit(options:{key:string}):Promise<{success:boolean}>}}
+interface Env {OWNER_PREVIEW_ENABLED?:string;PREVIEW_TRANSFER_CODE_SECRET?:string;OWNER_PREVIEW_ENGINE_SHA256?:string;OWNER_PREVIEW_ENGINE_VERSION?:string;OWNER_PREVIEW_GENERATION?:string;OWNER_PREVIEW_LIMITER?:{limit(options:{key:string}):Promise<{success:boolean}>};ASSETS:Assets;ISSUANCE_ENABLED?:string;PUBLICATION_READ_ENABLED?:string;CERTIFICATES_DB?:import("./certificate-readiness.js").ReadinessDatabase;WEB_LOGIN_ENABLED?:string;AUTH0_ISSUER?:string;AUTH0_WEB_CLIENT_ID?:string;AUTH0_WEB_CLIENT_SECRET?:string;BROWSER_SESSION_SECRET?:string;BROWSER_LOGIN_LIMITER?:{limit(options:{key:string}):Promise<{success:boolean}>}}
 const headers={"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store","X-Content-Type-Options":"nosniff","X-Robots-Tag":"noindex"};
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers});
 const codeStatus:Record<string,number>={INVALID_INPUT:400,INPUT_TOO_LARGE:413,AUTH_REQUIRED:401,APPROVAL_REQUIRED:403,AUTH_CONSENT_NOT_READY:403,NOT_FOUND:404,RESULT_MISMATCH:409,BASIS_MISMATCH:409,DRAFT_CHANGED:409,IDEMPOTENCY_CONFLICT:409,ALREADY_CONSUMED:409,PREVIEW_EXPIRED:410,PUBLICATION_WITHDRAWN:410,MODEL_UNSUPPORTED:422,BASIS_UNSUPPORTED:422,RULESET_NOT_ISSUABLE:422,SKILL_NOT_ISSUABLE:422,RATE_LIMITED:429,ISSUANCE_DISABLED:503,SIGNING_UNAVAILABLE:503,STATUS_UNAVAILABLE:503};
@@ -70,6 +75,20 @@ export function createCertificateWorker(service:CertificateService,auth:AuthAdap
 export default {async fetch(request:Request,env:Env):Promise<Response> {
   if(request.method==="GET" && new URL(request.url).pathname==="/api/v1/certificate-readiness")return (await import("./certificate-readiness.js")).certificateReadiness(env.CERTIFICATES_DB);
   const path=new URL(request.url).pathname;
+  if(isOwnerPreviewPath(path)) {
+    if(env.OWNER_PREVIEW_ENABLED!=="true")return json({error:{code:"OWNER_PREVIEW_DISABLED",request_id:randomUUID(),retryable:false}},503);
+    try {
+      const db=env.CERTIFICATES_DB as import("./browser-login.js").BrowserLoginDatabase|undefined;
+      if(env.WEB_LOGIN_ENABLED!=="true" || !db || !env.PREVIEW_TRANSFER_CODE_SECRET || !env.OWNER_PREVIEW_ENGINE_SHA256 || !env.OWNER_PREVIEW_ENGINE_VERSION || !env.OWNER_PREVIEW_GENERATION || !env.OWNER_PREVIEW_LIMITER
+        || !env.AUTH0_ISSUER || !env.AUTH0_WEB_CLIENT_ID || !env.AUTH0_WEB_CLIENT_SECRET || !env.BROWSER_SESSION_SECRET)throw new Error("AUTH_CONSENT_NOT_READY");
+      const origin="https://open-estimate.ai-orchestration.jp";
+      const login=(await import("./browser-login.js")).createBrowserLogin({origin,issuer:env.AUTH0_ISSUER,client_id:env.AUTH0_WEB_CLIENT_ID,client_secret:env.AUTH0_WEB_CLIENT_SECRET,session_secret:env.BROWSER_SESSION_SECRET},db);
+      const service=new PreviewTransferService(new PreviewTransferRepository(db),{origin,environment:"production",enabled:true,code_secret:env.PREVIEW_TRANSFER_CODE_SECRET,generation:env.OWNER_PREVIEW_GENERATION,
+        engine:{engine_version:env.OWNER_PREVIEW_ENGINE_VERSION,artifact_sha256:env.OWNER_PREVIEW_ENGINE_SHA256},catalog:{skills:defaultRegistry,rules:defaultRulesRegistry,now:Date.now()}});
+      return await createOwnerPreviewController(service,login.sessions,env.OWNER_PREVIEW_LIMITER).fetch(request);
+    }catch{return json({error:{code:"STATUS_UNAVAILABLE",request_id:randomUUID(),retryable:true}},503);}
+  }
+
   if(env.WEB_LOGIN_ENABLED==="true" && (path==="/manage" || path.startsWith("/manage/auth/"))) {
     try {
       const db=env.CERTIFICATES_DB as import("./browser-login.js").BrowserLoginDatabase|undefined;
@@ -87,4 +106,5 @@ export default {async fetch(request:Request,env:Env):Promise<Response> {
   const db=env.CERTIFICATES_DB as import("./browser-login.js").BrowserLoginDatabase|undefined;
   if(!db || typeof db.batch!=="function")throw new Error("STATUS_UNAVAILABLE");
   await (await import("./browser-login.js")).purgeBrowserSessions(db,Date.now());
+  if(await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='preview_transfers'").first())await new PreviewTransferRepository(db).purge(Date.now());
 }};

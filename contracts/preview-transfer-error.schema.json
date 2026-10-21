@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "request_id",
+        "retryable"
+      ],
+      "properties": {
+        "code": {
+          "enum": [
+            "INVALID_INPUT",
+            "INPUT_TOO_LARGE",
+            "AUTH_REQUIRED",
+            "APPROVAL_REQUIRED",
+            "NOT_FOUND",
+            "IDEMPOTENCY_CONFLICT",
+            "DRAFT_CHANGED",
+            "RESULT_MISMATCH",
+            "BASIS_MISMATCH",
+            "PREVIEW_EXPIRED",
+            "RATE_LIMITED",
+            "OWNER_PREVIEW_DISABLED",
+            "STATUS_UNAVAILABLE",
+            "MODEL_UNSUPPORTED",
+            "BASIS_UNSUPPORTED",
+            "RULESET_NOT_ISSUABLE",
+            "SKILL_NOT_ISSUABLE"
+          ]
+        },
+        "request_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$"
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

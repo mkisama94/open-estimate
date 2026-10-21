@@ -23,14 +23,20 @@ async function setup(changes:Record<string,unknown>={},header:Record<string,unkn
     return new Response(JSON.stringify({id_token:token,access_token:"PRIVATE_TOKEN_DO_NOT_STORE"}),{status:exchangeStatus,headers:exchangeStatus>=300 && exchangeStatus<400?{Location:"https://foreign.example.org/token"}:{}});
   };
   const controller=createBrowserLogin(config,db,{keys,fetch:fetcher,now:()=>now.value});
-  async function start() {
-    const response=await controller.handle(new Request(origin+"/manage/auth/login"));
+  async function start(transfer?:string) {
+    const response=await controller.handle(new Request(origin+"/manage/auth/login"+(transfer?"?preview_transfer_id="+transfer:"")));
     const url=new URL(response.headers.get("Location")!);nonce=url.searchParams.get("nonce")!;
     return {response,url,cookie:cookies(response),state:url.searchParams.get("state")!};
   }
   const callback=(state:string,cookie:string,extra="")=>new Request(origin+"/manage/auth/callback?"+new URLSearchParams({code:"synthetic-code",state})+extra,{headers:{Cookie:cookie}});
   return {sql,db,now,config,controller,start,callback,get exchanges(){return exchanges;},get tokenRequest(){return tokenRequest;}};
 }
+it("OP02 binds only a validated transfer ID into the encrypted login return transaction",async()=>{
+  const f=await setup();try{const id="pt_"+"a".repeat(32),s=await f.start(id),r=await f.controller.handle(f.callback(s.state,s.cookie));
+    expect(r.headers.get("Location")).toBe(origin+"/manage/preview-transfers/"+id);expect(s.response.headers.get("Set-Cookie")).not.toContain(id);
+    for(const query of ["?returnTo=https://foreign.example.org/","?preview_transfer_id=../../evil","?preview_transfer_id="+id+"&returnTo=/manage","?preview_transfer_id="+id+"&preview_transfer_id="+id])expect((await f.controller.handle(new Request(origin+"/manage/auth/login"+query))).status).toBe(400);
+  }finally{f.sql.close();}
+});
 it("runs PKCE callback, keeps tokens out of storage and denies certificate scope",async()=>{
   const f=await setup();try {
     const s=await f.start();expect(s.response.status).toBe(303);expect(s.url.origin).toBe(new URL(issuer).origin);

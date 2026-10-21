@@ -72,3 +72,6 @@ for(const [path,method,request,response] of [
   }}};
 }
 fs.writeFileSync(new URL('../contracts/certificate-api.openapi.json',import.meta.url),JSON.stringify({openapi:'3.1.0',info:{title:'Open Estimate certificate API (development; production adapter disabled)',version:'1.0.0'},servers:[{url:'/api/v1'}],paths},null,2)+'\n');
+
+const transfer=await import('../dist/core/preview-transfer-contract.js');
+for(const [name,schema] of Object.entries({'preview-transfer-error':transfer.previewErrorSchema,'preview-transfer-create':transfer.transferCreateSchema,'preview-transfer-created':transfer.transferCreateResponseSchema,'preview-transfer-status':transfer.transferStatusSchema,'preview-transfer-submit':transfer.transferSubmissionSchema,'owner-certificate-preview':transfer.ownerPreviewSchema}))fs.writeFileSync(new URL('../contracts/'+name+'.schema.json',import.meta.url),JSON.stringify({$schema:'https://json-schema.org/draft/2020-12/schema',...schema},null,2)+'\n');

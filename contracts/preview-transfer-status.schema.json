@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "state",
+    "transfer_id",
+    "expires_at",
+    "preview_id",
+    "draft_hash",
+    "preview_url"
+  ],
+  "properties": {
+    "state": {
+      "enum": [
+        "PENDING",
+        "APPROVED",
+        "READY",
+        "DENIED",
+        "LOCKED",
+        "EXPIRED"
+      ]
+    },
+    "transfer_id": {
+      "type": "string",
+      "pattern": "^pt_[a-f0-9]{32}$"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 24
+    },
+    "preview_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^pv_[a-f0-9]{32}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "draft_hash": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "preview_url": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 256,
+          "format": "uri"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

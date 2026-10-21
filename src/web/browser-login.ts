@@ -22,7 +22,7 @@ export async function purgeBrowserSessions(database:BrowserLoginDatabase,now:num
   await db.batch([db.prepare("DELETE FROM browser_login_transactions WHERE expires_at<=?").bind(now),db.prepare("DELETE FROM browser_sessions WHERE expires_at<=?").bind(now)]);
 }
 export interface BrowserLoginConfig {origin:string;issuer:string;client_id:string;client_secret:string;session_secret:string}
-interface LoginTransaction {state:string;nonce:string;verifier:string;expires_at:number}
+interface LoginTransaction {state:string;nonce:string;verifier:string;expires_at:number;preview_transfer_id?:string}
 /** Identity-only login trial. These sessions deliberately have NO certificate-management scope. */
 export function createBrowserLogin(config:BrowserLoginConfig,database:BrowserLoginDatabase,testing?:{keys:JWTVerifyGetKey;fetch:typeof fetch;now:()=>number}) {
   const origin=new URL(config.origin),issuer=new URL(config.issuer);
@@ -51,6 +51,7 @@ export function createBrowserLogin(config:BrowserLoginConfig,database:BrowserLog
     decipher.setAAD(Buffer.from(context));decipher.setAuthTag(bytes.subarray(12,28));
     const value=JSON.parse(Buffer.concat([decipher.update(bytes.subarray(28)),decipher.final()]).toString("utf8")) as LoginTransaction;
     if(![value.state,value.nonce,value.verifier].every(s=>typeof s==="string" && /^[A-Za-z0-9_-]{43}$/.test(s)) || !Number.isSafeInteger(value.expires_at) || value.expires_at<=clock() || value.expires_at>clock()+600000)throw new Error("AUTH_REQUIRED");
+    if(value.preview_transfer_id!==undefined && !/^pt_[a-f0-9]{32}$/.test(value.preview_transfer_id))throw new Error("AUTH_REQUIRED");
     return value;
   }
   const csrf=(session:BrowserSession,target:unknown)=>createHmac("sha256",csrfKey).update(JSON.stringify([session.session_id,target])).digest("base64url");
@@ -75,8 +76,10 @@ export function createBrowserLogin(config:BrowserLoginConfig,database:BrowserLog
     try {
       if(request.headers.has("Authorization"))return page("<h1>ブラウザーから操作してください</h1>",401);
       if(request.method==="GET" && url.pathname==="/manage/auth/login") {
-        if(url.search)return page("<h1>無効なリクエストです</h1>",400);
+        const transfer=url.searchParams.get("preview_transfer_id");
+        if(url.search && ([...url.searchParams.keys()].length!==1 || !transfer || !/^pt_[a-f0-9]{32}$/.test(transfer)))return page("<h1>無効なリクエストです</h1>",400);
         const value:LoginTransaction={state:opaque(),nonce:opaque(),verifier:opaque(),expires_at:now+600000};
+        if(transfer)value.preview_transfer_id=transfer;
         await db.batch([stmt("DELETE FROM browser_login_transactions WHERE expires_at<=?",now),stmt("DELETE FROM browser_sessions WHERE expires_at<=?",now),stmt("INSERT INTO browser_login_transactions VALUES (?,?)",hash(value.state),value.expires_at)]);
         const authorize=new URL("authorize",issuer);
         authorize.search=new URLSearchParams({response_type:"code",response_mode:"query",client_id:config.client_id,redirect_uri:callback,scope:"openid",state:value.state,nonce:value.nonce,code_challenge:createHash("sha256").update(value.verifier).digest("base64url"),code_challenge_method:"S256"}).toString();
@@ -106,7 +109,7 @@ export function createBrowserLogin(config:BrowserLoginConfig,database:BrowserLog
         // Reauthentication rotates the local session and invalidates the previous one.
         const previous=readCookie(request,SESSION);
         await db.batch([...(previous?[stmt("DELETE FROM browser_sessions WHERE session_hash=?",hash(previous))]:[]),stmt("INSERT INTO browser_sessions VALUES (?,?,?)",hash(raw),oidcOwnerId(config.issuer,payload.sub),expires)]);
-        return redirect(config.origin+"/manage",[cookie(TRANSACTION,"",0),cookie(SESSION,raw,Math.floor((expires-now)/1000))]);
+        return redirect(config.origin+(tx.preview_transfer_id?"/manage/preview-transfers/"+tx.preview_transfer_id:"/manage"),[cookie(TRANSACTION,"",0),cookie(SESSION,raw,Math.floor((expires-now)/1000))]);
       }
       if(request.method==="GET" && url.pathname==="/manage") {
         if(url.search)return redirect(config.origin+"/manage");

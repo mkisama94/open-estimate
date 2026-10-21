@@ -30,6 +30,7 @@ import { saveRun, showRun, saveRemoteOperation } from "./runs.js";
 import { compareRuns } from "./compare.js";
 import { preparePublicResult } from "./public-result.js";
 import { prepareCertificate, verifyCertificateFile } from "./certificate-submissions.js";
+import { previewCertificate } from "./preview-transfer.js";
 
 function currentSkill() {
   const internal = fileURLToPath(new URL("../../skills/open-estimate-assessor/", import.meta.url));
@@ -59,7 +60,11 @@ async function main() {
   const command = process.argv[2], args = await input();
   if (command === "prepare-certificate") return prepareCertificate(args);
   if (command === "verify-certificate") return verifyCertificateFile(args);
-  if (["preview-certificate","publish-certificate","resume-certificate"].includes(command)) throw new Error("AUTH_CONSENT_NOT_READY");
+  if (["preview-certificate","resume-preview"].includes(command)) {
+    const abort=new AbortController(),interrupt=()=>abort.abort();process.once("SIGINT",interrupt);
+    try{return await previewCertificate(args,{signal:abort.signal,emit:value=>process.stdout.write(JSON.stringify(value)+"\n")});}finally{process.removeListener("SIGINT",interrupt);}
+  }
+  if (["publish-certificate","resume-certificate"].includes(command)) throw new Error("AUTH_CONSENT_NOT_READY");
   if (command === "prepare-public-result") return preparePublicResult(args);
   if (command === "skill-integrity") return currentSkill();
   // Saved runs are independent of source access, snapshot lifetime, and session purge.
@@ -73,6 +78,7 @@ async function main() {
       quality_records: "oes/quality-records/v1", immutable_local_runs: true, offline_run_comparison: true, run_comparison_format: "oes/run-comparison/v2",
       local_public_result_candidate: true,
       local_certificate_preparation: true, offline_certificate_verification: true,
+      owner_preview_transfer: true,
       remote_recalculation_required: true, persistent_evaluations: false, html_report: false, web_management: false, certificates: false, publishing: false } };
   await privateDirectory(base);
   if (command === "scan") {
