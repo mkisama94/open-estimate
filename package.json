@@ -18,6 +18,8 @@
     "mcp:stdio": "node dist/index.js",
     "start": "node dist/index.js",
     "dev:web": "wrangler dev",
+    "dev:public-result": "vite-node tests/fixtures/public-result-browser-host.ts",
+    "dev:public-result": "vite-node tests/fixtures/public-result-browser-host.ts",
     "deploy:check": "wrangler deploy --dry-run",
     "deploy": "wrangler deploy",
     "plugin:pack": "node scripts/package-plugin.mjs",

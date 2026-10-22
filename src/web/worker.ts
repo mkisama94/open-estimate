@@ -9,12 +9,13 @@ import { checkContract, withdrawRequestSchema } from "../core/certificate-contra
 import { getCertificateBasis } from "../profiles/certificate-basis.js";
 import { requirePrincipal, type AuthAdapter } from "./auth.js";
 import type { CertificateService } from "./certificate-service.js";
-import { certificateHtml, statusHtml, publicHtmlHeaders } from "./public-views.js";
+import { certificateHtml, statusHtml, publicErrorHtml, publicHtmlHeaders } from "./public-views.js";
+import { publicResultService, isPublicResultPath, type PublicResultEnvironment } from "./public-result-runtime.js";
 import { publicDisplayQuote } from "../core/public-display-quote.js";
 import { frbProvider } from "../profiles/frb.js";
 
 interface Assets {fetch(request:Request):Promise<Response>}
-interface Env {OWNER_PREVIEW_ENABLED?:string;PREVIEW_TRANSFER_CODE_SECRET?:string;OWNER_PREVIEW_ENGINE_SHA256?:string;OWNER_PREVIEW_ENGINE_VERSION?:string;OWNER_PREVIEW_GENERATION?:string;OWNER_PREVIEW_LIMITER?:{limit(options:{key:string}):Promise<{success:boolean}>};ASSETS:Assets;ISSUANCE_ENABLED?:string;PUBLICATION_READ_ENABLED?:string;CERTIFICATES_DB?:import("./certificate-readiness.js").ReadinessDatabase;WEB_LOGIN_ENABLED?:string;AUTH0_ISSUER?:string;AUTH0_WEB_CLIENT_ID?:string;AUTH0_WEB_CLIENT_SECRET?:string;BROWSER_SESSION_SECRET?:string;BROWSER_LOGIN_LIMITER?:{limit(options:{key:string}):Promise<{success:boolean}>}}
+interface Env extends PublicResultEnvironment {OWNER_PREVIEW_ENABLED?:string;PREVIEW_TRANSFER_CODE_SECRET?:string;OWNER_PREVIEW_ENGINE_SHA256?:string;OWNER_PREVIEW_ENGINE_VERSION?:string;OWNER_PREVIEW_GENERATION?:string;OWNER_PREVIEW_LIMITER?:{limit(options:{key:string}):Promise<{success:boolean}>};ASSETS:Assets;ISSUANCE_ENABLED?:string;PUBLICATION_READ_ENABLED?:string;CERTIFICATES_DB?:import("./certificate-readiness.js").ReadinessDatabase;WEB_LOGIN_ENABLED?:string;AUTH0_ISSUER?:string;AUTH0_WEB_CLIENT_ID?:string;AUTH0_WEB_CLIENT_SECRET?:string;BROWSER_SESSION_SECRET?:string;BROWSER_LOGIN_LIMITER?:{limit(options:{key:string}):Promise<{success:boolean}>}}
 const headers={"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store","X-Content-Type-Options":"nosniff","X-Robots-Tag":"noindex"};
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers});
 const codeStatus:Record<string,number>={INVALID_INPUT:400,INPUT_TOO_LARGE:413,AUTH_REQUIRED:401,APPROVAL_REQUIRED:403,AUTH_CONSENT_NOT_READY:403,NOT_FOUND:404,RESULT_MISMATCH:409,BASIS_MISMATCH:409,DRAFT_CHANGED:409,IDEMPOTENCY_CONFLICT:409,ALREADY_CONSUMED:409,PREVIEW_EXPIRED:410,PUBLICATION_WITHDRAWN:410,MODEL_UNSUPPORTED:422,BASIS_UNSUPPORTED:422,RULESET_NOT_ISSUABLE:422,SKILL_NOT_ISSUABLE:422,RATE_LIMITED:429,ISSUANCE_DISABLED:503,SIGNING_UNAVAILABLE:503,STATUS_UNAVAILABLE:503};
@@ -52,6 +53,8 @@ export function createCertificateWorker(service:CertificateService,auth:AuthAdap
       if(request.method==="GET" && shared) {const result=await service.shared(shared[1],now);return json(shared[2]?result.certificate:result);}
       const quote=path.match(/^\/api\/v1\/shared-estimates\/(sh_[a-f0-9]{32})\/display-quote$/);
       if(request.method==="GET" && quote){const before=await service.shared(quote[1],now);const value=await publicDisplayQuote(before.certificate,frbProvider,url.searchParams.get("locale")??"ja-JP",url.searchParams.get("currency")??"JPY",()=>new Date(now));await service.shared(quote[1],Date.now());return json(value);}
+      if(isPublicResultPath(path))throw new Error("NOT_FOUND");
+      if(isPublicResultPath(path))throw new Error("NOT_FOUND");
       // Cookie-bound writes require the same trusted origin, including when auth is otherwise valid.
       if(request.method!=="GET" && (request.headers.has("Cookie") || request.headers.has("Origin")) && request.headers.get("Origin")!==service.config.origin)throw new Error("AUTH_REQUIRED");
       const principal=requirePrincipal(await auth.authenticate(request),"certificates:manage",now);
@@ -66,6 +69,7 @@ export function createCertificateWorker(service:CertificateService,auth:AuthAdap
       throw new Error("NOT_FOUND");
     } catch(e) {
       const code=e instanceof Error && Object.hasOwn(codeStatus,e.message)?e.message:"STATUS_UNAVAILABLE";
+      if(request.method==="GET" && /^\/(e|verify)(\/|$)/.test(path))return new Response(publicErrorHtml(code),{status:codeStatus[code],headers:publicHtmlHeaders});
       const response=json({error:{code,request_id:randomUUID(),retryable:[429,503].includes(codeStatus[code])}},codeStatus[code]);
       if(code==="RATE_LIMITED")response.headers.set("Retry-After","60");return response;
     }
@@ -75,6 +79,14 @@ export function createCertificateWorker(service:CertificateService,auth:AuthAdap
 export default {async fetch(request:Request,env:Env):Promise<Response> {
   if(request.method==="GET" && new URL(request.url).pathname==="/api/v1/certificate-readiness")return (await import("./certificate-readiness.js")).certificateReadiness(env.CERTIFICATES_DB);
   const path=new URL(request.url).pathname;
+  if(isPublicResultPath(path)){
+    try {
+      return await createCertificateWorker(publicResultService(env),{mode:"production",authenticate:async()=>null}).fetch(request,env);
+    }catch{
+      if(request.method==="GET" && /^\/(e|verify)(\/|$)/.test(path))return new Response(publicErrorHtml("STATUS_UNAVAILABLE"),{status:503,headers:publicHtmlHeaders});
+      return json({error:{code:"STATUS_UNAVAILABLE",request_id:randomUUID(),retryable:true}},503);
+    }
+  }
   if(isOwnerPreviewPath(path)) {
     if(env.OWNER_PREVIEW_ENABLED!=="true")return json({error:{code:"OWNER_PREVIEW_DISABLED",request_id:randomUUID(),retryable:false}},503);
     try {
