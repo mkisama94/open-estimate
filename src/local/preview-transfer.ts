@@ -10,7 +10,7 @@ import { readCertificateJson } from "../core/certificate-json.js";
 import { resolveSafePath } from "../collector/safe-paths.js";
 import { certificateSubmissionsRoot,readCertificateSubmission } from "./certificate-submissions.js";
 export interface PreviewCliOptions {origin?:string;environment?:"test"|"production";send?:typeof fetch;now?:()=>number;sleep?:(milliseconds:number,signal?:AbortSignal)=>Promise<void>;signal?:AbortSignal;emit?:(value:PreviewCliOutput)=>void}
-export interface PreviewCliOutput {status:string;submission_id:string;verification_url?:string;user_code?:string;preview_url?:string;expires_at?:string;saved:boolean;issued:false;published:false;notice?:string}
+export interface PreviewCliOutput {status:string;submission_id:string;transfer_id?:string;verification_url?:string;user_code?:string;preview_url?:string;expires_at?:string;saved:boolean;issued:false;published:false;notice?:string}
 interface State {format:"oes/local-preview-transfer/v1";secret:string;idempotency_key:string;origin:string;binding_hash:string;submission_hash:string;created_at:number;attempted:boolean;transfer_id:string|null;user_code:string|null;verification_url:string|null;expires_at:string|null}
 async function atomicWrite(dir:string,name:string,value:unknown){
   const destination=await resolveSafePath(name,dir),temp=await resolveSafePath(name+"."+randomUUID()+".tmp",dir);
@@ -98,7 +98,7 @@ export async function previewCertificate(value:unknown,options:PreviewCliOptions
       }
       if(!shown){
         if(!state.user_code || !/^[0-9]{8}$/.test(state.user_code) || state.verification_url!==origin+"/manage/preview-transfers/"+state.transfer_id)throw new Error("INVALID_PREVIEW_STATE");
-        options.emit?.({...output("PENDING"),verification_url:state.verification_url,user_code:state.user_code,expires_at:status.expires_at});shown=true;
+        options.emit?.({...output("PENDING"),transfer_id:state.transfer_id,verification_url:state.verification_url,user_code:state.user_code,expires_at:status.expires_at});shown=true;
       }
       if(now()+5000>=Date.parse(status.expires_at))return {...output("EXPIRED"),expires_at:status.expires_at};
       await sleep(5000,options.signal);

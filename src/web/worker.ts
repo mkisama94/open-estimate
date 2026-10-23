@@ -118,5 +118,6 @@ export default {async fetch(request:Request,env:Env):Promise<Response> {
   const db=env.CERTIFICATES_DB as import("./browser-login.js").BrowserLoginDatabase|undefined;
   if(!db || typeof db.batch!=="function")throw new Error("STATUS_UNAVAILABLE");
   await (await import("./browser-login.js")).purgeBrowserSessions(db,Date.now());
+  if(await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='saved_estimates'").first())await db.batch([db.prepare("DELETE FROM saved_estimates WHERE expires_at<=?").bind(Date.now())]);
   if(await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='preview_transfers'").first())await new PreviewTransferRepository(db).purge(Date.now());
 }};

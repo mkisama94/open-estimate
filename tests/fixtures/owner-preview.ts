@@ -19,7 +19,7 @@ import type { D1Statement } from "../../src/web/certificate-repository.js";
 import type { BrowserApprovalSessions } from "../../src/web/web-publication-approval.js";
 export class PreviewSqlite {
   sqlite:DatabaseSync;failAt=-1;
-  constructor(file=":memory:"){this.sqlite=new DatabaseSync(file);for(const m of ["0001_certificates","0002_web_approval_grants","0003_browser_sessions","0004_preview_transfers"])this.sqlite.exec(fs.readFileSync("migrations/"+m+".sql","utf8"));}
+  constructor(file=":memory:"){this.sqlite=new DatabaseSync(file);for(const m of ["0001_certificates","0002_web_approval_grants","0003_browser_sessions","0004_preview_transfers","0005_saved_estimates"])this.sqlite.exec(fs.readFileSync("migrations/"+m+".sql","utf8"));}
   prepare(sql:string):D1Statement {let args:unknown[]=[];const db=this.sqlite;return {bind(...a){args=a;return this;},async first<T>(){return (db.prepare(sql).get(...args as any[])??null) as T|null;},sql,get args(){return args;}} as D1Statement;}
   async batch(statements:D1Statement[]){this.sqlite.exec("BEGIN IMMEDIATE");try{(statements as any[]).forEach((s,i)=>{if(i===this.failAt)throw new Error("INJECTED_DB_FAILURE");this.sqlite.prepare(s.sql).run(...s.args);});this.sqlite.exec("COMMIT");}catch(e){this.sqlite.exec("ROLLBACK");throw e;}}
   count(table:string){return (this.sqlite.prepare("SELECT COUNT(*) AS n FROM "+table).get() as {n:number}).n;}
