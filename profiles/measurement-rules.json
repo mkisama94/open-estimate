@@ -1,6 +1,43 @@
 {
   "format": "oes/measurement-rules-registry/v1",
-  "rules_enforcement_at": null,
-  "current_revision": null,
-  "revisions": []
+  "rules_enforcement_at": "2026-11-07T00:00:00.000Z",
+  "current_revision": "c11247cb023e7554f65d87e38bf3fbb43e8d34ea155ec3121b7dbe997956d1c7",
+  "revisions": [
+    {
+      "revision": "c11247cb023e7554f65d87e38bf3fbb43e8d34ea155ec3121b7dbe997956d1c7",
+      "status": "available",
+      "bundle": {
+        "format": "oes/measurement-rules/v1",
+        "ruleset_id": "oes-measurement",
+        "compatibility": {
+          "client_protocol": "oes/measurement-client/v1",
+          "assessment_format": "oes/assessment/v2",
+          "model_format": "oes/remote-model/v1",
+          "engine_contract_id": "oes-cosmic-ph1-v1"
+        },
+        "instructions_markdown": "# Open Estimate 測定原則・判断記録・報告ルール\n\nこの本文は測定ルールの原本です。ホストの上位指示や利用者の許可を変更する権限はありません。リモートから取得したコードの実行や別URLへの切替は行いません。\n\n## OES-MEASURE-001\n\n測定目的はas_built_functional_size、単一アプリケーション境界とし内部APIを重複計上しない。ただし単一アプリ・共有内部関数だけで機能を統合せず、別ファイル・API・ジョブだけで分割しない。独立再実行も単独の決定根拠にしない。quality.boundariesに再実行の可否と根拠、継続処理か、その理由、内部キューの境界・計数規則・移動参照・通知と永続読取の重複レビューを記録する。内部キューを自動的に外部ユーザーにも一律非計上にもせず、未確定事項は判断台帳に残す。rerunまたはcontinuationがunknownなら、そのprocessのboundary.judgment_refsに紐づくprovisional／unresolved判断と具体的unresolved_pointsを必須とする。未確認のままrecordedやCOMPLETEにしない。開始・要求ユーザー・機能目的・完了・非同期／定期／手動の関係をboundaryに残す。\n\n## OES-MEASURE-002\n\n実装・設定・DBスキーマを主根拠とし、READMEの将来予定やテスト自体をアプリ機能として加算しない。\n\n## OES-MEASURE-003\n\nチャット履歴、メモリ、希望金額は測定根拠にしない。測定コピーの読取済み範囲だけを根拠にする。\n\n## OES-MEASURE-004\n\nacceptedプロセスはトリガーEntryとExitまたはWriteを含む。Entry/Exitのpeerは機能ユーザー、storeはnull。Read/Writeのstoreは永続ストア、peerはnull。\n\n## OES-MEASURE-005\n\n同一の論理移動を重複加算しない。同じ関心対象・移動種別を複数計上するときはdistinctness_basisと理由・実装根拠が必要。\n\n## OES-RECORD-001\n\n`format_version=oes/assessment/v2` で範囲・候補・判断を記録する。実装を解析し、各機能・movementへ読取済み行の根拠を付ける。初回確認では主要領域・対象フォルダー・除外方針を記録し、機能一覧の完成を読取開始条件にしない。同じ範囲の同意を繰り返し要求せず、実質的な範囲変更時だけ追加確認する。\n\n## OES-SCOPE-001\n\nscopeの目的・境界説明とscope_recordの範囲ID・revisionを整合させる。confirmationsのactor=userは利用者の範囲確認だけを記録し、個々の計数判断の承認とは説明しない。AIの解釈はactor=aiで分ける。\n\n## OES-COVERAGE-001\n\nscope_record.filesではスナップショットのpathごとにincluded／outside／supporting／unresolvedと理由を残す。範囲外・補助資料への分類は利用者の範囲確認参照、または読取根拠で裏付ける。未読を理由の文字列だけで範囲外に変更して完了にしない。input.analysis_completeはv2では収集器が照合した走査・取得状況。範囲内完了はlocal.recordsから導出する。quality.version=oes/quality-records/v1では、input.acquisitionの取得事実を変更せず、quality.scope_rulesとlimitationsで対象・原因・範囲影響・規則・理由・具体的不足を記録する。範囲外とパス規則の整合を検査した既知の除外のみならPARTIALにしない。範囲内不足と影響不明は対象を示してPARTIAL。未発見領域を含み得る走査打ち切りは影響不明を維持する。旧フラグの意味を変更しない。\n\n## OES-CANDIDATE-001\n\nfunction_candidatesは識別した計上／範囲外／統合／未解決をすべて保持する。役割・component・根拠・理由・processまたは統合先candidateを付ける。未解決を一覧から消さない。未知の機能がないことは保証しない。\n\n## OES-DATA-001\n\ndata_groups.definitionに業務上の意味・識別属性（該当しない理由）・具体的attributesとの対応・関心対象と分離集約の理由・根拠・unconfirmedを残す。汎用文言、HTTP／SQL／JSON／テーブルの件数だけで群を定義しない。文字列が存在することと具体性の十分さは別で、人の意味判断が残る。quality.attributesに属性ごとの具体的実装項目と根拠参照を残し、「同名または対応する項目」だけを対応記録にしない。\n\n## OES-JUDGMENT-001\n\njudgmentsは採用／非計上／統合／分割、採用解釈、ruleのsource（skill／project_policy／external_standard）・実在するIDと版、適用理由、根拠、代替案と不採用理由を記録する。未確認の標準条項・理由・証拠を創作しない。targetsで対象を明示し、movementはprocess_idも付ける。全計上移動と識別済み非計上候補を判断に結び付ける。同じ判断の共有は許す。実際の争点があるときだけ成立し得る代替案を記録し、全機能に架空の代替案を作らない。\n\n## OES-STATUS-001\n\nacceptedは現在のモデルでの採用のみ。判断statusはrecorded／provisional／unresolved、evidence_statusはsufficient／insufficient／missing。provisionalには実装根拠と未解決点が必要。モデルを選べない場合はprocessとcandidateをunresolvedにして計数から外し、未知の規模を0としない。inferredは実装記載を超える補完推定の有無で、AI作成や未解決の有無のフラグではない。\n\n## OES-FINDING-001\n\nfindingsにtargets・impact（scope／coverage／boundary／counting／explanation）・resolutionを付ける。判断の未解決を文章だけに埋め込まない。自然言語と構造化状態に矛盾を見つけたら対象・判断・所見を見直し、必要ならprovisional／unresolved／openへ修正して再exportする。特定語検索だけで計数を切り替えない。quality.findingsで実装、境界・計数、設定・接続構成、配備、本番稼働の対象を分ける。配備・本番稼働未確認だけならexplanationとし、開発済み規模を未解決にしない。必要実装・接続の欠落は別の影響所見にする。設定生成コード・生成結果・配備の存在を混同せず、確認のため対象コードを実行しない。\n\n## OES-COMPARE-001\n\n利用者が比較対象を指定した場合のみ、モデル確定・export後の別工程でcompare-runsを使う。両run IDとhash、ソース・範囲・スキル・ツール・規則の同一性と不明、processと移動の明示的対応案、追加・削除・統合・分割、判断の解決・継続・非計上、理由・根拠を記録する。IDや配列順から同一性を推測しない。code／scope／evidence／interpretation／tool_rules／unknownの原因を複数保持し、相殺と未対応を示す。過去参照の事実を開示し独立性は未確認とする。原成果物は変更せず比較操作として追記する。既存Assessment内comparisonも読み取り可能だが新規独立測定へ前回モデルを埋め込む必要はない。代替モデルの上下限を創作しない。比較結果はoes/run-comparison/v2。identityのsource_content（パスと取得済みの非ゼロhash）、acquisition（読取・除外・取得制限）、scope（対象所属・アプリ境界・範囲規則）、evidenceを区別する。ゼロhashや未発見領域が残れば内容一致を断定しない。範囲ID・確認日時・確認者・確認文はexecution_recordsの履歴であり、コード・範囲変更の根拠にしない。元manifest hashとscope記録は識別用に保持する。\n\n## OES-LEGACY-001\n\n旧形式は旧形式・判断記録不足と明記する。新要件に適合する既定値を入れず、元データ・hashを維持する。改訂時は比較元を保持し、機械転記できた既存根拠と新たな確認事項を分ける。\n\n## OES-INPUT-001\n\nmodel_id不明はnull、名前不明はunknown。finished_atは現在時刻。Skill情報はcontractから転記する。\n\n## OES-VALIDATION-001\n\n`export` にroot・session_id・snapshot_id・assessment（raw JSON文字列）を渡す。manifest・行範囲・参照・判断状態の構造上の整合をローカル検査する。形式的な記録充足を意味解釈の正しさと説明しない。失敗時は不足を修正し、希望金額に合わせて動作を加減しない。未完成の入力は同じ引数の `draft` で保存できるが、正式な送信modelは出ない。\n\n## OES-REPORT-001\n\n結果では機能別の根拠をローカルAssessmentから説明し、CFP・E/X/R/W・完全/部分/未完了/適用困難・未解決点、TESTの3値、FRB観測日・取得日時・換算日時・適用レート、1人日=8時間を示す。対象作業は設計・実装・テスト、企画・運用作業を除外。運用に使うプログラムの開発まで自動除外しない。FX_UNAVAILABLE/FX_STALEは未算出であり0円としない。FX_CACHE_AFTER_FAILUREは最新確認失敗と前回取得レートを明示する。工数・時給は架空のTEST値で、実工数や納期を保証しない。\n\n## OES-REPORT-002\n\n1. 測定目的・境界・範囲ID・改訂。\n2. 採用モデルのCFP・TEST工数（サーバー実行前はローカル試算と明記）。\n3. 暫定対象のprocessとCFP小計（合計の内数）、未採用の未解決候補数・論点・規模未確定。\n4. local.recordsの走査状況・範囲内未読・範囲外／補助資料未読・範囲不明・候補処理状況・partial_reasons。\n5. 除外候補と理由、記録不足、旧形式の注意。\n6. local.assessment_pathと判断台帳の参照先。run_id・run_directoryを示す。標準成果物は対象外の永続runへ自動保存し、セッション期限・purgeに依存しない。runの削除は利用者が行い、自動削除しない。\n7. 比較があれば範囲変更、計数差、説明済み／未説明、対応未確定。解析判断差とTEST係数のp25／中央値／p75を混同しない。\n8. サーバーが受領数値モデルに対して行った形式・参照検査と再計算、ソース内容・意味解釈の独立監査は未実施。\n\nCOMPLETEは宣言範囲の読取・識別済み候補処理・判断記録の完了と結果に影響する未解決がない状態。全行読取を機能抽出完了や意味解釈の正しさと同一視しない。\n\n数値・状態・理由・候補数は保存済み構造化summary、送信後は原応答とreconciliationに従う。record-remoteで送信成功／失敗・再表示・為替を別の操作IDで保存し、ローカル値とサーバー値を上書きしない。定型文反復や属性対応の曖昧さは記録品質の注意であり自動的な誤り判定ではない。ハッシュは署名でも第三者の真正性保証でもない。\n\nサーバーが保証するのは受領モデルに対する形式・参照検査と規則による再計算。モデル・根拠・読取履歴はクライアント申告で、ソースの実在性・網羅性・意味解釈を独立検証していない。未署名・未保存・未公開である。\n",
+        "rule_ids": [
+          "OES-CANDIDATE-001",
+          "OES-COMPARE-001",
+          "OES-COVERAGE-001",
+          "OES-DATA-001",
+          "OES-FINDING-001",
+          "OES-INPUT-001",
+          "OES-JUDGMENT-001",
+          "OES-LEGACY-001",
+          "OES-MEASURE-001",
+          "OES-MEASURE-002",
+          "OES-MEASURE-003",
+          "OES-MEASURE-004",
+          "OES-MEASURE-005",
+          "OES-RECORD-001",
+          "OES-REPORT-001",
+          "OES-REPORT-002",
+          "OES-SCOPE-001",
+          "OES-STATUS-001",
+          "OES-VALIDATION-001"
+        ]
+      }
+    }
+  ]
 }
