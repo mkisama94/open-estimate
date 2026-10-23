@@ -6,12 +6,12 @@
   "files": [
     {
       "path": "SKILL.md",
-      "sha256": "409fa5b931719a90401b15c2ada88f78f4e6383f710258f8c8ea9be03fd0fb2f"
+      "sha256": "1310022f9bcfc73f46f1f4a81848375cf3d6435f94d5cc15797f20637a0bd21c"
     },
     {
       "path": "scripts/oes.mjs",
       "sha256": "70c984220f1fcf713e6653d44fddc775c73f7c31bef168d9aa27f90350488fe5"
     }
   ],
-  "package_sha256": "ceac3a0e833b99864cf8478763aaef05ef900d784fe57fcc62c3c69eefca350b"
+  "package_sha256": "8b39a59b7d2a7f7de42164c7789bff3f7e9ac7282eae08c12770c64af616d9e4"
 }
