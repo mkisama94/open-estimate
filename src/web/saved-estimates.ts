@@ -7,7 +7,8 @@ import type {BrowserApprovalSessions} from "./web-publication-approval.js";
 
 const retention=30*86400000;
 const esc=(s:unknown)=>String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
-const headers={"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","Referrer-Policy":"no-referrer","X-Robots-Tag":"noindex","Content-Security-Policy":"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"};
+// Preserve Origin on same-origin form POSTs; disclose no referrer to other origins.
+const headers={"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","Referrer-Policy":"same-origin","X-Robots-Tag":"noindex","Content-Security-Policy":"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"};
 const page=(body:string,status=200)=>new Response(`<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>保存した試算 — Open Estimate</title><style>body{font:16px/1.7 system-ui;max-width:760px;margin:24px auto;padding:16px;overflow-wrap:anywhere}button{font:inherit;padding:12px}form{margin:24px 0}</style><body>${body}</body></html>`,{status,headers});
 interface Row {estimate_id:string;owner_id:string;result_json:string;result_hash:string;saved_at:number;expires_at:number}
 export function isSavedEstimatePath(path:string){return path==="/manage/estimates" || /^\/manage\/estimates\/(?:save\/pv_[a-f0-9]{32}|se_[a-f0-9]{32}(?:\/(?:extend|delete))?)$/.test(path);}

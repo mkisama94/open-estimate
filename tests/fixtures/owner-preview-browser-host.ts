@@ -28,7 +28,7 @@ const server=http.createServer(async(req,res)=>{
     }
     const chunks:Buffer[]=[];for await(const chunk of req)chunks.push(Buffer.from(chunk));
     const response=await fixture.controller.fetch(new Request(url,{method:req.method,headers:req.headers as Record<string,string>,...(["GET","HEAD"].includes(req.method!)?{}:{body:Buffer.concat(chunks)})}),Date.now());
-    if(url.pathname.endsWith("/approve"))observations.push({method:req.method,origin:req.headers.origin??null,status:response.status});
+    if(req.method==="POST")observations.push({path:url.pathname,method:req.method,origin:req.headers.origin??null,content_type:req.headers["content-type"]??null,status:response.status});
     res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));
     await fs.writeFile(path.join(root,"browser-observations.json"),JSON.stringify(observations,null,2));
   }catch{res.writeHead(500);res.end("FIXTURE_FAILURE");}

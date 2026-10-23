@@ -7,11 +7,20 @@ it("saves only after owner confirmation, survives preview expiry, extends and de
     const base=f.config.origin+"/manage/estimates";
     const get=(url:string,owner="a")=>f.controller.fetch(new Request(url,{headers:{Cookie:"owner="+owner}}),f.now.value);
     const post=async(url:string,consent="yes")=>{
-      const html=await (await get(url)).text(),csrf=html.match(/name="csrf" value="([^"]+)"/)![1];
+      const response=await get(url);
+      expect(response.headers.get("Referrer-Policy")).toBe("same-origin");
+      const html=await response.text(),csrf=html.match(/name="csrf" value="([^"]+)"/)![1];
       return f.controller.fetch(new Request(url,{method:"POST",headers:{Cookie:"owner=a",Origin:f.config.origin,"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({csrf,consent})}),f.now.value);
     };
     const url=base+"/save/"+r.preview_id;
     expect((await get(url)).status).toBe(200);expect(f.db.count("saved_estimates")).toBe(0);
+    for(const origin of [null,"null","https://other.example"]){
+      const html=await (await get(url)).text(),csrf=html.match(/name="csrf" value="([^"]+)"/)![1];
+      const headers:Record<string,string>={Cookie:"owner=a","Content-Type":"application/x-www-form-urlencoded"};
+      if(origin!==null)headers.Origin=origin;
+      expect((await f.controller.fetch(new Request(url,{method:"POST",headers,body:new URLSearchParams({csrf,consent:"yes"})}),f.now.value)).status).toBe(403);
+      expect(f.db.count("saved_estimates")).toBe(0);
+    }
     expect((await post(url,"no")).status).toBe(403);
     expect((await get(url,"b")).status).toBe(404);
     const saved=await post(url);expect(saved.status).toBe(303);const link=saved.headers.get("Location")!;
