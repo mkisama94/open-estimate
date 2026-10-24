@@ -2,6 +2,16 @@
 
 Both Workers use this repository root and Node.js 24. Configure production branch main.
 
+## Web owner preview deployment
+
+Web deployment must use `npm run deploy`, not direct `npx wrangler deploy`. After `npm run build`, the deploy script builds a Web bundle once, hashes its bytes, and uploads that exact bundle with `no_bundle: true`. It sets `OWNER_PREVIEW_ENGINE_VERSION` to the package version plus the bundle hash prefix and `OWNER_PREVIEW_ENGINE_SHA256` to the full SHA-256. These values are generated, not manually copied from a local build to Cloudflare. The fixed generation in wrangler.jsonc is retained; the source configuration keeps preview disabled to fail closed on direct Wrangler deployment.
+
+Prerequisites on **open-estimate**, not the MCP Worker: migrations 0004 and 0005 applied, existing Auth0/session secrets, and `PREVIEW_TRANSFER_CODE_SECRET` (32 random bytes encoded as base64url). The deploy script reads secret names and table names remotely and fails before upload when required entries are absent. The build API token therefore needs permission to list Worker secrets and read the bound D1 database as well as deploy the Worker. No secret values are printed and no migrations are applied automatically.
+
+`npm run ci:web:check` performs bundle generation and a deployment dry run without checking remote prerequisites or publishing. Successful production deployment enables owner preview only; issuance and publication stay disabled. The post-deploy GET check verifies the preview controller responds with JSON NOT_FOUND for an unsupported method, rather than disabled/unavailable or the MCP plain-text 404. This does not replace logged-in browser acceptance of consent, preview, saving, extension and deletion. A failed post-deploy check does not roll back an uploaded version.
+
+Do not change the generation or rotate the code secret during an active preview session. Cloudflare's standard config-name warning must not be fixed by renaming the Web configuration to the MCP Worker name. The Web script rejects the MCP CI override before any Wrangler deployment.
+
 | Worker | Build command | Deploy command |
 | --- | --- | --- |
 | open-estimate | npm run build | npm run deploy |
