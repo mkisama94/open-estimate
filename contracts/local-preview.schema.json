@@ -194,6 +194,15 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
+                "scope_coverage": {
+                  "enum": [
+                    "COMPLETE",
+                    "MISSING"
+                  ]
+                },
+                "partial_authorized": {
+                  "type": "boolean"
+                },
                 "discovery_complete": {
                   "type": "boolean"
                 },
@@ -2339,6 +2348,7 @@
         "evaluation_id",
         "assessment_id",
         "evaluated_at",
+        "coverage",
         "report",
         "report_hash",
         "basis",
@@ -2358,6 +2368,98 @@
         },
         "evaluated_at": {
           "type": "string"
+        },
+        "coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scope_coverage",
+            "interpretation_status",
+            "project_effort",
+            "acquired_portion_effort",
+            "headline",
+            "effort_label",
+            "notice"
+          ],
+          "properties": {
+            "scope_coverage": {
+              "enum": [
+                "COMPLETE",
+                "MISSING",
+                "UNKNOWN"
+              ]
+            },
+            "interpretation_status": {
+              "enum": [
+                "RECORDED",
+                "PROVISIONAL",
+                "UNKNOWN"
+              ]
+            },
+            "project_effort": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "p25",
+                    "median",
+                    "p75"
+                  ],
+                  "properties": {
+                    "p25": {
+                      "type": "string"
+                    },
+                    "median": {
+                      "type": "string"
+                    },
+                    "p75": {
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "acquired_portion_effort": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "p25",
+                    "median",
+                    "p75"
+                  ],
+                  "properties": {
+                    "p25": {
+                      "type": "string"
+                    },
+                    "median": {
+                      "type": "string"
+                    },
+                    "p75": {
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "headline": {
+              "type": "string"
+            },
+            "effort_label": {
+              "type": "string"
+            },
+            "notice": {
+              "type": "string"
+            }
+          }
         },
         "report": {
           "$ref": "#/$defs/Report"

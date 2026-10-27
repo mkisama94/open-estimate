@@ -5,42 +5,24 @@ import { randomUUID } from "node:crypto";
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { resolveSafePath } from "../collector/safe-paths.js";
 import { classifyFile } from "../collector/classification.js";
+import { planAcquisition, type ScopeRule, type AcquisitionPlan } from "../collector/acquisition-plan.js";
 
-export async function scanStructure(root: string) {
-  await resolveSafePath("", root);
-  if (!(await fs.lstat(root)).isDirectory()) throw new Error("TARGET_MUST_BE_DIRECTORY");
-  const counts: Record<string, number> = {};
-  const top: Record<string, number> = {};
-  const excluded: string[] = [];
-  let visited = 0, files = 0, truncated = false;
-  async function walk(dir: string, prefix: string, depth: number): Promise<void> {
-    if (depth > 20) { truncated = true; return; }
-    const handle = await fs.opendir(dir);
-    for await (const item of handle) {
-      if (++visited > 10000) { truncated = true; return; }
-      const rel = prefix + item.name;
-      const classification = classifyFile(rel + (item.isDirectory() ? "/dummy" : ""));
-      if (item.isSymbolicLink() || classification.isExcluded) { if (excluded.length < 100) excluded.push(rel); continue; }
-      if (item.isDirectory()) {
-        await resolveSafePath(rel, root);
-        await walk(path.join(dir, item.name), rel + "/", depth + 1);
-        if (visited > 10000) return;
-      } else if (item.isFile()) {
-        files++;
-        counts[classification.category] = (counts[classification.category] ?? 0) + 1;
-        const section = rel.includes("/") ? rel.split("/")[0] : "(root)";
-        top[section] = (top[section] ?? 0) + 1;
-      }
-    }
+export async function scanStructure(root: string, scope: ScopeRule[] = []) {
+  const plan = await planAcquisition(root, scope);
+  const counts: Record<string,number> = {}, top: Record<string,number> = {};
+  for (const f of plan.files.filter(f=>!f.cause)) {
+    const category=classifyFile(f.path).category; counts[category]=(counts[category]??0)+1;
+    const section=f.path.includes("/")?f.path.split("/")[0]:"(root)"; top[section]=(top[section]??0)+1;
   }
-  await walk(root, "", 0);
-  return { files, categories: counts, top_level: top, excluded_sample: excluded, truncated, source_content_read: false };
+  return { files:plan.files.filter(f=>!f.cause).length,categories:counts,top_level:top,
+    excluded_sample:[...plan.files.filter(f=>f.cause).map(f=>f.path),...plan.summary.issues.map(i=>i.path)].slice(0,100),
+    truncated:!plan.summary.discovery_complete,source_content_read:false,acquisition:plan.summary,scope:plan.scope,fingerprint:plan.fingerprint,plan };
 }
 
 export class WorkspaceSession {
   private generation = 0;
-  private pending?: { candidate_id: string; root: string; roots_key: string; origin: string };
-  private selected?: { root: string; roots_key: string; origin: string };
+  private pending?: { candidate_id: string; root: string; roots_key: string; origin: string; plan: AcquisitionPlan };
+  private selected?: { root: string; roots_key: string; origin: string; plan: AcquisitionPlan };
   constructor(private server: Server, private changed: () => void) {}
   private async roots() {
     if (!this.server.getClientCapabilities()?.roots) return { paths: [] as string[], key: "host_context" };
@@ -55,7 +37,7 @@ export class WorkspaceSession {
     return { paths, key: JSON.stringify(paths) };
   }
   reset() { this.generation++; this.pending = undefined; this.selected = undefined; this.changed(); }
-  async discover(args: { context_path?: string; relative_path?: string }) {
+  async discover(args: { context_path?: string; relative_path?: string; scope?: ScopeRule[] }) {
     this.reset();
     const generation = this.generation;
     const roots = await this.roots();
@@ -68,9 +50,9 @@ export class WorkspaceSession {
     if (!base) return { status: "PROJECT_SELECTION_REQUIRED", host_roots: roots.paths, source_content_read: false };
     const root = await resolveSafePath(args.relative_path ?? ".", base);
     if (classifyFile(path.relative(base, root).replaceAll("\\", "/") + "/dummy").isExcluded) throw new Error("EXCLUDED_TARGET_DIRECTORY");
-    const summary = await scanStructure(root);
+    const summary = await scanStructure(root,args.scope);
     if (generation !== this.generation) throw new Error("PROJECT_CHANGED_RECONFIRM_REQUIRED");
-    const candidate = { candidate_id: randomUUID(), root, roots_key: roots.key, origin: roots.key === "host_context" ? "conversation_context_unverified" : "mcp_roots" };
+    const candidate = { candidate_id: randomUUID(), root, roots_key: roots.key, plan:summary.plan, origin: roots.key === "host_context" ? "conversation_context_unverified" : "mcp_roots" };
     this.pending = candidate;
     return { status: "AWAITING_USER_CONFIRMATION", candidate_id: candidate.candidate_id, workspace_root: root, origin: candidate.origin, summary,
       notice: "ファイル構成のみを走査しました。この範囲でコード本文を読み、評価してよいか利用者へ確認してください。" };
@@ -93,4 +75,9 @@ export class WorkspaceSession {
     return selected.root;
   }
   current() { return this.selected?.root ?? null; }
+  async acquisitionOptions(refresh = false) {
+    const root = await this.requireRoot();
+    if (refresh) this.selected!.plan = await planAcquisition(root,this.selected!.plan.scope);
+    return {scope:this.selected!.plan.scope,preflight:this.selected!.plan};
+  }
 }

@@ -19,16 +19,20 @@ import fs from "node:fs";
 const contract = JSON.parse(fs.readFileSync(new URL("../../contracts/local-preview.schema.json", import.meta.url), "utf8"));
 const object = (properties: Record<string, unknown>, required: string[] = []) => ({ type: "object" as const, properties, required, additionalProperties: false });
 const str = { type: "string", minLength: 1, maxLength: 1024 };
+const scopeSchema = {type:"array",items:object({path:str,role:{enum:["measurement","supporting","excluded"]}},["path","role"])};
 const display = { locale: { type: "string", maxLength: 64 }, display_currency: { type: "string", enum: [...CURRENCIES] } };
 const output = (properties: Record<string, unknown>, required: string[]) => object(properties, required);
 const definition = (key: string) => ({ ...contract.$defs[key], $defs: contract.$defs });
 const tools = [
-  { name: "discover_workspace", description: "Scan file names and structure only. Prefer MCP roots; if unsupported, supply the current project absolute path from conversation context, never guess. Show the returned candidate and ask user confirmation before confirm_workspace.", inputSchema: object({ context_path: str, relative_path: str }), outputSchema: { type: "object" as const }, handler: async (_: any) => ({}), readOnly: true, network: false },
+  { name: "discover_workspace", description: "Scan metadata and capacity only, with measurement/supporting/excluded scope rules. Confirm the returned scope before reading source.", inputSchema: object({ context_path: str, relative_path: str, scope:scopeSchema }), outputSchema: { type: "object" as const }, handler: async (_: any) => ({}), readOnly: true, network: false },
   { name: "confirm_workspace", description: "Confirm the exact scanned candidate only after the user agrees in chat. user_confirmed is an assistant report, not independent proof of consent. false cancels.", inputSchema: object({ candidate_id: str, user_confirmed: { type: "boolean" } }, ["candidate_id", "user_confirmed"]), outputSchema: { type: "object" as const }, handler: async (_: any) => ({}), readOnly: false, network: false },
   { name: "get_assessor_contract", description: "Get the schema, trusted assessor workflow, configured workspace, TEST coefficients, scope and capabilities. Call before reading source.", inputSchema: object({}),
     outputSchema: { type: "object" as const, required: ["schema", "skill", "profile", "capabilities"] }, handler: handleGetAssessorContract, readOnly: true, network: false },
   { name: "prepare_repository", description: "Snapshot a relative directory inside the configured workspace. Creates local cache; never executes target code or uploads it. Returns manifest and input defaults.",
-    inputSchema: object({ relative_path: { type: "string", maxLength: 1024 } }), outputSchema: { type: "object" as const, required: ["snapshot_id", "manifest", "assessment_input"] }, handler: handlePrepareRepository, readOnly: false, network: false },
+    inputSchema: object({ relative_path: { type: "string", maxLength: 1024 }, refresh_preflight:{type:"boolean"}, split_acquisition:{type:"boolean"} }), outputSchema: { type: "object" as const, required: ["snapshot_id", "manifest", "assessment_input"] }, handler: handlePrepareRepository, readOnly: false, network: false },
+  {name:"authorize_partial",description:"Only after the user explicitly requests an acquired-portion estimate, allow analysis of this incomplete snapshot. Project total remains uncalculated.",
+    inputSchema:object({snapshot_id:str,user_requested_partial:{const:true}},["snapshot_id","user_requested_partial"]),outputSchema:{type:"object" as const},
+    handler:async (args:any)=>{const entry=mcpState.getSnapshot(args.snapshot_id);if(!entry)throw new Error("SNAPSHOT_NOT_FOUND");entry.snapshot.analysis_ready=true;if(entry.snapshot.acquisition)entry.snapshot.acquisition.partial_authorized=true;return {status:"PARTIAL_AUTHORIZED",notice:"プロジェクト全体の工数は未算出"};},readOnly:false,network:false},
   { name: "read_repository_file", description: "Read a snapshot file with numbered lines and track coverage. Follow has_more/next_start_line; unread files cannot support accepted evidence.",
     inputSchema: object({ snapshot_id: str, file_id: str, start_line: { type: "integer", minimum: 1 }, max_lines: { type: "integer", minimum: 1, maximum: 400 } }, ["snapshot_id", "file_id"]),
     outputSchema: { type: "object" as const, required: ["file_id", "content", "sha256", "has_more"] }, handler: handleReadRepositoryFile, readOnly: false, network: false },
@@ -45,8 +49,9 @@ const ajv = new Ajv2020({ strict: false, validateFormats: false, allErrors: true
 const validators = new Map(tools.map(t => [t.name, ajv.compile(t.inputSchema)]));
 
 export function createMcpServer(): Server {
+  let previousSnapshot: string | undefined;
   const server = new Server({ name: "open-estimate", version: "0.3.0" }, { capabilities: { tools: {}, resources: {}, prompts: {} } });
-  const workspace = new WorkspaceSession(server, () => mcpState.clearSnapshots());
+  const workspace = new WorkspaceSession(server, () => {mcpState.clearSnapshots();previousSnapshot=undefined;});
   server.setNotificationHandler(RootsListChangedNotificationSchema, async () => workspace.reset());
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: tools.map(t => ({ name: t.name, description: t.description, inputSchema: t.inputSchema, outputSchema: t.outputSchema,
@@ -65,7 +70,12 @@ export function createMcpServer(): Server {
       else if (tool.name === "get_assessor_contract") result = { ...await handleGetAssessorContract(), workspace_root: workspace.current(), workspace_selection: "discover_then_confirm", requires_workspace_confirmation: true };
       else {
         const root = await workspace.requireRoot();
-        result = await workspaceContext.run(root, () => tool.handler(args as any));
+        if (tool.name === "prepare_repository") {
+          if (args.relative_path && args.relative_path !== ".") throw new Error("TARGET_CHANGE_REQUIRES_DISCOVERY");
+          const options = await workspace.acquisitionOptions(args.refresh_preflight === true);
+          result = await workspaceContext.run(root,()=>handlePrepareRepository({...options,relative_path:".",previous_snapshot_id:previousSnapshot,split_acquisition:args.split_acquisition === true}));
+          previousSnapshot=result.snapshot_id;
+        } else result = await workspaceContext.run(root, () => tool.handler(args as any));
       }
       return { structuredContent: result, content: [{ type: "text" as const, text: JSON.stringify(result) }] };
     } catch (err: any) {

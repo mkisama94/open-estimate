@@ -14,7 +14,6 @@ const EXCLUDED_DIRS = new Set([
   ".aws",
   ".ssh",
   ".next",
-  "release",
   "node_modules",
   "vendor",
   ".venv",

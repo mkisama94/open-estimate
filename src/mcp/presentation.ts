@@ -2,11 +2,13 @@ import { createDisplayQuote } from "../core/display-quote.js";
 import type { EvaluationRecord } from "../core/evaluation.js";
 import type { FxProvider } from "../profiles/frb.js";
 import { recordState, comparisonSummary } from "../core/records.js";
+import { resultCoverage } from "../local/result-coverage.js";
 
 export async function presentEvaluation(record: EvaluationRecord, provider: FxProvider, locale = "ja-JP", currency?: string) {
   const quote = await createDisplayQuote(record, provider, locale, currency);
   const a = record.normalized_assessment;
   return {
+    coverage:resultCoverage(a,record.report.effort.person_hours),
     evaluation_id: record.evaluation_id, assessment_id: a.assessment_id, evaluated_at: record.evaluated_at,
     report: record.report, report_hash: record.report_hash, basis: record.basis, display_quote: quote,
     review: { scope: a.scope, scope_record: a.scope_record ?? null, function_candidates: a.function_candidates ?? null,
@@ -48,11 +50,12 @@ export function renderEvaluationHtml(view: EvaluationView): string {
 <style>body{font:16px/1.7 system-ui,sans-serif;background:#f4f6f8;color:#172b3a;max-width:1080px;margin:32px auto;padding:0 24px}main{background:white;border-radius:12px;padding:32px}h1{margin:0}h2{margin-top:32px}table{border-collapse:collapse;width:100%;font-size:14px}td,th{border:1px solid #dce3e8;padding:10px;text-align:left;overflow-wrap:anywhere}.notice{padding:16px;background:#fff3d6;border-left:4px solid #cc931c}.metric{font-size:32px;font-weight:700}code{overflow-wrap:anywhere}details{margin:12px 0}summary{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}@media print{body{margin:0;padding:0;background:white}main{padding:0}details{break-inside:avoid}}</style></head>
 <body><main><h1>Open Estimate</h1><p>ローカル評価・未署名・未公開</p>
 <div class="notice">${view.notices.map(n => `<div>${escape(n)}</div>`).join("")}</div>
+<h2>${escape(view.coverage.headline)}</h2><div class="metric">${escape(view.coverage.effort_label)}：${escape(r.effort.person_hours?.median)}時間（中央値）</div><p>${escape(view.coverage.notice)}</p>
 <h2>測定した機能規模</h2><div class="metric">${escape(r.measurement.cfp)} CFP · ${escape(r.measurement.status)}</div>
 <p>${escape(review.scope.description)}</p><p>PARTIALは測定できた部分のみ。COMPLETEもAIの意味解釈の正しさを独立に保証するものではありません。</p>
 <p>${escape(review.records.format)}／範囲：${escape(review.scope_record?.scope_id)}・改訂 ${escape(review.scope_record?.revision)}<br>暫定判断のCFP小計（合計の内数）：${review.records.provisional_cfp_subtotal}<br>範囲内の未読：${review.records.in_scope_unread.length}／範囲外の未読：${review.records.outside_unread.length}<br>${escape(review.records.notice)}</p>
 <h2>TEST試算</h2><table><tr><th>項目</th><th>第1四分位（TEST）</th><th>中央値（TEST）</th><th>第3四分位（TEST）</th></tr>
-${row("工数（人時）", r.effort.person_hours)}${row("人日（1人日＝8人時）", q.person_days)}${row("基準額（USD）", r.reference_usd.amount_usd)}${row(`表示時の参考換算額（${q.display_currency}）`, q.localized_reference.amount)}</table>
+${row(view.coverage.effort_label+"（人時）", r.effort.person_hours)}${row("人日（1人日＝8人時）", q.person_days)}${row("基準額（USD）", r.reference_usd.amount_usd)}${row(`表示時の参考換算額（${q.display_currency}）`, q.localized_reference.amount)}</table>
 <p>換算状態：${escape(labels[q.localized_reference.status])}／レート：${escape(q.localized_reference.currency_per_usd)} ${escape(q.display_currency)}/USD</p>
 <p>換算日時：${escape(q.displayed_at)}<br>FRB観測日：${escape(q.fx_snapshot?.observed_on)}／公表日：${escape(q.fx_snapshot?.published_on)}<br>最新確認：${escape(q.fx_snapshot?.checked_at)}<br>出典：${escape(q.fx_snapshot?.source_url)}</p>
 <p>このHTMLは生成時点の記録です。新しい為替で表示するにはプラグインで再表示・レポート再生成してください。</p>

@@ -39,7 +39,7 @@ export interface AssessorInfo {
 }
 
 export interface AssessmentInput {
-  acquisition?: { discovery_complete: boolean; issues: Array<{ path: string; cause: string }> };
+  acquisition?: { scope_coverage?: "COMPLETE" | "MISSING"; partial_authorized?: boolean; discovery_complete: boolean; issues: Array<{ path: string; cause: string }> };
   repository_label: string;
   snapshot_type: "worktree" | "git_commit";
   commit: string | null;

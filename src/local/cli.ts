@@ -4,6 +4,7 @@ import path from "node:path";
 import os from "node:os";
 import { randomUUID } from "node:crypto";
 import { scanStructure } from "../mcp/workspace-session.js";
+import { normalizeScope, planAcquisition } from "../collector/acquisition-plan.js";
 import { workspaceContext } from "../collector/workspace-context.js";
 import { privateDirectory } from "../local-files.js";
 import { resolveSafePath } from "../collector/safe-paths.js";
@@ -94,8 +95,9 @@ async function main() {
     if (typeof args.root !== "string" || !path.isAbsolute(args.root)) throw new Error("ABSOLUTE_PROJECT_PATH_REQUIRED");
     const root = await resolveSafePath("", path.resolve(args.root));
     if (classifyFile(path.basename(root) + "/dummy").isExcluded) throw new Error("EXCLUDED_TARGET_DIRECTORY");
-    const summary = await scanStructure(root), session_id = randomUUID();
-    const state = { root, created: Date.now(), confirmed: false, snapshots: {}, skill_integrity: currentSkill() };
+    const scope = normalizeScope(args.scope);
+    const summary = await scanStructure(root, scope), session_id = randomUUID();
+    const state = { root, scope, preflight: summary.plan, created: Date.now(), confirmed: false, snapshots: {}, skill_integrity: currentSkill() };
     await fs.writeFile(path.join(base, `${session_id}.json`), JSON.stringify(state), { mode: 0o600, flag: "wx" });
     return { session_id, workspace_root: root, summary, status: "AWAITING_USER_CONFIRMATION", cache_root: base, retention_hours: 24 };
   }
@@ -155,10 +157,14 @@ async function main() {
     await workspaceContext.run(state.root, async () => {
       if (command === "confirm") result = { status: "CONFIRMED", confirmation: "assistant_reports_user_confirmation" };
       else if (command === "prepare") {
-        result = await handlePrepareRepository({ relative_path: "." });
+        if (Object.hasOwn(args,"scope")) throw new Error("SCOPE_CHANGE_REQUIRES_NEW_SCAN");
+        if (args.refresh_preflight === true) state.preflight = await planAcquisition(state.root,state.scope);
+        result = await handlePrepareRepository({ relative_path: ".", scope:state.scope, preflight:state.preflight,
+          previous_snapshot_id:state.latest_snapshot_id, partial_authorized:args.user_requested_partial === true, split_acquisition:args.split_acquisition === true });
         Object.assign(result as object, { ruleset_ref: rules!.ruleset_ref, rule_ids: rules!.bundle.rule_ids });
         const id = (result as any).snapshot_id;
         state.snapshots[id] = { snapshot: mcpState.getSnapshot(id)!.snapshot, reads: [] };
+        state.latest_snapshot_id=id;
       } else {
         const entry = state.snapshots[args.snapshot_id];
         if (!entry || !uuid.test(args.snapshot_id)) throw new Error("SNAPSHOT_NOT_FOUND");
@@ -167,7 +173,14 @@ async function main() {
         mcpState.registerSnapshot(entry.snapshot);
         const tracker = mcpState.getSnapshot(args.snapshot_id)!.tracker;
         tracker.restoreReads(entry.reads);
-        if (command === "read") result = await handleReadRepositoryFile(args);
+        if (command === "authorize-partial") {
+          if (args.user_requested_partial !== true) throw new Error("EXPLICIT_PARTIAL_REQUEST_REQUIRED");
+          entry.snapshot.analysis_ready=true;
+          entry.snapshot.acquisition.partial_authorized=true;
+          result={status:"PARTIAL_AUTHORIZED",scope_coverage:entry.snapshot.acquisition.scope_coverage,
+            notice:"プロジェクト全体の工数は未算出。取得済み部分のみを試算します。",manifest:entry.snapshot.manifest};
+        }
+        else if (command === "read") result = await handleReadRepositoryFile(args);
         else if (command === "export") {
           for (const file of entry.snapshot.manifest.files) if (file.disposition !== "excluded") {
             const full = await resolveSafePath(file.path, path.join(entry.snapshot.cache_dir, "files"));
@@ -187,7 +200,7 @@ async function main() {
           await writeContentAddressed(localPath,artifact);
           const context = await saveMeasurementContext(sessionCache, assessment_hash, requireBoundRules(state));
           const savedContext = JSON.parse(await fs.readFile(context.context_path,"utf8"));
-          const run = await saveRun(validated,artifact.submitted_assessment,savedContext,state.root);
+          const run = await saveRun(validated,artifact.submitted_assessment,savedContext,state.root,entry.snapshot.acquisition_record);
           result = { model, skill_integrity: integrity, ruleset_ref: rules!.ruleset_ref, input_reconciled: wasReconciled, transmission: "PREVIEW_ONLY_NOT_SENT",
             local: { ...run, session_assessment_path: localPath, session_context_path: context.context_path, ...context, context_path: path.join(run.run_directory,"context.json"), scope: validated.scope, scope_record: validated.scope_record ?? null,
               records: recordState(validated), comparison: comparisonSummary(validated), report: createEvaluation(validated,getLocalProfile()).report,

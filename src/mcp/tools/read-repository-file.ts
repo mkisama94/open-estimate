@@ -29,6 +29,7 @@ export async function handleReadRepositoryFile(args: ReadRepositoryFileArgs): Pr
   }
 
   const { snapshot, tracker } = snapshotEntry;
+  if (snapshot.analysis_ready === false) throw new Error("ACQUISITION_INCOMPLETE_ADJUST_OR_AUTHORIZE_PARTIAL");
   const fileManifest = snapshot.manifest.files.find(f => f.path === file_id);
   if (!fileManifest) {
     throw new Error(`File '${file_id}' not found in snapshot manifest`);

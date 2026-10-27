@@ -2,14 +2,15 @@ import { createRepositorySnapshot } from "../../collector/snapshot.js";
 import { mcpState } from "../state.js";
 import { randomUUID } from "node:crypto";
 import { handleGetAssessorContract } from "./get-assessor-contract.js";
+import type { AcquisitionOptions } from "../../collector/acquire.js";
 
-export interface PrepareRepositoryArgs {
+export interface PrepareRepositoryArgs extends AcquisitionOptions {
   relative_path?: string;
 }
 
 export async function handlePrepareRepository(args: PrepareRepositoryArgs): Promise<any> {
   const relPath = args.relative_path || "";
-  const snapshot = await createRepositorySnapshot(relPath);
+  const snapshot = await createRepositorySnapshot(relPath, args);
   const contract = await handleGetAssessorContract();
 
   // Register in local MCP state
@@ -23,6 +24,9 @@ export async function handlePrepareRepository(args: PrepareRepositoryArgs): Prom
     }));
 
   return {
+    status: snapshot.analysis_ready ? "READY_FOR_ANALYSIS" : "ACQUISITION_INCOMPLETE",
+    analysis_ready: snapshot.analysis_ready,
+    acquisition_record: snapshot.acquisition_record,
     assessment_id: randomUUID(),
     assessor_defaults: {
       model_id: null, model_name: "unknown", model_metadata_source: "unknown", host: "Codex",

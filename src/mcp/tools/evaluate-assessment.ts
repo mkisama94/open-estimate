@@ -20,6 +20,7 @@ export interface EvaluateAssessmentArgs {
 export async function validateSnapshotAssessment(args: EvaluateAssessmentArgs) {
   const entry = mcpState.getSnapshot(args.snapshot_id);
   if (!entry) throw new Error("SNAPSHOT_NOT_FOUND_OR_EXPIRED");
+  if (entry.snapshot.analysis_ready === false) throw new Error("ACQUISITION_INCOMPLETE_ADJUST_OR_AUTHORIZE_PARTIAL");
   const json = typeof args.assessment === "string" ? args.assessment : JSON.stringify(args.assessment);
   if (Buffer.byteLength(json, "utf8") > 8 * 1024 * 1024) throw new Error("ASSESSMENT_TOO_LARGE");
   const raw: any = parseStrictJson(json);
@@ -29,8 +30,7 @@ export async function validateSnapshotAssessment(args: EvaluateAssessmentArgs) {
   for (const [key, value] of Object.entries(entry.snapshot.source_identity))
     if (raw.input[key] !== value) throw new Error("SNAPSHOT_SOURCE_IDENTITY_MISMATCH");
   raw.input = reconciledInput;
-  if (raw.quality) raw.input.acquisition = entry.snapshot.acquisition;
-  else if (entry.snapshot.acquisition && raw.input.acquisition) raw.input.acquisition = entry.snapshot.acquisition;
+  if (entry.snapshot.acquisition) raw.input.acquisition = entry.snapshot.acquisition;
   const validated = validateAssessment(raw);
   if (!validated.quality && !entry.snapshot.analysis_complete && !validated.findings.some(f => f.category === "coverage_gap" && f.severity === "blocking"))
     throw new Error("COVERAGE_FINDING_REQUIRED");

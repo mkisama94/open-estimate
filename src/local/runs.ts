@@ -13,6 +13,7 @@ import { projectModel } from "../remote/model.js";
 import { createEvaluation } from "../core/evaluation.js";
 import { getLocalProfile } from "../profiles/local-profile.js";
 import type { Assessment } from "../core/types.js";
+import { resultCoverage } from "./result-coverage.js";
 
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const installation = fileURLToPath(new URL("../../", import.meta.url));
@@ -48,13 +49,14 @@ async function inventory(root: string, dirs: string[]) {
 export function resultSummary(a: Assessment) {
   const evaluation = createEvaluation(a,getLocalProfile());
   return { version:"oes/result-summary/v1", assessment_hash:normalizeAssessment(a).assessment_hash,
+    coverage:resultCoverage(a,evaluation.report.effort.person_hours),
     measurement:evaluation.report.measurement, records:recordState(a),
     calculation:{environment:"TEST",basis:evaluation.basis,effort:evaluation.report.effort,reference_usd:evaluation.report.reference_usd,limitation_codes:evaluation.report.limitation_codes},
     execution:{local:"VALIDATED",remote:"NOT_SENT"},
     fx:{status:"NOT_REQUESTED",observed_on:null,fetched_at:null},
     assurance:"Structure and arithmetic checked; source coverage and semantic interpretation not independently audited; hashes are not signatures." };
 }
-export async function saveRun(a: Assessment, submitted: unknown, context: unknown, target: string) {
+export async function saveRun(a: Assessment, submitted: unknown, context: unknown, target: string, acquisition?: unknown) {
   validateAssessment(a);
   const root = runsRoot();
   // Forbid target-contained storage, including ancestors that would place scans inside output.
@@ -74,7 +76,7 @@ export async function saveRun(a: Assessment, submitted: unknown, context: unknow
       dependencies.push({name,version:JSON.parse(bytes.toString()).version,package_metadata_sha256:sha256Hex(bytes)});
     }
     const metadata = {format:"oes/run/v1",run_id,started_at:a.assessor.started_at,finished_at:a.assessor.finished_at,saved_at:new Date().toISOString(),
-      target:{root:target,...a.input,manifest:undefined}, scope:a.scope,scope_record:a.scope_record??null,
+      target:{root:target,...a.input,manifest:undefined}, acquisition_record:acquisition??null, scope:a.scope,scope_record:a.scope_record??null,
       manifest_hash:a.input.manifest_hash,assessment_hash,numeric_model_hash:jcsSha256(model),
       skill:{id:a.assessor.skill_id,version:a.assessor.skill_version,declared_package_sha256:a.assessor.skill_sha256,
         skill_file_sha256:sha256Hex(await fs.readFile(path.join(installation,"skills/open-estimate-assessor/SKILL.md")))},

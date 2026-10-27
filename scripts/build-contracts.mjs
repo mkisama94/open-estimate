@@ -20,6 +20,8 @@ const quote = obj({ domain: { const: 'open-estimate/display-quote/v1' }, source_
   fx_snapshot: fx, localized_reference: obj({ status: { enum: ['AVAILABLE','UPSTREAM_UNAVAILABLE','FX_UNAVAILABLE','FX_STALE'] },
     currency: string, currency_per_usd: nullable(string), amount: q }), person_days: q, limitation_codes: { type: 'array', items: string } });
 const view = obj({ evaluation_id: string, assessment_id: string, evaluated_at: string,
+  coverage: obj({scope_coverage:{enum:['COMPLETE','MISSING','UNKNOWN']},interpretation_status:{enum:['RECORDED','PROVISIONAL','UNKNOWN']},
+    project_effort:q,acquired_portion_effort:q,headline:string,effort_label:string,notice:string}),
   report: { $ref: '#/$defs/Report' }, report_hash: hash, basis: { type: 'object' }, display_quote: { $ref: '#/$defs/DisplayQuote' },
   review: { type: 'object' }, storage: { const: 'LOCAL_ONLY' }, signed: { const: false }, published: { const: false },
   notices: { type: 'array', items: string }, input_reconciled: { type: 'boolean' } });
