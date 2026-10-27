@@ -1,7 +1,8 @@
+import {estimateResultHtml} from "./estimate-view.js";
 import {randomBytes} from "node:crypto";
 import {jcsSha256} from "../core/canonical.js";
 import {checkContract} from "../core/certificate-contract.js";
-import {ownerPreviewSchema,type OwnerPreview} from "../core/preview-transfer-contract.js";
+import {anyOwnerPreviewSchema,type OwnerPreview} from "../core/preview-transfer-contract.js";
 import type {PreviewTransferService} from "./preview-transfer.js";
 import type {BrowserApprovalSessions} from "./web-publication-approval.js";
 
@@ -28,7 +29,7 @@ export async function savedEstimatePage(request:Request,service:PreviewTransferS
   const existing=path.match(/^\/manage\/estimates\/(se_[a-f0-9]{32})(?:\/(extend|delete))?$/);
   let dto:OwnerPreview|undefined,row:Row|null=null;
   if(save)dto=await service.ownerPreview(save[1],owner,now);
-  else if(existing){row=await stmt("SELECT * FROM saved_estimates WHERE estimate_id=? AND owner_id=?",existing[1],owner).first<Row>();if(!row)return page("<h1>結果が見つかりません</h1>",404);if(row.expires_at<=now)return page("<h1>保存期限が切れました</h1>",410);dto=checkContract<OwnerPreview>(ownerPreviewSchema,JSON.parse(row.result_json));if(jcsSha256(dto)!==row.result_hash)throw new Error("STATUS_UNAVAILABLE");}
+  else if(existing){row=await stmt("SELECT * FROM saved_estimates WHERE estimate_id=? AND owner_id=?",existing[1],owner).first<Row>();if(!row)return page("<h1>結果が見つかりません</h1>",404);if(row.expires_at<=now)return page("<h1>保存期限が切れました</h1>",410);dto=checkContract<OwnerPreview>(anyOwnerPreviewSchema,JSON.parse(row.result_json));if(jcsSha256(dto)!==row.result_hash)throw new Error("STATUS_UNAVAILABLE");}
   else return page("<h1>ページが見つかりません</h1>",404);
   const target={preview_id:path,draft_hash:row?.result_hash??jcsSha256(dto)};
   if(request.method==="POST"){
@@ -51,5 +52,6 @@ export async function savedEstimatePage(request:Request,service:PreviewTransferS
   if(request.method!=="GET")return page("<h1>操作が不正です</h1>",405);
   const action=save?"この試算を30日間保存する":existing![2]==="delete"?"この保存結果を削除する":existing![2]==="extend"?"今日から30日間に延長する":null;
   if(action)return page(`<h1>${action}</h1><p>本人限定の試算結果と基準情報を保存します。ソースコードは保存しません。一般公開・証明書発行は行いません。</p>${existing?.[2]==="delete"?"<p>削除するとこのURLから閲覧できなくなります。</p>":`<p>保存期限：${esc(new Date(now+retention).toISOString())}</p>`}<form method="post"><input type="hidden" name="csrf" value="${esc(await sessions.csrfToken(s,target))}"><label><input type="checkbox" name="consent" value="yes" required>内容を確認しました</label><p><button>${action}</button></p></form><a href="/manage/estimates">保存した試算へ</a>`);
+  if(dto!.display_quote)return page(estimateResultHtml(dto!,new Date(row!.expires_at).toISOString(),true)+`<p><a href="${path}/extend">保存期限を延長</a>　<a href="${path}/delete">保存結果を削除</a></p>`);
   return page(`<h1>保存した試算</h1><p>本人限定・未署名・未公開</p><h2>${esc(dto!.result.measurement.cfp??"未算出")} CFP</h2><p>状態：${esc(dto!.result.measurement.status)} — TEST基準による参考値</p><p>参考工数（時間・中央値）：${esc(dto!.result.calculation.effort.person_hours?.median??"未算出")}</p><p>保存期限：${esc(new Date(row!.expires_at).toISOString())}</p><details><summary>基準と結果の詳細</summary><pre>${esc(JSON.stringify(dto!.result,null,2))}</pre></details><p><a href="${path}/extend">保存期限を延長</a>　<a href="${path}/delete">保存結果を削除</a></p><a href="/manage/estimates">保存した試算へ</a>`);
 }

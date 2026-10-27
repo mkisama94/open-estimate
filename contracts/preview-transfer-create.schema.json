@@ -1,45 +1,92 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "additionalProperties": false,
-  "required": [
-    "input_commitment",
-    "metadata_hash",
-    "policy_version",
-    "client_secret_hash"
-  ],
-  "properties": {
-    "input_commitment": {
+  "anyOf": [
+    {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "domain",
-        "algorithm",
-        "digest"
+        "input_commitment",
+        "metadata_hash",
+        "policy_version",
+        "client_secret_hash"
       ],
       "properties": {
-        "domain": {
-          "const": "oes/certificate-input-commitment/v1"
+        "input_commitment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "domain",
+            "algorithm",
+            "digest"
+          ],
+          "properties": {
+            "domain": {
+              "const": "oes/certificate-input-commitment/v1"
+            },
+            "algorithm": {
+              "const": "SHA-256"
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
         },
-        "algorithm": {
-          "const": "SHA-256"
+        "metadata_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
         },
-        "digest": {
+        "policy_version": {
+          "const": "oes/certificate-publication-policy/v1"
+        },
+        "client_secret_hash": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
         }
       }
     },
-    "metadata_hash": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{64}$"
-    },
-    "policy_version": {
-      "const": "oes/certificate-publication-policy/v1"
-    },
-    "client_secret_hash": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{64}$"
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input_commitment",
+        "metadata_hash",
+        "policy_version",
+        "client_secret_hash"
+      ],
+      "properties": {
+        "input_commitment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "domain",
+            "algorithm",
+            "digest"
+          ],
+          "properties": {
+            "domain": {
+              "const": "oes/owner-estimate-commitment/v1"
+            },
+            "algorithm": {
+              "const": "SHA-256"
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "metadata_hash": {
+          "const": "4217789bfed7d3f3f75f02df5f9117f799bb688ddeb3314c30a88347c02bfdff"
+        },
+        "policy_version": {
+          "const": "oes/owner-estimate-policy/v1"
+        },
+        "client_secret_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
     }
-  }
+  ]
 }

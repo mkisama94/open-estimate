@@ -65,7 +65,7 @@ describe("remote boundary", () => {
       expect(response.status).toBe(200); return response.json() as Promise<any>;
     };
     expect((await call("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "test", version: "1" } })).result.serverInfo.name).toBe("open-estimate-remote");
-    expect((await call("tools/list", {})).result.tools.map((t: any) => t.name)).toEqual(["show_preview_confirmation", "get_skill_policy", "get_measurement_rules", "evaluate_model"]);
+    expect((await call("tools/list", {})).result.tools.map((t: any) => t.name)).toEqual(["get_estimate_experience", "show_estimate_step", "show_preview_confirmation", "get_skill_policy", "get_measurement_rules", "evaluate_model"]);
     const transfer_id="pt_"+"1".repeat(32);
     const ui=(await call("tools/call",{name:"show_preview_confirmation",arguments:{transfer_id}})).result;
     expect(ui.structuredContent).toEqual({transfer_id});

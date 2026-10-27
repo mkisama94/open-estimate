@@ -30,7 +30,9 @@ import { saveRun, showRun, saveRemoteOperation } from "./runs.js";
 import { compareRuns } from "./compare.js";
 import { preparePublicResult } from "./public-result.js";
 import { prepareCertificate, verifyCertificateFile } from "./certificate-submissions.js";
-import { previewCertificate } from "./preview-transfer.js";
+import { previewCertificate,previewEstimate } from "./preview-transfer.js";
+import { prepareEstimate } from "./estimate-submissions.js";
+import {getExperienceCapabilities} from "../remote/experience.js";
 
 function currentSkill() {
   const internal = fileURLToPath(new URL("../../skills/open-estimate-assessor/", import.meta.url));
@@ -58,6 +60,12 @@ async function input() {
 }
 async function main() {
   const command = process.argv[2], args = await input();
+  if(command==="experience"){if(Object.keys(args).length)throw new Error("INVALID_INPUT");return getExperienceCapabilities();}
+  if(command==="prepare-estimate")return prepareEstimate(args);
+  if(["preview-estimate","resume-estimate"].includes(command)){
+    const abort=new AbortController(),interrupt=()=>abort.abort();process.once("SIGINT",interrupt);
+    try{return await previewEstimate(args,{signal:abort.signal,emit:value=>process.stdout.write(JSON.stringify(value)+"\n")});}catch(e){const code=e instanceof Error && /^[A-Z][A-Z0-9_]+$/.test(e.message)?e.message:"STATUS_UNAVAILABLE";return {status:"WEB_INCOMPLETE",web_complete:false,submission_id:args.submission_id,error_code:code,next_action:"resume-estimate",notice:"Web表示は未完了です。同じsubmission_idでresume-estimateを実行して再開してください。期限切れは新しい確認が必要です。ローカル結果は保持されています。"};}finally{process.removeListener("SIGINT",interrupt);}
+  }
   if (command === "prepare-certificate") return prepareCertificate(args);
   if (command === "verify-certificate") return verifyCertificateFile(args);
   if (["preview-certificate","resume-preview"].includes(command)) {
@@ -79,7 +87,8 @@ async function main() {
       local_public_result_candidate: true,
       local_certificate_preparation: true, offline_certificate_verification: true,
       owner_preview_transfer: true,
-      remote_recalculation_required: true, persistent_evaluations: false, html_report: false, web_management: false, certificates: false, publishing: false } };
+      numeric_owner_preview:true,standard_completion:"WEB_READY",owner_preview_minutes:15,saved_estimate_days:30,
+      remote_recalculation_required: true, persistent_evaluations: true, html_report: true, web_management: true, remote_availability_command: "experience", certificates: false, publishing: false } };
   await privateDirectory(base);
   if (command === "scan") {
     if (typeof args.root !== "string" || !path.isAbsolute(args.root)) throw new Error("ABSOLUTE_PROJECT_PATH_REQUIRED");

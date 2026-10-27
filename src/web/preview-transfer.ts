@@ -4,9 +4,11 @@ import { transferCreateSchema,transferSubmissionSchema,transferSecretHash,transf
 import { assertEnvironment,inputCommitment,createApprovedDraft,draftHash,type IssuanceCatalog } from "../core/certificate.js";
 import { jcsSha256 } from "../core/canonical.js";
 import { PreviewTransferRepository,type TransferRow } from "./preview-transfer-repository.js";
+import { ESTIMATE_POLICY,ESTIMATE_METADATA_HASH,estimateCommitment,recomputeEstimate,type EstimateSubmission,type EstimateDraft } from "../core/estimate-preview.js";
+import type { FxProvider } from "../profiles/frb.js";
 const equal=(a:string,b:string)=>{const x=Buffer.from(a),y=Buffer.from(b);return x.length===y.length && timingSafeEqual(x,y);};
 const opaque=(prefix:string)=>prefix+randomBytes(16).toString("hex");
-export interface PreviewTransferConfig {origin:string;environment:"test"|"production";enabled:boolean;code_secret:string;generation:string;engine:EngineRef;catalog:IssuanceCatalog}
+export interface PreviewTransferConfig {origin:string;environment:"test"|"production";enabled:boolean;code_secret:string;generation:string;engine:EngineRef;catalog:IssuanceCatalog;fx?:FxProvider}
 /** No issuance gate, signer, signing key or management-scoped auth adapter is a dependency. */
 export class PreviewTransferService {
   constructor(readonly repository:PreviewTransferRepository,readonly config:PreviewTransferConfig){
@@ -21,7 +23,7 @@ export class PreviewTransferService {
     const expires=r.state==="READY"?r.preview_expires_at!:r.state==="APPROVED"?r.submit_expires_at!:r.expires_at;
     const state=expires<=now?"EXPIRED":r.state;
     return {state,transfer_id:r.transfer_id,expires_at:new Date(expires).toISOString(),preview_id:state==="READY"?r.preview_id:null,draft_hash:state==="READY"?r.draft_hash:null,
-      preview_url:state==="READY"?this.config.origin+"/manage/certificate-previews/"+r.preview_id:null};
+      preview_url:state==="READY"?this.config.origin+(r.policy_version===ESTIMATE_POLICY?"/manage/estimate-previews/":"/manage/certificate-previews/")+r.preview_id:null};
   }
   private active(r:TransferRow,now:number){if(this.state(r,now).state==="EXPIRED")throw new Error("PREVIEW_EXPIRED");}
   private async authorized(id:string,secret:string) {
@@ -83,7 +85,18 @@ export class PreviewTransferService {
   async submit(id:string,secret:string,value:unknown,now:number):Promise<TransferStatus> {
     const row=await this.authorized(id,secret);
     if(row.state!=="READY"){this.active(row,now);if(row.state!=="APPROVED" || !row.owner_id)throw new Error("APPROVAL_REQUIRED");}
-    const body=checkContract<TransferSubmission>(transferSubmissionSchema,value);
+    const rawBody=checkContract<TransferSubmission|EstimateSubmission>(transferSubmissionSchema,value);
+    if(rawBody.policy_version!==row.policy_version)throw new Error("DRAFT_CHANGED");
+    if("estimate_input" in rawBody){
+      const commitment=estimateCommitment(rawBody.estimate_input,rawBody.nonce);
+      if(transferBinding(this.config.origin,{input_commitment:commitment,metadata_hash:ESTIMATE_METADATA_HASH,policy_version:ESTIMATE_POLICY})!==row.binding_hash)throw new Error("DRAFT_CHANGED");
+      if(row.state==="READY"){this.active(row,now);return this.state(row,now);}
+      const draft={...await recomputeEstimate(rawBody.estimate_input,{...this.config.catalog,now},this.config.fx),server_engine_ref:this.config.engine};
+      try{await this.repository.commit(row,opaque("pv_"),draft,jcsSha256(draft),now);}
+      catch{const won=await this.repository.get(id);if(won?.state!=="READY" || won.binding_hash!==row.binding_hash)throw new Error("STATUS_UNAVAILABLE");this.active(won,now);}
+      return this.state((await this.repository.get(id))!,now);
+    }
+    const body=rawBody;
     let commitment;try{commitment=inputCommitment(body.frozen_input,body.nonce);}catch{throw new Error("RESULT_MISMATCH");}
     if(transferBinding(this.config.origin,{input_commitment:commitment,metadata_hash:jcsSha256(body.metadata),policy_version:body.policy_version})!==row.binding_hash)throw new Error("DRAFT_CHANGED");
     // Recovery comes before the (shorter) submission approval deadline, but never extends a preview.
@@ -98,9 +111,20 @@ export class PreviewTransferService {
     }
     return this.state((await this.repository.get(id))!,now);
   }
+  async result(id:string,secret:string,now:number){
+    const row=await this.authorized(id,secret);this.active(row,now);
+    if(row.state!=="READY" || !row.preview_id || !row.owner_id)throw new Error("APPROVAL_REQUIRED");
+    return this.ownerPreview(row.preview_id,row.owner_id,now);
+  }
   async ownerPreview(id:string,owner:string,now:number):Promise<OwnerPreview> {
     this.gate();const row=await this.repository.preview(id,owner);if(!row)throw new Error("NOT_FOUND");if(row.expires_at<=now)throw new Error("PREVIEW_EXPIRED");
-    const draft=checkContract<ApprovedDraft>(approvedDraftSchema,JSON.parse(row.draft_json));if(draftHash(draft)!==row.draft_hash)throw new Error("STATUS_UNAVAILABLE");
+    const stored=JSON.parse(row.draft_json);
+    if(stored.schema_version==="oes/owner-estimate-result/v1"){
+      if(jcsSha256(stored)!==row.draft_hash)throw new Error("STATUS_UNAVAILABLE");
+      const draft=stored as EstimateDraft & {server_engine_ref:EngineRef};
+      return {preview_id:row.preview_id,draft_hash:row.draft_hash,expires_at:draft.expires_at,result:draft.result,metadata:draft.metadata,calculation_basis_hash:draft.calculation_basis_hash,ruleset_ref:draft.ruleset_ref,server_engine_ref:draft.server_engine_ref,display_quote:draft.display_quote,report_hash:draft.report_hash,issued:false,published:false,signed:false};
+    }
+    const draft=checkContract<ApprovedDraft>(approvedDraftSchema,stored);if(draftHash(draft)!==row.draft_hash)throw new Error("STATUS_UNAVAILABLE");
     return {preview_id:row.preview_id,draft_hash:row.draft_hash,expires_at:draft.expires_at,result:draft.result,metadata:draft.metadata,calculation_basis_hash:draft.calculation_basis_hash,
       ruleset_ref:draft.ruleset_ref,server_engine_ref:draft.server_engine_ref,issued:false,published:false,signed:false};
   }

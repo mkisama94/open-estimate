@@ -18,13 +18,14 @@ export function checkPrerequisites(secrets, tables) {
   for (const name of ['preview_transfers', 'preview_transfer_consents', 'saved_estimates', 'operation_guards', 'certificate_previews']) {
     if (!tables.some(t => t.name === name)) throw new Error('MISSING_TABLE:' + name);
   }
+  if (!tables.find(t => t.name === 'preview_transfer_consents')?.sql?.includes('prepare_estimate_preview')) throw new Error('MISSING_MIGRATION:0006_estimate_preview_consents.sql');
 }
 function prerequisites() {
   const query = args => JSON.parse(execFileSync(process.execPath, [path.join(repo, 'node_modules/wrangler/bin/wrangler.js'), ...args], {
     cwd: repo, encoding: 'utf8', windowsHide: true, env: { ...process.env, WRANGLER_SEND_METRICS: 'false' }
   }));
   const secrets = query(['secret', 'list', '--config', 'wrangler.jsonc']);
-  const result = query(['d1', 'execute', 'open-estimate-certificates', '--remote', '--config', 'wrangler.jsonc', '--command', "SELECT name FROM sqlite_master WHERE type='table'", '--json']);
+  const result = query(['d1', 'execute', 'open-estimate-certificates', '--remote', '--config', 'wrangler.jsonc', '--command', "SELECT name,sql FROM sqlite_master WHERE type='table'", '--json']);
   if (!Array.isArray(result) || result.some(r => r.success === false)) throw new Error('DB_CHECK_FAILED');
   checkPrerequisites(secrets, result.flatMap(r => r.results ?? []));
 }
@@ -75,6 +76,8 @@ async function main() {
     const response = await fetch('https://open-estimate.ai-orchestration.jp/api/v1/preview-transfers', { redirect: 'manual', signal: AbortSignal.timeout(30000) });
     const body = await response.json();
     if (response.status !== 404 || body.error?.code !== 'NOT_FOUND') throw new Error('PRODUCTION_PREVIEW_NOT_READY');
+    const capabilities = await fetch('https://open-estimate.ai-orchestration.jp/api/v1/estimate-capabilities', {redirect:'error',signal:AbortSignal.timeout(10000)}).then(r=>r.json());
+    if(capabilities.schema_version!=='oes/estimate-experience/v1' || capabilities.web?.available!==true)throw new Error('PRODUCTION_ESTIMATE_NOT_READY');
   }
   console.log(JSON.stringify({ status: 'PASS', mode, engine_version: config.vars.OWNER_PREVIEW_ENGINE_VERSION }));
 }

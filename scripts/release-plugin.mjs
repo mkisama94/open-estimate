@@ -140,7 +140,7 @@ async function prepare(version) {
   const lock = await readJson(path.join(repo, 'package-lock.json'));
   lock.version = version; lock.packages[''].version = version;
   await atomicJson(path.join(repo, 'package-lock.json'), lock);
-  npmRun('build'); npmRun('test');
+  npmRun('build'); npmRun('test', ['--maxWorkers=2']);
   npmRun('plugin:pack', ['--output', path.relative(repo, path.join(dir, 'marketplace'))]);
   npmRun('plugin:smoke', [path.relative(repo, path.join(dir, 'marketplace'))]);
   const integrity = await inspectPlugin(path.join(dir, 'marketplace'));

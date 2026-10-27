@@ -1,0 +1,1784 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "preview_id",
+        "draft_hash",
+        "expires_at",
+        "result",
+        "metadata",
+        "calculation_basis_hash",
+        "ruleset_ref",
+        "server_engine_ref",
+        "issued",
+        "published",
+        "signed"
+      ],
+      "properties": {
+        "preview_id": {
+          "type": "string",
+          "pattern": "^pv_[a-f0-9]{32}$"
+        },
+        "draft_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "maxLength": 24
+        },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "measurement",
+            "quality",
+            "calculation",
+            "assurance",
+            "limitation_codes"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "oes/server-recomputed-result/v1"
+            },
+            "measurement": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "status": {
+                  "enum": [
+                    "COMPLETE",
+                    "PARTIAL",
+                    "UNSUPPORTED",
+                    "INCOMPLETE"
+                  ]
+                },
+                "cfp": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "counts": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "entry": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "exit": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "read": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "write": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "total_processes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "accepted_processes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "entry",
+                    "exit",
+                    "read",
+                    "write",
+                    "total_processes",
+                    "accepted_processes"
+                  ]
+                }
+              },
+              "required": [
+                "status",
+                "cfp",
+                "counts"
+              ]
+            },
+            "quality": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "record_format": {
+                  "const": "RECORDED_V2"
+                },
+                "quality_version": {
+                  "const": "oes/quality-records/v1"
+                },
+                "analysis_complete": {
+                  "type": "boolean"
+                },
+                "scan_complete": {
+                  "type": "boolean"
+                },
+                "provisional_process_count": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "provisional_cfp_subtotal": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "unresolved_process_count": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "candidate_counts": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "identified": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "counted": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "outside": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "merged": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "unresolved": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "identified",
+                    "counted",
+                    "outside",
+                    "merged",
+                    "unresolved"
+                  ]
+                },
+                "unread_counts": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "in_scope": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "outside": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "supporting": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "scope_unknown": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "in_scope",
+                    "outside",
+                    "supporting",
+                    "scope_unknown"
+                  ]
+                },
+                "unknown_boundary_counts": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "rerun": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "continuation": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "rerun",
+                    "continuation"
+                  ]
+                },
+                "partial_reason_codes": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "ACQUISITION_IN_SCOPE",
+                      "ACQUISITION_SCOPE_UNKNOWN",
+                      "BOUNDARY_CONTINUATION_UNKNOWN",
+                      "BOUNDARY_RERUN_UNKNOWN",
+                      "CANDIDATE_UNRESOLVED",
+                      "COMPONENT_SCOPE_IMPACT",
+                      "DATA_GROUP_UNCONFIRMED",
+                      "FILE_SCOPE_UNRESOLVED",
+                      "FINDING_OPEN",
+                      "IN_SCOPE_UNCONFIRMED",
+                      "JUDGMENT_PENDING",
+                      "PROCESS_CANDIDATE_MISSING",
+                      "PROCESS_UNRESOLVED",
+                      "SCAN_SCOPE_IMPACT_UNKNOWN"
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                "record_gap_codes": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "EVIDENCE_INSUFFICIENT",
+                      "PROCESS_CANDIDATE_MISSING"
+                    ]
+                  },
+                  "uniqueItems": true
+                }
+              },
+              "required": [
+                "record_format",
+                "quality_version",
+                "analysis_complete",
+                "scan_complete",
+                "provisional_process_count",
+                "provisional_cfp_subtotal",
+                "unresolved_process_count",
+                "candidate_counts",
+                "unread_counts",
+                "unknown_boundary_counts",
+                "partial_reason_codes",
+                "record_gap_codes"
+              ]
+            },
+            "calculation": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "environment": {
+                  "const": "TEST"
+                },
+                "effort_scope_id": {
+                  "const": "oes-design-implementation-test-v1"
+                },
+                "hours_per_day": {
+                  "const": 8
+                },
+                "basis": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "profile_set_id": {
+                      "const": "oes-local-test-2026-10-v1"
+                    },
+                    "engine_version": {
+                      "const": "0.8.1-quality"
+                    },
+                    "mapping_version": {
+                      "const": "oes-cosmic-ph1-v1"
+                    },
+                    "benchmark": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "const": "oes-test-benchmark-design-implementation-test-v1"
+                        },
+                        "is_test": {
+                          "const": true
+                        },
+                        "sample_size": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "min_cfp": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "max_cfp": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "hours_per_cfp": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "p25": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            },
+                            "median": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            },
+                            "p75": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            }
+                          },
+                          "required": [
+                            "p25",
+                            "median",
+                            "p75"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "is_test",
+                        "sample_size",
+                        "min_cfp",
+                        "max_cfp",
+                        "hours_per_cfp"
+                      ]
+                    },
+                    "wage": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "const": "oes-test-wage-50usd-v1"
+                        },
+                        "is_test": {
+                          "const": true
+                        },
+                        "hourly_wage_usd": {
+                          "type": "string",
+                          "maxLength": 256,
+                          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "is_test",
+                        "hourly_wage_usd"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "profile_set_id",
+                    "engine_version",
+                    "mapping_version",
+                    "benchmark",
+                    "wage"
+                  ]
+                },
+                "effort": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "status": {
+                      "enum": [
+                        "AVAILABLE",
+                        "BENCHMARK_UNAVAILABLE",
+                        "OUTSIDE_REFERENCE_RANGE",
+                        "UNSUPPORTED"
+                      ]
+                    },
+                    "hours_per_cfp": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "p25": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            },
+                            "median": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            },
+                            "p75": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            }
+                          },
+                          "required": [
+                            "p25",
+                            "median",
+                            "p75"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "person_hours": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "p25": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            },
+                            "median": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            },
+                            "p75": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            }
+                          },
+                          "required": [
+                            "p25",
+                            "median",
+                            "p75"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "hours_per_cfp",
+                    "person_hours"
+                  ]
+                },
+                "reference_usd": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "status": {
+                      "enum": [
+                        "AVAILABLE",
+                        "WAGE_UNAVAILABLE",
+                        "UNSUPPORTED"
+                      ]
+                    },
+                    "hourly_wage_usd": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 256,
+                          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "amount_usd": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "p25": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            },
+                            "median": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            },
+                            "p75": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            }
+                          },
+                          "required": [
+                            "p25",
+                            "median",
+                            "p75"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "hourly_wage_usd",
+                    "amount_usd"
+                  ]
+                }
+              },
+              "required": [
+                "environment",
+                "effort_scope_id",
+                "hours_per_day",
+                "basis",
+                "effort",
+                "reference_usd"
+              ]
+            },
+            "assurance": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "input",
+                "calculation_check",
+                "quality_check",
+                "semantic_assessment"
+              ],
+              "properties": {
+                "input": {
+                  "const": "CLIENT_REPORTED"
+                },
+                "calculation_check": {
+                  "const": "SERVER_RECOMPUTED_MATCH"
+                },
+                "quality_check": {
+                  "const": "CLIENT_REPORTED_CONSISTENCY_CHECKED"
+                },
+                "semantic_assessment": {
+                  "const": "NOT_INDEPENDENTLY_VERIFIED"
+                }
+              }
+            },
+            "limitation_codes": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "TEST_DATA_ONLY",
+                  "AI_SEMANTICS_UNVERIFIED",
+                  "COMMUNITY_CLAIMS_UNATTESTED",
+                  "REFERENCE_NOT_MARKET_VALUE",
+                  "PARTIAL_MEASUREMENT",
+                  "BENCHMARK_UNAVAILABLE",
+                  "BENCHMARK_OUT_OF_RANGE",
+                  "WAGE_UNAVAILABLE"
+                ]
+              },
+              "uniqueItems": true
+            }
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "title",
+            "description",
+            "publisher_label",
+            "scope_note",
+            "project_url",
+            "model_label"
+          ],
+          "properties": {
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "description": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 240
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "publisher_label": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "scope_note": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 500
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "project_url": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 2048
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "model_label": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "calculation_basis_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "ruleset_ref": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ruleset_id",
+            "revision"
+          ],
+          "properties": {
+            "ruleset_id": {
+              "const": "oes-measurement"
+            },
+            "revision": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "server_engine_ref": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "engine_version",
+            "artifact_sha256"
+          ],
+          "properties": {
+            "engine_version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "artifact_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "issued": {
+          "const": false
+        },
+        "published": {
+          "const": false
+        },
+        "signed": {
+          "const": false
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "preview_id",
+        "draft_hash",
+        "expires_at",
+        "result",
+        "metadata",
+        "calculation_basis_hash",
+        "ruleset_ref",
+        "server_engine_ref",
+        "issued",
+        "published",
+        "signed",
+        "display_quote",
+        "report_hash"
+      ],
+      "properties": {
+        "preview_id": {
+          "type": "string",
+          "pattern": "^pv_[a-f0-9]{32}$"
+        },
+        "draft_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "maxLength": 24
+        },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "measurement",
+            "quality",
+            "calculation",
+            "assurance",
+            "limitation_codes"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "oes/server-recomputed-result/v1"
+            },
+            "measurement": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "status": {
+                  "enum": [
+                    "COMPLETE",
+                    "PARTIAL",
+                    "UNSUPPORTED",
+                    "INCOMPLETE"
+                  ]
+                },
+                "cfp": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "counts": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "entry": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "exit": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "read": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "write": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "total_processes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "accepted_processes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "entry",
+                    "exit",
+                    "read",
+                    "write",
+                    "total_processes",
+                    "accepted_processes"
+                  ]
+                }
+              },
+              "required": [
+                "status",
+                "cfp",
+                "counts"
+              ]
+            },
+            "quality": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "record_format": {
+                  "const": "RECORDED_V2"
+                },
+                "quality_version": {
+                  "const": "oes/quality-records/v1"
+                },
+                "analysis_complete": {
+                  "type": "boolean"
+                },
+                "scan_complete": {
+                  "type": "boolean"
+                },
+                "provisional_process_count": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "provisional_cfp_subtotal": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "unresolved_process_count": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "candidate_counts": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "identified": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "counted": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "outside": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "merged": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "unresolved": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "identified",
+                    "counted",
+                    "outside",
+                    "merged",
+                    "unresolved"
+                  ]
+                },
+                "unread_counts": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "in_scope": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "outside": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "supporting": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "scope_unknown": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "in_scope",
+                    "outside",
+                    "supporting",
+                    "scope_unknown"
+                  ]
+                },
+                "unknown_boundary_counts": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "rerun": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "continuation": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "rerun",
+                    "continuation"
+                  ]
+                },
+                "partial_reason_codes": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "ACQUISITION_IN_SCOPE",
+                      "ACQUISITION_SCOPE_UNKNOWN",
+                      "BOUNDARY_CONTINUATION_UNKNOWN",
+                      "BOUNDARY_RERUN_UNKNOWN",
+                      "CANDIDATE_UNRESOLVED",
+                      "COMPONENT_SCOPE_IMPACT",
+                      "DATA_GROUP_UNCONFIRMED",
+                      "FILE_SCOPE_UNRESOLVED",
+                      "FINDING_OPEN",
+                      "IN_SCOPE_UNCONFIRMED",
+                      "JUDGMENT_PENDING",
+                      "PROCESS_CANDIDATE_MISSING",
+                      "PROCESS_UNRESOLVED",
+                      "SCAN_SCOPE_IMPACT_UNKNOWN"
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                "record_gap_codes": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "EVIDENCE_INSUFFICIENT",
+                      "PROCESS_CANDIDATE_MISSING"
+                    ]
+                  },
+                  "uniqueItems": true
+                }
+              },
+              "required": [
+                "record_format",
+                "quality_version",
+                "analysis_complete",
+                "scan_complete",
+                "provisional_process_count",
+                "provisional_cfp_subtotal",
+                "unresolved_process_count",
+                "candidate_counts",
+                "unread_counts",
+                "unknown_boundary_counts",
+                "partial_reason_codes",
+                "record_gap_codes"
+              ]
+            },
+            "calculation": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "environment": {
+                  "const": "TEST"
+                },
+                "effort_scope_id": {
+                  "const": "oes-design-implementation-test-v1"
+                },
+                "hours_per_day": {
+                  "const": 8
+                },
+                "basis": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "profile_set_id": {
+                      "const": "oes-local-test-2026-10-v1"
+                    },
+                    "engine_version": {
+                      "const": "0.8.1-quality"
+                    },
+                    "mapping_version": {
+                      "const": "oes-cosmic-ph1-v1"
+                    },
+                    "benchmark": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "const": "oes-test-benchmark-design-implementation-test-v1"
+                        },
+                        "is_test": {
+                          "const": true
+                        },
+                        "sample_size": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "min_cfp": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "max_cfp": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "hours_per_cfp": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "p25": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            },
+                            "median": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            },
+                            "p75": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            }
+                          },
+                          "required": [
+                            "p25",
+                            "median",
+                            "p75"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "is_test",
+                        "sample_size",
+                        "min_cfp",
+                        "max_cfp",
+                        "hours_per_cfp"
+                      ]
+                    },
+                    "wage": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "const": "oes-test-wage-50usd-v1"
+                        },
+                        "is_test": {
+                          "const": true
+                        },
+                        "hourly_wage_usd": {
+                          "type": "string",
+                          "maxLength": 256,
+                          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "is_test",
+                        "hourly_wage_usd"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "profile_set_id",
+                    "engine_version",
+                    "mapping_version",
+                    "benchmark",
+                    "wage"
+                  ]
+                },
+                "effort": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "status": {
+                      "enum": [
+                        "AVAILABLE",
+                        "BENCHMARK_UNAVAILABLE",
+                        "OUTSIDE_REFERENCE_RANGE",
+                        "UNSUPPORTED"
+                      ]
+                    },
+                    "hours_per_cfp": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "p25": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            },
+                            "median": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            },
+                            "p75": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            }
+                          },
+                          "required": [
+                            "p25",
+                            "median",
+                            "p75"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "person_hours": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "p25": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            },
+                            "median": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            },
+                            "p75": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            }
+                          },
+                          "required": [
+                            "p25",
+                            "median",
+                            "p75"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "hours_per_cfp",
+                    "person_hours"
+                  ]
+                },
+                "reference_usd": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "status": {
+                      "enum": [
+                        "AVAILABLE",
+                        "WAGE_UNAVAILABLE",
+                        "UNSUPPORTED"
+                      ]
+                    },
+                    "hourly_wage_usd": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 256,
+                          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "amount_usd": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "p25": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            },
+                            "median": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            },
+                            "p75": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                            }
+                          },
+                          "required": [
+                            "p25",
+                            "median",
+                            "p75"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "hourly_wage_usd",
+                    "amount_usd"
+                  ]
+                }
+              },
+              "required": [
+                "environment",
+                "effort_scope_id",
+                "hours_per_day",
+                "basis",
+                "effort",
+                "reference_usd"
+              ]
+            },
+            "assurance": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "input",
+                "calculation_check",
+                "quality_check",
+                "semantic_assessment"
+              ],
+              "properties": {
+                "input": {
+                  "const": "CLIENT_REPORTED"
+                },
+                "calculation_check": {
+                  "const": "SERVER_RECOMPUTED_MATCH"
+                },
+                "quality_check": {
+                  "const": "CLIENT_REPORTED_CONSISTENCY_CHECKED"
+                },
+                "semantic_assessment": {
+                  "const": "NOT_INDEPENDENTLY_VERIFIED"
+                }
+              }
+            },
+            "limitation_codes": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "TEST_DATA_ONLY",
+                  "AI_SEMANTICS_UNVERIFIED",
+                  "COMMUNITY_CLAIMS_UNATTESTED",
+                  "REFERENCE_NOT_MARKET_VALUE",
+                  "PARTIAL_MEASUREMENT",
+                  "BENCHMARK_UNAVAILABLE",
+                  "BENCHMARK_OUT_OF_RANGE",
+                  "WAGE_UNAVAILABLE"
+                ]
+              },
+              "uniqueItems": true
+            }
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "title",
+            "description",
+            "publisher_label",
+            "scope_note",
+            "project_url",
+            "model_label"
+          ],
+          "properties": {
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "description": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 240
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "publisher_label": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "scope_note": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 500
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "project_url": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 2048
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "model_label": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "calculation_basis_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "ruleset_ref": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ruleset_id",
+            "revision"
+          ],
+          "properties": {
+            "ruleset_id": {
+              "const": "oes-measurement"
+            },
+            "revision": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "server_engine_ref": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "engine_version",
+            "artifact_sha256"
+          ],
+          "properties": {
+            "engine_version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "artifact_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "issued": {
+          "const": false
+        },
+        "published": {
+          "const": false
+        },
+        "signed": {
+          "const": false
+        },
+        "display_quote": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "domain",
+            "source_report_hash",
+            "conversion_policy_version",
+            "displayed_at",
+            "locale",
+            "display_currency",
+            "fx_snapshot",
+            "localized_reference",
+            "person_days",
+            "limitation_codes"
+          ],
+          "properties": {
+            "domain": {
+              "const": "open-estimate/display-quote/v1"
+            },
+            "source_report_hash": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "conversion_policy_version": {
+              "const": "frb-display-time-v1"
+            },
+            "displayed_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "locale": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "display_currency": {
+              "enum": [
+                "USD",
+                "JPY",
+                "EUR",
+                "GBP",
+                "AUD",
+                "NZD",
+                "CAD",
+                "CHF",
+                "CNY",
+                "HKD",
+                "INR",
+                "KRW",
+                "SGD"
+              ]
+            },
+            "fx_snapshot": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "currency",
+                    "source_url",
+                    "source_sha256",
+                    "observed_on",
+                    "published_on",
+                    "fetched_at",
+                    "checked_at",
+                    "raw_value",
+                    "quote_direction",
+                    "currency_per_usd"
+                  ],
+                  "properties": {
+                    "currency": {
+                      "enum": [
+                        "USD",
+                        "JPY",
+                        "EUR",
+                        "GBP",
+                        "AUD",
+                        "NZD",
+                        "CAD",
+                        "CHF",
+                        "CNY",
+                        "HKD",
+                        "INR",
+                        "KRW",
+                        "SGD"
+                      ]
+                    },
+                    "source_url": {
+                      "const": "https://www.federalreserve.gov/releases/h10/current/"
+                    },
+                    "source_sha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "observed_on": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "published_on": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "fetched_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "checked_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "raw_value": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                      "maxLength": 256
+                    },
+                    "quote_direction": {
+                      "enum": [
+                        "currency_per_usd",
+                        "usd_per_currency"
+                      ]
+                    },
+                    "currency_per_usd": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                      "maxLength": 256
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "localized_reference": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "currency",
+                "currency_per_usd",
+                "amount"
+              ],
+              "properties": {
+                "status": {
+                  "enum": [
+                    "AVAILABLE",
+                    "FX_UNAVAILABLE",
+                    "FX_STALE",
+                    "UPSTREAM_UNAVAILABLE"
+                  ]
+                },
+                "currency": {
+                  "enum": [
+                    "USD",
+                    "JPY",
+                    "EUR",
+                    "GBP",
+                    "AUD",
+                    "NZD",
+                    "CAD",
+                    "CHF",
+                    "CNY",
+                    "HKD",
+                    "INR",
+                    "KRW",
+                    "SGD"
+                  ]
+                },
+                "currency_per_usd": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                      "maxLength": 256
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "amount": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "p25",
+                        "median",
+                        "p75"
+                      ],
+                      "properties": {
+                        "p25": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                              "maxLength": 256
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "median": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                              "maxLength": 256
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "p75": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                              "maxLength": 256
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "person_days": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "p25",
+                    "median",
+                    "p75"
+                  ],
+                  "properties": {
+                    "p25": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                          "maxLength": 256
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "median": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                          "maxLength": 256
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "p75": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                          "maxLength": 256
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "limitation_codes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Z_]+$"
+              },
+              "maxItems": 40
+            }
+          }
+        },
+        "report_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    }
+  ]
+}

@@ -1,12 +1,13 @@
 import { obj,hashSchema,commitmentSchema,frozenInputSchema,metadataSchema,serverResultSchema,engineSchema,POLICY_VERSION,type InputCommitment,type FrozenInput,type CertificateMetadata,type ServerResult,type EngineRef } from "./certificate-contract.js";
 import { jcsSha256 } from "./canonical.js";
+import { ESTIMATE_POLICY,ESTIMATE_METADATA_HASH,estimateCommitmentSchema,estimateSubmissionSchema,displayQuoteSchema } from "./estimate-preview.js";
 export const transferIdSchema={type:"string",pattern:"^pt_[a-f0-9]{32}$"};
 export const previewIdSchema={type:"string",pattern:"^pv_[a-f0-9]{32}$"};
 export const uuidSchema={type:"string",pattern:"^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$"};
 export const secretPattern=/^[A-Za-z0-9_-]{43}$/;
-export const transferCreateSchema=obj({input_commitment:commitmentSchema,metadata_hash:hashSchema,policy_version:{const:POLICY_VERSION},client_secret_hash:hashSchema});
-export interface TransferCreate {input_commitment:InputCommitment;metadata_hash:string;policy_version:typeof POLICY_VERSION;client_secret_hash:string}
-export const transferSubmissionSchema=obj({frozen_input:frozenInputSchema,nonce:{type:"string",pattern:"^[A-Za-z0-9_-]{43}$"},metadata:metadataSchema,policy_version:{const:POLICY_VERSION}});
+export const transferCreateSchema={anyOf:[obj({input_commitment:commitmentSchema,metadata_hash:hashSchema,policy_version:{const:POLICY_VERSION},client_secret_hash:hashSchema}),obj({input_commitment:estimateCommitmentSchema,metadata_hash:{const:ESTIMATE_METADATA_HASH},policy_version:{const:ESTIMATE_POLICY},client_secret_hash:hashSchema})]};
+export interface TransferCreate {input_commitment:InputCommitment|{domain:"oes/owner-estimate-commitment/v1";algorithm:"SHA-256";digest:string};metadata_hash:string;policy_version:typeof POLICY_VERSION|typeof ESTIMATE_POLICY;client_secret_hash:string}
+export const transferSubmissionSchema={anyOf:[obj({frozen_input:frozenInputSchema,nonce:{type:"string",pattern:"^[A-Za-z0-9_-]{43}$"},metadata:metadataSchema,policy_version:{const:POLICY_VERSION}}),estimateSubmissionSchema]};
 export interface TransferSubmission {frozen_input:FrozenInput;nonce:string;metadata:CertificateMetadata;policy_version:typeof POLICY_VERSION}
 export const emptyTransferSchema=obj({});
 export const previewErrorCodes=["INVALID_INPUT","INPUT_TOO_LARGE","AUTH_REQUIRED","APPROVAL_REQUIRED","NOT_FOUND","IDEMPOTENCY_CONFLICT","DRAFT_CHANGED","RESULT_MISMATCH","BASIS_MISMATCH","PREVIEW_EXPIRED","RATE_LIMITED","OWNER_PREVIEW_DISABLED","STATUS_UNAVAILABLE","MODEL_UNSUPPORTED","BASIS_UNSUPPORTED","RULESET_NOT_ISSUABLE","SKILL_NOT_ISSUABLE"] as const;
@@ -21,7 +22,8 @@ export interface TransferStatus {state:TransferState;transfer_id:string;expires_
 export const transferCreateResponseSchema={anyOf:[transferPendingSchema,transferStatusSchema]};
 export const ownerPreviewSchema=obj({preview_id:previewIdSchema,draft_hash:hashSchema,expires_at:time,result:serverResultSchema,metadata:metadataSchema,calculation_basis_hash:hashSchema,
   ruleset_ref:obj({ruleset_id:{const:"oes-measurement"},revision:hashSchema}),server_engine_ref:engineSchema,issued:{const:false},published:{const:false},signed:{const:false}});
-export interface OwnerPreview {preview_id:string;draft_hash:string;expires_at:string;result:ServerResult;metadata:CertificateMetadata;calculation_basis_hash:string;ruleset_ref:{ruleset_id:"oes-measurement";revision:string};server_engine_ref:EngineRef;issued:false;published:false;signed:false}
+export const anyOwnerPreviewSchema={anyOf:[ownerPreviewSchema,obj({...ownerPreviewSchema.properties,display_quote:displayQuoteSchema,report_hash:hashSchema})]};
+export interface OwnerPreview {preview_id:string;draft_hash:string;expires_at:string;result:ServerResult;metadata:CertificateMetadata;calculation_basis_hash:string;ruleset_ref:{ruleset_id:"oes-measurement";revision:string};server_engine_ref:EngineRef;issued:false;published:false;signed:false;display_quote?:import("./display-quote.js").DisplayQuote;report_hash?:string}
 export function transferSecretHash(secret:string) {
   if(!secretPattern.test(secret) || Buffer.from(secret,"base64url").toString("base64url")!==secret)throw new Error("AUTH_REQUIRED");
   return jcsSha256({domain:"oes/preview-transfer-secret/v1",secret});

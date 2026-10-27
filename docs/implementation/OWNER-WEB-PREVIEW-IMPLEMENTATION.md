@@ -4,6 +4,8 @@
 状態：次工程の実装指示。ここで追加するAPI・所有者関連付け・送信経路は未実装。  
 上位文書：[計算証明書仕様](SIGNED-CALCULATION-CERTIFICATE-SPEC.md)、[全体実装指示](SIGNED-CALCULATION-CERTIFICATE-IMPLEMENTATION.md)、[認証・承認方針](SIGNED-CALCULATION-CERTIFICATE-AUTH-DECISION.md)。
 
+**標準経路の改訂（2026-10-27）**：[プラグイン体験仕様](PLUGIN-EXPERIENCE-SPEC.md)では、本人用Web結果の作成とURL提示を通常見積の到達点とする。本書の既存経路は証明書候補の構造を扱うため、通常の数値モデル用の新契約と同一視しない。新経路でも本人確認・明示同意・期限・再開の境界を維持し、解析前の全体像と結果UIを接続する。実装済みの範囲と残作業は[実装状況](PLUGIN-EXPERIENCE-IMPLEMENTATION-STATUS.md)を参照。
+
 ## 1. 目的と今回の完了条件
 
 検査済みローカルrunを用いて、利用者が送信を許可した数値モデルをサーバーで再計算し、Auth0でログインした所有者だけが結果をWebで確認できる状態を作る。

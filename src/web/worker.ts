@@ -1,3 +1,4 @@
+import { estimateCapabilities } from "./estimate-capabilities.js";
 import { isOwnerPreviewPath,createOwnerPreviewController } from "./owner-preview.js";
 import { PreviewTransferService } from "./preview-transfer.js";
 import { PreviewTransferRepository } from "./preview-transfer-repository.js";
@@ -79,6 +80,7 @@ export function createCertificateWorker(service:CertificateService,auth:AuthAdap
 export default {async fetch(request:Request,env:Env):Promise<Response> {
   if(request.method==="GET" && new URL(request.url).pathname==="/api/v1/certificate-readiness")return (await import("./certificate-readiness.js")).certificateReadiness(env.CERTIFICATES_DB);
   const path=new URL(request.url).pathname;
+  if(path==="/api/v1/estimate-capabilities" && request.method==="GET")return json(await estimateCapabilities(env));
   if(isPublicResultPath(path)){
     try {
       return await createCertificateWorker(publicResultService(env),{mode:"production",authenticate:async()=>null}).fetch(request,env);

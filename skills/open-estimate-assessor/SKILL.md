@@ -1,19 +1,23 @@
 ---
 name: open-estimate-assessor
-description: Work／Codexのローカル環境で許可されたソースを、正規MCPから取得して固定した測定ルールに従って分析し、TEST参考工数を再計算する。
+description: Work／Codexのローカル環境で許可されたソースを、正規MCPから取得して固定した測定ルールに従って分析し、TEST参考工数を再計算し、同意後に本人用Web結果を作成して案内する。
 ---
 
 # Open Estimate：起動・取得・確認手順
 
 ## 利用者への開始案内と操作
 
-初回の本文読取前に、次を短く案内する。「対象を確認 → AIが解析 → 送信内容を確認して結果を表示。ソースコードをOpen Estimateのサーバーへ送信することはありません。一般公開もしません。コードを読むAIの処理では、ご利用のホストのデータ取扱いが適用され、モデル提供元（OpenAI、Anthropicなど、ご利用中のAIサービスのモデルを提供する事業者）へコードが送られる場合があります。現在の工数はTEST基準による参考値です。」対象・除外範囲も同時に表示する。
+通常の見積依頼の到達点は、本人用Web結果の作成と実URL・期限・開くボタンの提示。利用者が「Web」と言わなくてもこの経路を使う。evaluate_modelの再計算だけで終了しない。利用者が送信を拒否した場合はローカル終了として扱い、後でWebへ進む方法を示す。
 
-ホストが選択式の確認を提供する場合は「この対象の解析を始める」「対象を変更する」で対象確認を行う。送信前は実際の送信項目・送信先・目的を示して「数値データを送信して試算する」「送信せず終了」を提示する。利用可能な確認機能がなければ文字で確認する。選択肢の表示、初期選択、生成した画面の状態、タイムアウトを同意とみなさず、利用者の回答を受けて実行する。同一対象・同一送信内容について得た有効な同意は繰り返し求めない。
+最初にget_estimate_experienceへ{}を渡し、サービス全体のカードと本番の利用可否を表示する。本文解析前に「対象の確認 → 解析 → 数値送信の確認 → 本人用Web結果（15分）。必要なら30日保存し、延長・削除できます。計算証明書はAI Orchestration Inc.の電子署名を第三者が検証する仕組みです。現在の提供状態を表示します」と短く案内する。未提供の証明書機能を使えると説明しない。Web表示・保存・電子署名・公開を区別する。
 
-解析中は現在の処理と確認済み／未確認の範囲を示す。根拠のない進捗率・残り時間を作らない。完了時は試算値、TEST表示、COMPLETE／PARTIAL等、未確認事項、ローカル保存先、Web表示の可否をまとめる。PARTIALの場合は「試算処理完了・一部未確認」と表現する。未算出を0と表示しない。
+「ソースコードはOpen Estimateのサーバーへ送信されず、一般公開もされません。AI解析ではモデル提供元（OpenAI、Anthropicなど、利用中のAIサービスのモデル提供元のこと）へ送信・処理される場合があります」と伝える。工数・時給はTEST参考値。Open Estimateによる独立したソース監査や、実工数・市場価格の保証ではない。
 
-evaluate_modelはURLを作成しないため、URLを推測して表示しない。本人用Webプレビューを希望する場合は、対応するCLIのcontractでowner_preview_transferを確認し、prepare-certificateとpreview-certificateの既存経路を使う。この経路は通常の数値送信とは項目が異なり、数値モデル・公開候補・公開用説明の送信と15分間の本人限定表示についてブラウザーで同意を得る。通常の送信同意を流用せず、発行・公開の操作を行わない。実際にREADYの応答で返ったpreview_urlとexpires_atだけを表示する。無効・未対応・失敗ならURL未作成と明示する。再開は同じsubmission_idのresume-previewを使用し、元runを作り直さない。
+show_estimate_stepを対象確認で{stage:"scope"}、解析開始で{stage:"analyzing"}、送信確認で{stage:"confirmation",transfer_id:<CLI応答>}、Web作成後に{stage:"result",preview_url:<CLI実応答>,expires_at:<CLI実応答>}、失敗で{stage:"error",error_code:<構造化code>}、送信拒否で{stage:"local"}として必ず呼ぶ。対象確認カードの前に、対象・範囲・除外・上限をローカルの会話で提示する。対象名・パス・ソース・数値モデル・照合コードを表示ツールへ渡さない。カードは汎用の説明と操作だけを扱う。
+
+カードを描画できないホストでも、同じ全体像・利用可否を文字で示し、ホスト標準の選択式確認と公式Webボタンへつなぐ。表示ツールが未接続ならCLIのexperienceで{}を渡して利用可否を取得する。利用不可・照会失敗は解析前に伝え、接続修復かローカル試算のみの選択を得る。ツール名の検出だけで利用可能としない。UI表示や初期選択、タイムアウトを同意と扱わない。ボタンによる利用者の明示的な回答を受け、対象読取と送信を区別する。
+
+解析中は現在の段階と確認済み／未確認の範囲を示す。根拠のない進捗率・残り時間は作らない。PARTIALは「試算処理完了・一部未確認」。未算出を0にせず、PARTIALでも検査合格ならWeb表示へ進む。
 
 対象フォルダーを読み取り、同梱CLIを実行できるWork／CodexとNode.js 24以上が必要。モード名だけで実行可能と判断しない。ローカルMCPは起動しない。ホスト標準ツールと、このSkillの絶対パスにある scripts/oes.mjs を使う。JSONはstdinへ渡し、シェル展開へソースやJSONを埋め込まない。
 
@@ -32,13 +36,18 @@ evaluate_modelはURLを作成しないため、URLを推測して表示しない
 5. prepareへ {root,session_id} を渡す。返ったassessment_inputとassessor_defaultsを使い、dirty=trueは保守的な未確認値として扱う。readにはroot・session_id・snapshot_id・file_idと必要な行範囲を渡し、has_moreなら続きを取得する。測定判断は取得・固定したルール全文に従う。OESの判断参照はsource=skill、idは配信されたrule_ids、versionは完全なrevisionとする。project_policy／external_standardにOES規則の変更権限を与えない。
 6. 新規Assessmentはv2にquality.version=oes/quality-records/v1を付け、contractのquality Schemaに従う。prepareのinput.acquisitionは収集事実であり改変しない。scope_rulesに相対パスの範囲規則を明記し、limitationsには取得除外・失敗の対象／causeと測定影響outside・in_scope・unknown、規則参照、理由、不明なら具体的不足を残す。独立再実行・継続処理・キュー境界と計数規則はquality.boundaries、属性と実装項目・読取根拠の具体的対応はquality.attributes、所見の対象はquality.findingsへ記録する。rerunまたはcontinuationがunknownなら、そのprocessのboundary.judgment_refsに紐づくprovisional／unresolved判断と具体的unresolved_pointsを必須とする。未確認のままrecordedやCOMPLETEにしない。機能境界は既存boundaryの開始・要求元・目的・完了と併せて説明する。内部キューを自動的に外部ユーザーにも一律非計上にもせず、通知と読取の重複注意を確認する。空欄を埋めるために証拠や代替案を作らず、未確定ならprovisional／unresolvedと不足を残す。配備・本番稼働の未確認だけならexplanation所見とし、実装・接続の欠落や計数不明とは別所見にする。設定生成コード・生成結果・配備の存在を分け、存在確認のため対象コードを実行しない。
    exportへroot・session_id・snapshot_id・assessment（raw JSON文字列）を渡す。未完成の入力はdraftで保存できる。exportは送信せず、毎回新しいlocal.run_id・run_directoryへ検査済みAssessment／context／台帳／manifest／実装識別情報／model／summary／checksumを保存する。失敗したexportを完了と報告しない。ルール版を引数で上書きしない。local.summaryの数値・状態・理由コード・暫定内数・候補数を報告の基準とする。記録品質の注意と機械エラー、意味の妥当性を分ける。
-7. 数値モデル・表示通貨・配布スキルのID/版/整合性確認用ハッシュ・測定ルールの参照版を送信することを説明し、対象読取とは別に送信同意を確認する。同意済みの同じ送信を繰り返し確認しない。ハッシュや版のための追加同意は設けない。対象ソース、名称、説明、パス、根拠本文、対象ソースhash、Assessment、判断台帳、ルール本文、ローカルcontextは送信しない。
-8. evaluate_modelへexportのmodel・skill_integrity・ruleset_refとdisplay_currencyを渡す。isErrorと構造化codeを検査する。応答はrecord-remoteへ{run_id,status:SUCCESS,response:<受領応答原本>}、送信失敗なら{run_id,status:FAILED,error:<具体的失敗>,response:<受領できた原本またはnull>}を渡し、新しい操作IDで保存する。再表示時はkind=displayを加える。送信操作を実行せずにSUCCESSを記録しない。record-remote自体は送信せずクライアント申告を記録する。保存失敗は結果保存未完了と示す。reconciliationでCFP・状態・工数・USDの一致を確認できた場合だけ一致と報告し、不一致でもローカル値と原応答を保持する。report／display_quote／assuranceと操作のfxに従って結果と固定版・保存先・未確認範囲を説明する。独自の係数や丸めを加えない。未採用の未解決は0 CFPや架空の上下限で表現しない。
+7. export成功後はprepare-estimateへ{run_id:<local.run_id>,display_currency:"JPY"}を渡し、数値のみの送信準備を行う。これは外部送信しない。表示通貨は利用者の指定を優先。数値モデル・品質の数値集計と理由コード・表示通貨・スキルID／版／hash・固定した測定ルール参照・内容照合情報を、正規Open Estimateへ送信して再計算し、本人限定Webページを15分表示することを説明する。対象ソース、対象名、説明自由文、パス、根拠本文、対象ソースhash、Assessment、判断台帳、ルール本文、ローカルcontextは送信しない。公開候補・公開用説明を通常見積のために作らない。
+8. prepare-estimateのsubmission_idでpreview-estimateへ{submission_id}を渡す。PENDINGは同意待ちであり完了ではない。CLIはブラウザー同意後だけ数値を送信する。PENDINGのtransfer_idで確認カードを表示し、verification_urlと8桁のuser_codeを会話に示す。送信確認をブラウザーで行うため、チャットでも同じ同意を重ねて取らない。主操作は「送信内容を確認してWeb表示へ」。利用者が「送信せずローカル結果で終了」を選んだらCLIを中断し、Webを作らない。
+   CLIを実行したまま結果を待つとユーザーが同意画面に進めないため、PENDING出力を取得したら直ちにカード・リンク・照合コードを提示し、ユーザー操作を待てるようにする。実行環境がバックグラウンド継続できない場合は中断してもよい。同じsubmission_idのresume-estimateで再開し、再解析・再prepareをしない。認証・同意待ち中に通常完了と報告しない。
+   READYかつweb_complete=trueを受け取ったらresultカードと、実際のpreview_url・expires_atをチャットに必ず提示する。返却resultの数値、display_quote、品質、ローカル保存先を示し、本人用Webページを開くよう案内する。表示通貨が未算出なら工数・USDと分ける。URLを推測したり、確認画面や管理一覧を結果URLの代わりにしない。署名・公開は行わない。
+   WEB_INCOMPLETE、失敗、中断では「Web表示は未完了」と原因と次操作を示す。errorカードが使えなければ文字で同じ情報を提示する。「URL未作成」だけで終了しない。同じsubmission_idのresume-estimateで回復する。期限切れが確定した場合のみ既存runからprepare-estimateで新しい受付を作り、新たな送信確認へ進める。元runと旧受付を上書きしない。READY_LOCAL_SAVE_INCOMPLETEはWeb作成済み・ローカル応答保存未完了としてURLを提示し、同じ受付から保存を回復する。
+   旧版で再計算だけ終わったrunでも、本人用Web表示を案内して同じ準備経路へ進む。従来の再計算だけの同意をWeb保持への同意として流用しない。明示的な再計算単独の診断要求だけはevaluate_modelとrecord-remoteを使用できるが、標準見積の完了とは扱わない。
+
 9. 比較は利用者が比較対象を指定した場合だけ、今回の独立モデルを確定・exportした後に行う。show-runへ{run_id}で保存結果を読む。compare-runsへbefore_run_id／after_run_id、process_changes／movement_changes（kind、before／afterのTargetRef配列、具体的reason、causes）、judgment_transitions（before／after判断ID配列、state、reason）、prior_information_consulted、proposal_sourceを渡す。対応はID・配列順だけで作らず、開始・目的・完了・根拠から検討した案を記録する。causesはcode／scope／evidence／interpretation／tool_rules／unknownの複数選択。説明不能はunmatchedとし、暫定判断の解決・継続・統合・非計上と未対応を残す。過去参照の事実を開示し、独立性は確認できないと説明する。原成果物を修正せず、比較は新しい操作に保存する。比較結果はoes/run-comparison/v2。identityのsource_content（パスと取得済みの非ゼロhash）、acquisition（読取・除外・取得制限）、scope（対象所属・アプリ境界・範囲規則）、evidenceを区別する。ゼロhashや未発見領域が残れば内容一致を断定しない。範囲ID・確認日時・確認者・確認文はexecution_recordsの履歴であり、コード・範囲変更の根拠にしない。元manifest hashとscope記録は識別用に保持する。
 
 ## 固定版・障害・保存
 
-WebプレビューのCLIがPENDINGを返し、show_preview_confirmationが利用可能な場合は、その応答のtransfer_idだけを渡して確認ボタンを表示する。user_codeはローカルの会話で利用者に提示し、この表示ツールには渡さない。ツールがない場合もCLIが返したverification_urlをリンクとして提示する。表示しただけで承認としない。利用者がブラウザーで同意するとCLIが送信を進め、ブラウザーも本人用結果へ移動する。結果画面の保存操作は本人が選択した場合のみ30日間保存し、保存一覧から延長・削除できる。15分の一時表示と30日の保存を混同しない。
+通常見積のCLIがPENDINGを返したらshow_estimate_stepへstage=confirmationとtransfer_idだけを渡して確認ボタンを表示する。show_preview_confirmationは旧証明書準備経路専用で、通常見積の表示ツールの代わりに選ばない。user_codeはローカルの会話で利用者に提示し、この表示ツールには渡さない。ツールがない場合もCLIが返したverification_urlをリンクとして提示する。表示しただけで承認としない。利用者がブラウザーで同意するとCLIが送信を進め、ブラウザーも本人用結果へ移動する。結果画面の保存操作は本人が選択した場合のみ30日間保存し、保存一覧から延長・削除できる。15分の一時表示と30日の保存を混同しない。
 
 セッションのprepare／read／exportは固定bundleを再検査する。currentが更新されても途中の版は変えない。同版の再bindは可能、別版は新しいセッションで開始する。コンテキスト圧縮後はローカルの固定bundleを読み直し、再取得が必要でも同じruleset_refを指定する。RULESET_NOT_BOUNDは正規応答をbindし、RULESET_CHANGEDやSKILL_CHANGED_DURING_ANALYSISは停止して新しい解析を開始する。スキル更新後に読み込み済み指示と一致するか不明なら新しいチャットを使う。
 
@@ -46,4 +55,4 @@ WebプレビューのCLIがPENDINGを返し、show_preview_confirmationが利用
 
 MATCHED_CLIENT_REPORTEDは「正規配布版との申告ハッシュ一致」、ACCEPTED_CLIENT_REPORTEDは「申告された測定ルールの版を確認。AIによる適用の正確性は独立検証していません」。認証済み、改竄不能、実行証明済みとは表示しない。過去モデルの生成時の版を推定・後付けせず、保存済みruleset_refを使う。不明な旧方式は移行中のみLEGACY_LOCAL_RULES／context hash=null。期限後は対応版で再解析する。新方式で版を省略して旧方式へ降格しない。実行できないChatへ再計算だけを案内しない。
 
-セッションは24時間有効で自動削除ではない。scanのcache_root配下に測定コピー・下書き・セッション用Assessment・ルールcontextを保持する。purgeへsession_idを渡すと当該セッションとコピーを削除する。破損ルールでも下書き救出・purgeは可能。OES_HELPER_STATEで変更できる。標準成果物は別のユーザーホーム/.open-estimate/runs/<run_id>へ保存し、期限後・purge後もshow-run／record-remote／compare-runsで利用できる。OES_RUNS_ROOTで絶対保存先を指定できるが、対象内は走査混入防止のため拒否する。runには対象ソースコピー・ツール全体コピーを含めない。保持期限は設けず自動削除しない。不要になれば利用者が該当runディレクトリを削除する。過去比較に使うrunは保持する。保存物はローカルの詳細根拠を含み、リモートへ送らない。残ったlockは実行中でないことを確認して当該sessionのものだけを除去する。run_idはローカルの実行IDでサーバー評価IDではない。ハッシュは照合用で署名・第三者真正性保証ではない。サーバー評価保存・ID照会・HTML・証明書・公開・企業監査台帳は提供しない。
+セッションは24時間有効で自動削除ではない。scanのcache_root配下に測定コピー・下書き・セッション用Assessment・ルールcontextを保持する。purgeへsession_idを渡すと当該セッションとコピーを削除する。破損ルールでも下書き救出・purgeは可能。OES_HELPER_STATEで変更できる。標準成果物は別のユーザーホーム/.open-estimate/runs/<run_id>へ保存し、期限後・purge後もshow-run／record-remote／compare-runsで利用できる。OES_RUNS_ROOTで絶対保存先を指定できるが、対象内は走査混入防止のため拒否する。runには対象ソースコピー・ツール全体コピーを含めない。保持期限は設けず自動削除しない。不要になれば利用者が該当runディレクトリを削除する。過去比較に使うrunは保持する。保存物はローカルの詳細根拠を含み、リモートへ送らない。残ったlockは実行中でないことを確認して当該sessionのものだけを除去する。run_idはローカルの実行IDでサーバー評価IDではない。ハッシュは照合用で署名・第三者真正性保証ではない。通常見積は本人限定Web表示15分と明示的な30日保存に対応する。電子署名・証明書発行・一般公開はこの環境では未提供として案内し、自動実行しない。Web表示だけで証明済みと説明しない。

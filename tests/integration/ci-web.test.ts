@@ -23,8 +23,9 @@ it('deploys the hashed bundle unchanged and rejects a replaced artifact',async()
 it('refuses wrong Worker, missing secrets and missing migration tables',()=>{
   expect(()=>checkTarget({WRANGLER_CI_OVERRIDE_NAME:'open-estimate-mcp'})).toThrow('WRONG_WORKER');
   const secrets=['AUTH0_WEB_CLIENT_SECRET','BROWSER_SESSION_SECRET','PREVIEW_TRANSFER_CODE_SECRET'].map(name=>({name}));
-  const tables=['preview_transfers','preview_transfer_consents','saved_estimates','operation_guards','certificate_previews'].map(name=>({name}));
+  const tables=['preview_transfers','preview_transfer_consents','saved_estimates','operation_guards','certificate_previews'].map(name=>({name,sql:name==='preview_transfer_consents'?"CHECK(operation IN ('prepare_certificate_preview','prepare_estimate_preview'))":''}));
   expect(()=>checkPrerequisites(secrets,tables)).not.toThrow();
+  expect(()=>checkPrerequisites(secrets,tables.map(t=>({...t,sql:''})))).toThrow('MISSING_MIGRATION:0006');
   expect(()=>checkPrerequisites(secrets.slice(0,2),tables)).toThrow('MISSING_SECRET:PREVIEW_TRANSFER_CODE_SECRET');
   expect(()=>checkPrerequisites(secrets,tables.filter(t=>t.name!=='saved_estimates'))).toThrow('MISSING_TABLE:saved_estimates');
 });
