@@ -1,4 +1,4 @@
-import { obj, checkContract, hashSchema, type ServerResult } from "./certificate-contract.js";
+import { obj, checkContract, prepareContracts, hashSchema, type ServerResult } from "./certificate-contract.js";
 import { remoteArgsSchema, evaluateRemote } from "../remote/model.js";
 import { publicResultCandidateSchema, validatePublicResult, PROJECTION_VERSION, type PublicResultCandidate } from "./public-result.js";
 import { jcsSha256 } from "./canonical.js";
@@ -56,3 +56,4 @@ export async function recomputeEstimate(input:EstimateInput,catalog:IssuanceCata
     expires_at:new Date(catalog.now+900000).toISOString()};
 }
 export type EstimateDraft=Awaited<ReturnType<typeof recomputeEstimate>>;
+prepareContracts([estimateInputSchema,estimateSubmissionSchema,displayQuoteSchema]);

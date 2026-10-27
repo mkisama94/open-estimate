@@ -19,6 +19,15 @@
       "measurement_client_protocol": "oes/measurement-client/v1",
       "publication": "published",
       "acceptance": "accepted"
+    },
+    {
+      "skill_id": "open-estimate-assessor",
+      "skill_version": "0.9.2",
+      "hash_rule": "oes/skill-package/v1",
+      "package_sha256": "d0930efab083cb1ecb4047566794711b5227ddc23abcdd80a74689e208c442a0",
+      "measurement_client_protocol": "oes/measurement-client/v1",
+      "publication": "published",
+      "acceptance": "accepted"
     }
   ]
 }

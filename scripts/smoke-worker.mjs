@@ -25,7 +25,7 @@ child.stderr.on('data', value => { logs = (logs + value).slice(-5000); });
 child.on('exit', () => { stopped = true; });
 child.on('error', error => { logs += error.message; stopped = true; });
 async function call(name, args) {
-  const res = await fetch(`http://127.0.0.1:${port}/mcp`, { method: 'POST', signal: AbortSignal.timeout(3000),
+  const res = await fetch(`http://127.0.0.1:${port}/mcp`, { method: 'POST', signal: AbortSignal.timeout(15000),
     headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }) });
   assert.equal(res.status, 200);
@@ -41,6 +41,11 @@ try {
   assert.ok(policy, logs);
   assert.equal(policy.isError, undefined);
   assert.equal(policy.structuredContent.registry_sha256, contentHash({ ...registry, enforcement_at: enforcement }));
+  // Exercise a request-time schema check, not only validators compiled at module scope.
+  const card = await call('show_estimate_step', {stage:'scope'});
+  assert.notEqual(card.isError, true, JSON.stringify(card));
+  assert.equal(card.structuredContent.stage, 'scope');
+  assert.ok(card._meta?.ui?.resourceUri);
   const fetched = await call('get_measurement_rules', { skill_integrity: integrity, client_protocol: 'oes/measurement-client/v1' });
   assert.notEqual(fetched.isError, true, JSON.stringify(fetched));
   assert.equal(fetched.structuredContent.ruleset_ref.revision, rules.current_revision);

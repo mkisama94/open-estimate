@@ -1,4 +1,4 @@
-import { checkContract,obj } from "../core/certificate-contract.js";
+import { checkContract,obj,prepareContracts } from "../core/certificate-contract.js";
 import { experienceUiUri } from "./experience-ui.js";
 const capabilitySchema=obj({schema_version:{const:"oes/estimate-experience/v1"},web:obj({available:{type:"boolean"},reason:{enum:["AVAILABLE","OWNER_PREVIEW_DISABLED","CONFIGURATION_REQUIRED","MIGRATION_REQUIRED","STATUS_UNAVAILABLE"]},authentication:{const:"BROWSER_LOGIN_REQUIRED"},minutes:{const:15}}),save:obj({available:{type:"boolean"},days:{const:30}}),certificate:obj({available:{const:false},reason:{const:"NOT_PROVIDED"},issuer:{const:"AI Orchestration Inc."}}),standard_completion:{const:"WEB_READY"}});
 export async function getExperienceCapabilities(send:typeof fetch=fetch){
@@ -18,6 +18,7 @@ export function experienceStep(value:unknown){
   if(a.stage==="result" && Date.parse(a.expires_at!)<=Date.now())throw new Error("PREVIEW_EXPIRED");
   return a;
 }
+prepareContracts([capabilitySchema,experienceStepSchema]);
 export function experienceResponse(data:Record<string,unknown>){
   const stage=data.stage,notice=stage==="result"?"本人用Web結果: "+data.preview_url+" ／ 期限: "+data.expires_at
     :stage==="confirmation"?"送信内容を確認してWeb表示へ: https://open-estimate.ai-orchestration.jp/manage/preview-transfers/"+data.transfer_id

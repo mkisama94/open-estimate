@@ -1,4 +1,6 @@
-# Open Estimate 0.9.0（Work／Codex・ローカル実行向け）
+# Open Estimate 0.9.1（Work／Codex・ローカル実行向け）
+
+**0.9.1の結果表示**：総工数の中央値を最初に大きく表示し、人日・参考工数の幅、金額、機能規模、根拠・未確認事項の順に説明します。チャットの報告も結論を先頭に置きます。計算方法・同意条件は変更しません。本番反映とプラグイン更新後に利用できます。
 
 **0.9.0の標準体験**：開始時にWeb表示・保存・計算証明書の全体像を案内し、対象への同意、解析、ブラウザーでの数値送信同意、本人用Web結果まで進みます。Intelligent UI対応ホストではカードとボタンを使用し、非対応時も選択肢と公式リンクを提示します。Web表示は15分、保存は本人が選ぶ場合だけ30日。証明書発行・公開は未提供です。これはローカル実装の説明で、本番反映・実ホスト受入の完了を意味しません。[仕様](implementation/PLUGIN-EXPERIENCE-SPEC.md)／[実装状況](implementation/PLUGIN-EXPERIENCE-IMPLEMENTATION-STATUS.md)／[反映・受入手順](implementation/PLUGIN-EXPERIENCE-0.9.0-ACCEPTANCE.md)。以下の旧版記録より本節を優先します。
 

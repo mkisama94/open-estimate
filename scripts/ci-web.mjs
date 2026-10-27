@@ -76,6 +76,9 @@ async function main() {
     const response = await fetch('https://open-estimate.ai-orchestration.jp/api/v1/preview-transfers', { redirect: 'manual', signal: AbortSignal.timeout(30000) });
     const body = await response.json();
     if (response.status !== 404 || body.error?.code !== 'NOT_FOUND') throw new Error('PRODUCTION_PREVIEW_NOT_READY');
+    // Invalid input must be rejected before persistence. GET alone does not exercise validation.
+    const invalid = await fetch('https://open-estimate.ai-orchestration.jp/api/v1/preview-transfers',{method:'POST',headers:{'content-type':'application/json','Idempotency-Key':'00000000-0000-4000-8000-000000000000'},body:'{}',redirect:'error',signal:AbortSignal.timeout(10000)});
+    if(invalid.status!==400 || (await invalid.json()).error?.code!=='INVALID_INPUT')throw new Error('PRODUCTION_PREVIEW_VALIDATION_FAILED');
     const capabilities = await fetch('https://open-estimate.ai-orchestration.jp/api/v1/estimate-capabilities', {redirect:'error',signal:AbortSignal.timeout(10000)}).then(r=>r.json());
     if(capabilities.schema_version!=='oes/estimate-experience/v1' || capabilities.web?.available!==true)throw new Error('PRODUCTION_ESTIMATE_NOT_READY');
   }

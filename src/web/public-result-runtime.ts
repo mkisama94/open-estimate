@@ -1,6 +1,6 @@
 import { CertificateRepository, type CertificateDatabase } from "./certificate-repository.js";
 import { CertificateService } from "./certificate-service.js";
-import { checkContract, obj } from "../core/certificate-contract.js";
+import { checkContract, obj,prepareContracts } from "../core/certificate-contract.js";
 import { readCertificateJson } from "../core/certificate-json.js";
 import { PRODUCTION_ORIGIN } from "../core/certificate.js";
 import { defaultRegistry } from "../remote/skill-integrity.js";
@@ -9,6 +9,7 @@ import type { TrustedSigningKey } from "../core/certificate-verify.js";
 export interface PublicResultEnvironment {PUBLICATION_READ_ENABLED?:string;PUBLIC_STATUS_GENERATION?:string;PUBLIC_SIGNING_KEYS_JSON?:string;CERTIFICATES_DB?:unknown}
 const keysSchema={type:"array",minItems:1,maxItems:100,items:obj({key_id:{type:"string",pattern:"^key_prod_[a-f0-9]{32}$"},algorithm:{const:"Ed25519"},public_key:{type:"string",pattern:"^[A-Za-z0-9_-]{43}$"},issuer_origin:{const:PRODUCTION_ORIGIN},deployment_environment:{const:"production"},created_at:{type:"string",format:"date-time"}})};
 /** Public reading needs public keys only. This adapter cannot issue or publish. */
+prepareContracts([keysSchema]);
 export function publicResultService(env:PublicResultEnvironment){
   if(env.PUBLICATION_READ_ENABLED!=="true")throw new Error("STATUS_UNAVAILABLE");
   if(!/^sg_[a-f0-9]{32}$/.test(env.PUBLIC_STATUS_GENERATION??"") || !env.PUBLIC_SIGNING_KEYS_JSON || env.PUBLIC_SIGNING_KEYS_JSON.length>65536)throw new Error("STATUS_UNAVAILABLE");

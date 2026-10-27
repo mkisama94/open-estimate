@@ -1,5 +1,6 @@
 import { obj,hashSchema,commitmentSchema,frozenInputSchema,metadataSchema,serverResultSchema,engineSchema,POLICY_VERSION,type InputCommitment,type FrozenInput,type CertificateMetadata,type ServerResult,type EngineRef } from "./certificate-contract.js";
 import { jcsSha256 } from "./canonical.js";
+import {prepareContracts} from "./certificate-contract.js";
 import { ESTIMATE_POLICY,ESTIMATE_METADATA_HASH,estimateCommitmentSchema,estimateSubmissionSchema,displayQuoteSchema } from "./estimate-preview.js";
 export const transferIdSchema={type:"string",pattern:"^pt_[a-f0-9]{32}$"};
 export const previewIdSchema={type:"string",pattern:"^pv_[a-f0-9]{32}$"};
@@ -28,6 +29,7 @@ export function transferSecretHash(secret:string) {
   if(!secretPattern.test(secret) || Buffer.from(secret,"base64url").toString("base64url")!==secret)throw new Error("AUTH_REQUIRED");
   return jcsSha256({domain:"oes/preview-transfer-secret/v1",secret});
 }
+prepareContracts([uuidSchema,transferCreateSchema,transferSubmissionSchema,emptyTransferSchema,previewErrorSchema,transferCreateResponseSchema,transferStatusSchema,ownerPreviewSchema,anyOwnerPreviewSchema]);
 export function transferBinding(origin:string,value:Pick<TransferCreate,"input_commitment"|"metadata_hash"|"policy_version">) {
   return jcsSha256({domain:"oes/preview-transfer-binding/v1",origin,input_commitment:value.input_commitment,metadata_hash:value.metadata_hash,policy_version:value.policy_version});
 }

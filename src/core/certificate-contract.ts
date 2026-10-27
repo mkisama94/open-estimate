@@ -5,6 +5,8 @@ import { modelSchema, type NumericModel } from "./numeric-model.js";
 import { skillIntegritySchema } from "../remote/skill-integrity.js";
 import { rulesetRefSchema, type RulesetRef } from "../rules/measurement-contract.js";
 import { assertCertificateJson } from "./certificate-json.js";
+import {contractValidators} from "../generated/contract-validators.js";
+import {sha256Hex} from "./canonical.js";
 
 export const POLICY_VERSION = "oes/certificate-publication-policy/v1" as const;
 export const obj = (properties: Record<string, unknown>) => ({type:"object",additionalProperties:false,required:Object.keys(properties),properties});
@@ -39,11 +41,19 @@ const calculationProperties = (candidate.calculation as {properties:Record<strin
 export const calculationBasisSchema = obj({schema_version:{const:"oes/calculation-basis/v1"},environment:calculationProperties.environment,effort_scope_id:calculationProperties.effort_scope_id,hours_per_day:calculationProperties.hours_per_day,basis:calculationProperties.basis});
 const ajv = new Ajv2020({strict:false,ownProperties:true});
 (addFormats as unknown as (ajv: Ajv2020)=>void)(ajv);
-const validators = new Map<object, ReturnType<typeof ajv.compile>>();
+const validators = new Map<object, (value:unknown)=>boolean>();
+const registeredContracts = new Map<string,object>();
+export function getRegisteredContracts(){return registeredContracts;}
+/** Bind build-time validators. No compilation during Worker startup or requests. */
+export function prepareContracts(schemas:object[]){for(const schema of schemas){const key=sha256Hex(JSON.stringify(schema));registeredContracts.set(key,schema);const compiled=contractValidators[key];if(compiled)validators.set(schema,compiled);}}
 export function checkContract<T>(schema: object, value: unknown): T {
   assertCertificateJson(value);
   let valid = validators.get(schema);
-  if (!valid) { valid=ajv.compile(schema);validators.set(schema,valid); }
+  if (!valid) {
+    // A stale generated Worker contract must fail closed, never compile on a request.
+    if(registeredContracts.has(sha256Hex(JSON.stringify(schema))))throw new Error("CONTRACT_VALIDATOR_NOT_GENERATED");
+    valid=ajv.compile(schema);validators.set(schema,valid);
+  }
   if (!valid(value)) throw new Error("INVALID_INPUT");
   return value as T;
 }
@@ -73,3 +83,4 @@ export const publishResponseSchema=obj({certificate:nullable(envelopeSchema),pub
 export const sharedResponseSchema=obj({certificate:envelopeSchema,publication:publicationSchema,current_status:statusSchema});
 export const receiptResponseSchema=obj({outcome:{const:"ISSUED"},certificate_id:id("cert_"),share_id:id("sh_"),signed_object_hash:hashSchema,publication_state:{enum:["PUBLIC","WITHDRAWN"]}});
 export const withdrawResponseSchema=obj({share_id:id("sh_"),publication_state:{const:"WITHDRAWN"}});
+prepareContracts([metadataSchema,frozenInputSchema,approvedDraftSchema,signedObjectSchema,envelopeSchema,calculationBasisSchema,statusSchema,previewRequestSchema,publishRequestSchema,withdrawRequestSchema,previewResponseSchema,publishResponseSchema,sharedResponseSchema,receiptResponseSchema,withdrawResponseSchema]);

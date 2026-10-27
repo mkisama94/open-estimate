@@ -17,6 +17,7 @@ export async function validateCiInputs(skills, rules, integrity, generated, vers
   if (contentHash(result.bundle) !== contentHash(generated.bundle) || result.ruleset_ref.revision !== generated.ruleset_ref.revision) throw new Error('CI_RULES_NOT_REGISTERED');
 }
 async function inputs() {
+  run(repo, 'scripts/build-contract-validators.mjs', ['--check']);
   const { inspectSkillPackage } = await import('../dist/profiles/skill-package.js');
   const skills = await readJson(path.join(repo, 'profiles/skill-releases.json'));
   const rules = await readJson(path.join(repo, 'profiles/measurement-rules.json'));
@@ -33,6 +34,9 @@ async function main() {
   }
   if (mode !== 'check') {
     await confirmDeployment(skills, rules, integrity);
+    const cardResponse=await fetch('https://open-estimate.ai-orchestration.jp/mcp',{method:'POST',headers:{'content-type':'application/json',accept:'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'show_estimate_step',arguments:{stage:'scope'}}}),signal:AbortSignal.timeout(15000)});
+    const card=await cardResponse.json();
+    if(!cardResponse.ok || card.result?.isError || card.result?.structuredContent?.stage!=='scope')throw new Error('PRODUCTION_EXPERIENCE_CARD_FAILED');
     const response = await fetch('https://open-estimate.ai-orchestration.jp/mcp', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }), signal: AbortSignal.timeout(30000) });
     const result = await response.json();
     for (const name of ['get_skill_policy', 'get_measurement_rules', 'evaluate_model', 'show_preview_confirmation', 'get_estimate_experience', 'show_estimate_step']) {
