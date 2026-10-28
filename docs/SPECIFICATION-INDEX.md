@@ -4,6 +4,8 @@
 
 正式な目標仕様は[Open Estimate システム仕様](implementation/SYSTEM-SPEC.md)。実装済み状態を表す文書ではない。
 
+実装対象・移行順序・単体／契約／実ホスト受入は[新システム実装指示書](implementation/SYSTEM-IMPLEMENTATION-PLAN.md)に定める。
+
 ## 削除した旧仕様
 
 - `PRODUCT-ARCHITECTURE.md`
