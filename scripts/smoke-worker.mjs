@@ -42,10 +42,8 @@ try {
   assert.equal(policy.isError, undefined);
   assert.equal(policy.structuredContent.registry_sha256, contentHash({ ...registry, enforcement_at: enforcement }));
   // Exercise a request-time schema check, not only validators compiled at module scope.
-  const card = await call('show_estimate_step', {stage:'scope'});
-  assert.notEqual(card.isError, true, JSON.stringify(card));
-  assert.equal(card.structuredContent.stage, 'scope');
-  assert.ok(card._meta?.ui?.resourceUri);
+  const retiredCard = await call('show_estimate_step', {stage:'scope'});
+  assert.equal(retiredCard.isError, true);
   const fetched = await call('get_measurement_rules', { skill_integrity: integrity, client_protocol: 'oes/measurement-client/v1' });
   assert.notEqual(fetched.isError, true, JSON.stringify(fetched));
   assert.equal(fetched.structuredContent.ruleset_ref.revision, rules.current_revision);
@@ -57,8 +55,8 @@ try {
   assert.equal(bad.isError,true);assert.equal(bad.structuredContent.error.code,'SKILL_INTEGRITY_MISMATCH');
   const unknown = await call('get_measurement_rules', {skill_integrity:integrity,client_protocol:'oes/measurement-client/v1',ruleset_ref:{ruleset_id:'oes-measurement',revision:'0'.repeat(64)}});
   assert.equal(unknown.isError,true);assert.equal(unknown.structuredContent.error.code,'RULESET_UNKNOWN');
-  const publication=await call('publish_estimate',{});assert.equal(publication.isError,true);assert.equal(publication.structuredContent.error.code,'AUTH_CONFIGURATION_REQUIRED');
-  console.log(JSON.stringify({status:'PASS',execution:'LOCAL_WORKER_BUNDLE',legacy_evaluation_retired:true,mismatch_rejected:true,authenticated_publication_required:true}));
+  const proof=await call('issue_document_proof',{});assert.equal(proof.isError,true);assert.equal(proof.structuredContent.error.code,'DOCUMENT_ISSUANCE_DISABLED');
+  console.log(JSON.stringify({status:'PASS',execution:'LOCAL_WORKER_BUNDLE',legacy_evaluation_retired:true,mismatch_rejected:true,document_issuance_independent:true}));
 
 } finally {
   child.kill();

@@ -1,0 +1,12 @@
+{
+ "$schema":"https://json-schema.org/draft/2020-12/schema",
+ "title":"oes/document-display/v1 form fields",
+ "type":"object","additionalProperties":false,"required":["format","markdown"],
+ "properties":{
+  "format":{"const":"oes/document-display/v1"},
+  "encoding":{"const":"utf8-base64url"},
+  "markdown":{"type":"string","maxLength":1048576},
+  "proof":{"type":"string","maxLength":1048576}
+ },
+ "description":"Absent encoding means exact UTF-8 text. Native forms use canonical base64url of original bytes to avoid CRLF normalization. Decoded Markdown <=262144 bytes, proof <=32768 bytes; encoded HTTP body <=1048576 bytes."
+}

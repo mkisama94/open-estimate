@@ -1,7 +1,7 @@
 import { envelopeSchema, checkContract, validateMetadata, type CertificateEnvelope, type FrozenInput } from "./certificate-contract.js";
 import { signedObjectBytes, inputCommitment, recomputeCertificateResult, reproduceCertificateResult, assertEnvironment, type IssuanceCatalog } from "./certificate.js";
 import { jcsSha256 } from "./canonical.js";
-import { base64url, decodeBase64url } from "../web/signing.js";
+import { base64url, decodeBase64url } from "../proof/crypto.js";
 import { INITIAL_CERTIFICATE_BASIS_HASH } from "../profiles/certificate-basis.js";
 
 export interface TrustedSigningKey {key_id:string;algorithm:"Ed25519";public_key:string;issuer_origin:string;deployment_environment:"test"|"production"}

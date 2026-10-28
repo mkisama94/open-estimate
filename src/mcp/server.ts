@@ -19,6 +19,8 @@ import {showResultPreview,readResultPreview} from "../local/estimate-result.js";
 import {resultWidgetUri,resultWidgetHtml} from "../local/result-widget.js";
 import {resolveSafePath} from "../collector/safe-paths.js";
 import {promises as files} from "node:fs";
+import {showDocument,readDocumentFile} from '../local/document-result.js';
+import {documentWidgetUri,documentWidgetHtml} from '../local/document-widget.js';
 
 const contract = JSON.parse(fs.readFileSync(new URL("../../contracts/local-preview.schema.json", import.meta.url), "utf8"));
 const object = (properties: Record<string, unknown>, required: string[] = []) => ({ type: "object" as const, properties, required, additionalProperties: false });
@@ -28,6 +30,8 @@ const display = { locale: { type: "string", maxLength: 64 }, display_currency: {
 const output = (properties: Record<string, unknown>, required: string[]) => object(properties, required);
 const definition = (key: string) => ({ ...contract.$defs[key], $defs: contract.$defs });
 const tools = [
+  {name:'show_document',description:'Display a portable fixed document independently of its original run or current rules. No external send. Buttons request distinct proof or stateless display actions; rendering is never consent.',inputSchema:object({document_dir:str},['document_dir']),outputSchema:{type:'object' as const},handler:async(args:any)=>showDocument(args.document_dir),readOnly:true,network:false,_meta:{ui:{resourceUri:documentWidgetUri}}},
+  ...(['pdf','markdown','proof'] as const).map(kind=>({name:'get_document_'+kind,description:'Download the fixed local document '+kind+' without external send. Attached proof data does not imply a currently valid certificate.',inputSchema:object({document_dir:str},['document_dir']),outputSchema:{type:'object' as const},handler:async(args:any)=>{const view=await showDocument(args.document_dir);if(kind==='pdf'&&!view.pdf)throw new Error('DOCUMENT_PDF_NOT_READY');if(kind==='proof'&&!view.proof)throw new Error('DOCUMENT_PROOF_REQUIRED');return {file_base64:(await readDocumentFile(args.document_dir,kind==='pdf'?'estimate.pdf':kind==='proof'?'proof.json':'estimate.md',8*1024*1024)).toString('base64')};},readOnly:true,network:false})),
   {name:"preview_saved_estimate",description:"Display an already prepared local result and PDF without sending estimate data to Open Estimate. The publication button sends a user-authored chat choice; rendering does not publish.",inputSchema:object({preview_id:str},["preview_id"]),outputSchema:{type:"object" as const},handler:async(args:any)=>showResultPreview(args.preview_id),readOnly:true,network:false,_meta:{ui:{resourceUri:resultWidgetUri}}},
   {name:"get_result_pdf",description:"Read the verified local PDF for the displayed result. Does not send or publish.",inputSchema:object({preview_id:str},["preview_id"]),outputSchema:{type:"object" as const},handler:async(args:any)=>{const view=await showResultPreview(args.preview_id);if(!view.pdf)throw new Error("PDF_REQUIRED");return {preview_id:args.preview_id,pdf_base64:(await files.readFile(view.pdf.path)).toString("base64")};},readOnly:true,network:false},
   { name: "discover_workspace", description: "Scan metadata and capacity only, with measurement/supporting/excluded scope rules. Confirm the returned scope before reading source.", inputSchema: object({ context_path: str, relative_path: str, scope:scopeSchema }), outputSchema: { type: "object" as const }, handler: async (_: any) => ({}), readOnly: true, network: false },
@@ -71,6 +75,11 @@ export function createMcpServer(): Server {
       const validate = validators.get(tool.name)!;
       if (!validate(args)) return { isError: true, content: [{ type: "text" as const, text: JSON.stringify({ error: { code: "INVALID_TOOL_ARGUMENTS", details: validate.errors?.map(e => ({ pointer: e.instancePath, message: e.message })) } }) }] };
       let result: any;
+      if(['show_document','get_document_pdf','get_document_markdown','get_document_proof'].includes(tool.name)){
+        result=await tool.handler(args as any);
+        if(tool.name!=='show_document')return {structuredContent:{status:'FILE_READY'},content:[{type:'text' as const,text:'ローカル文書を取得しました。'}],_meta:{file_base64:result.file_base64}};
+        return {structuredContent:result,content:[{type:'text' as const,text:JSON.stringify(result)}],_meta:{ui:{resourceUri:documentWidgetUri}}};
+      }
       if(tool.name==="get_result_pdf"||tool.name==="preview_saved_estimate") {
         result=await tool.handler(args as any);
         if(tool.name==="get_result_pdf")return {structuredContent:{preview_id:result.preview_id,status:"PDF_READY"},content:[{type:"text" as const,text:"ローカルPDFを取得しました。"}],_meta:{pdf_base64:result.pdf_base64}};
@@ -95,8 +104,8 @@ export function createMcpServer(): Server {
       return { isError: true, content: [{ type: "text" as const, text: JSON.stringify({ error: { code, message: code, details: err.errors } }) }] };
     }
   });
-  server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [...OES_RESOURCES,{uri:resultWidgetUri,name:"Local estimate result",mimeType:"text/html;profile=mcp-app"}] }));
-  server.setRequestHandler(ReadResourceRequestSchema, async request => ({ contents: [request.params.uri===resultWidgetUri?{uri:resultWidgetUri,mimeType:"text/html;profile=mcp-app",text:resultWidgetHtml,_meta:{ui:{csp:{connectDomains:[],resourceDomains:[]}}}}:await handleReadResource(request.params.uri)] }));
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [...OES_RESOURCES,{uri:documentWidgetUri,name:'Portable estimate document',mimeType:'text/html;profile=mcp-app'},{uri:resultWidgetUri,name:"Legacy local estimate result",mimeType:"text/html;profile=mcp-app"}] }));
+  server.setRequestHandler(ReadResourceRequestSchema, async request => ({ contents: [request.params.uri===documentWidgetUri?{uri:documentWidgetUri,mimeType:'text/html;profile=mcp-app',text:documentWidgetHtml,_meta:{ui:{csp:{connectDomains:[],resourceDomains:[]}}}}:request.params.uri===resultWidgetUri?{uri:resultWidgetUri,mimeType:"text/html;profile=mcp-app",text:resultWidgetHtml,_meta:{ui:{csp:{connectDomains:[],resourceDomains:[]}}}}:await handleReadResource(request.params.uri)] }));
   server.setRequestHandler(ListPromptsRequestSchema, async () => ({ prompts: [{ name: "cosmic-assessment", description: "Assess implemented source with evidence, TEST effort and current FRB conversion", arguments: [{ name: "relative_path", required: false }] }] }));
   server.setRequestHandler(GetPromptRequestSchema, async request => {
     if (request.params.name !== "cosmic-assessment") throw new Error("UNKNOWN_PROMPT");

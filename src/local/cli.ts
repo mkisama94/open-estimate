@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {createDocument} from './create-document.js';
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
@@ -32,9 +33,12 @@ import { compareRuns } from "./compare.js";
 import { preparePublicResult } from "./public-result.js";
 import { prepareCertificate, verifyCertificateFile } from "./certificate-submissions.js";
 import { previewCertificate } from "./preview-transfer.js";
-import {prepareResultPreview,showResultPreview,regenerateResultPdf,consentResultPublication,publicationInput,recordResultPublication,migrateLegacyEstimate} from "./estimate-result.js";
-import {getExperienceCapabilities} from "../remote/experience.js";
-import {publishResultPreview} from "./publish-estimate.js";
+import {showDocument,renderDocumentPdfFile,attachDocumentProof,readDocumentFile} from './document-result.js';
+import {prepareProofRequest,consentDocumentAction,consentedDocumentInput,webPreviewInput} from './document-consent.js';
+import {openWebPreview} from './web-handoff.js';
+import {verifyDocumentProof} from '../proof/verify.js';
+import trustedDocumentKeys from '../../profiles/document-signing-keys.json' with {type:'json'};
+import type {TrustedDocumentKey} from '../contracts/document.js';
 
 function currentSkill() {
   const internal = fileURLToPath(new URL("../../skills/open-estimate-assessor/", import.meta.url));
@@ -62,15 +66,17 @@ async function input() {
 }
 async function main() {
   const command = process.argv[2], args = await input();
-  if(command==="experience"){if(Object.keys(args).length)throw new Error("INVALID_INPUT");return getExperienceCapabilities();}
-  if(command==="prepare-result-preview")return prepareResultPreview(args);
-  if(command==="show-result-preview")return showResultPreview(args.preview_id);
-  if(command==="regenerate-pdf")return regenerateResultPdf(args.preview_id);
-  if(command==="consent-estimate")return consentResultPublication(args);
-  if(command==="publication-input")return publicationInput(args.preview_id);
-  if(command==="publish-result")return publishResultPreview(args.preview_id);
-  if(command==="migrate-estimate")return migrateLegacyEstimate(args.submission_id);
-  if(command==="record-estimate-publication")return recordResultPublication(args.preview_id,args.result);
+  if(command==='create-document')return createDocument(args);
+  if(command==='show-document')return showDocument(args.document_dir);
+  if(command==='render-document-pdf')return renderDocumentPdfFile(args.document_dir);
+  if(command==='prepare-proof-request')return prepareProofRequest(args.document_dir);
+  if(command==='prepare-web-preview')return webPreviewInput(args.document_dir);
+  if(command==='consent-document-action')return consentDocumentAction(args);
+  if(command==='proof-request-input')return consentedDocumentInput(args.document_dir,'proof');
+  if(command==='attach-document-proof')return attachDocumentProof(args.document_dir,args.proof);
+  if(command==='verify-document')return verifyDocumentProof((await fs.readFile(args.markdown_path)).toString('utf8'),JSON.parse(await fs.readFile(args.proof_path,'utf8')),trustedDocumentKeys as TrustedDocumentKey[]);
+  if(command==='open-web-preview')return openWebPreview(args.document_dir);
+  if(['experience','prepare-result-preview','show-result-preview','regenerate-pdf','consent-estimate','publication-input','publish-result','migrate-estimate','record-estimate-publication'].includes(command))throw new Error('LEGACY_SAVE_FLOW_RETIRED_USE_CREATE_DOCUMENT');
   if(["prepare-estimate","preview-estimate","resume-estimate"].includes(command))throw new Error("ESTIMATE_FLOW_RETIRED_USE_LOCAL_PREVIEW");
   if (command === "prepare-certificate") return prepareCertificate(args);
   if (command === "verify-certificate") return verifyCertificateFile(args);
@@ -93,8 +99,8 @@ async function main() {
       local_public_result_candidate: true,
       local_certificate_preparation: true, offline_certificate_verification: true,
       owner_preview_transfer: true,
-      local_result_preview:true,pdf_report:true,authenticated_estimate_publication:true,standard_completion:"WEB_SAVED",saved_estimate_days:30,
-      remote_recalculation_required: true, persistent_evaluations: true, html_report: true, web_management: true, remote_availability_command: "experience", certificates: false, publishing: false } };
+      local_result_preview:true,pdf_report:true,portable_document:true,document_proof:true,stateless_web_preview:true,standard_completion:"DOCUMENT_READY",
+      remote_recalculation_required: false, persistent_evaluations: true, html_report: true, web_management: false, certificates: false, publishing: false } };
   await privateDirectory(base);
   if (command === "scan") {
     if (typeof args.root !== "string" || !path.isAbsolute(args.root)) throw new Error("ABSOLUTE_PROJECT_PATH_REQUIRED");

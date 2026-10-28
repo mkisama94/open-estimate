@@ -16,6 +16,7 @@ import { publicDisplayQuote } from "../core/public-display-quote.js";
 import { frbProvider } from "../profiles/frb.js";
 import {publishAuthenticatedEstimate,publicationAuthChallenge,type EstimatePublicationEnvironment} from "../remote/estimate-publishing.js";
 import {isSavedEstimatePath,savedEstimatePage} from "./saved-estimates.js";
+import documentWorker from './document-worker.js';
 
 interface Assets {fetch(request:Request):Promise<Response>}
 interface Env extends PublicResultEnvironment {OWNER_PREVIEW_ENABLED?:string;PREVIEW_TRANSFER_CODE_SECRET?:string;OWNER_PREVIEW_ENGINE_SHA256?:string;OWNER_PREVIEW_ENGINE_VERSION?:string;OWNER_PREVIEW_GENERATION?:string;OWNER_PREVIEW_LIMITER?:{limit(options:{key:string}):Promise<{success:boolean}>};ASSETS:Assets;ISSUANCE_ENABLED?:string;PUBLICATION_READ_ENABLED?:string;CERTIFICATES_DB?:import("./certificate-readiness.js").ReadinessDatabase;WEB_LOGIN_ENABLED?:string;AUTH0_ISSUER?:string;AUTH0_WEB_CLIENT_ID?:string;AUTH0_WEB_CLIENT_SECRET?:string;BROWSER_SESSION_SECRET?:string;BROWSER_LOGIN_LIMITER?:{limit(options:{key:string}):Promise<{success:boolean}>}}
@@ -80,6 +81,7 @@ export function createCertificateWorker(service:CertificateService,auth:AuthAdap
 }
 // G1/G2 are unresolved. Shipping this Worker cannot enable signing merely by setting a flag.
 export default {async fetch(request:Request,env:Env):Promise<Response> {
+  if(new URL(request.url).pathname==='/preview')return documentWorker.fetch(request);
   if(request.method==="GET" && new URL(request.url).pathname==="/api/v1/certificate-readiness")return (await import("./certificate-readiness.js")).certificateReadiness(env.CERTIFICATES_DB);
   const path=new URL(request.url).pathname;
   if(path==="/api/v1/estimates" && request.method==="POST"){

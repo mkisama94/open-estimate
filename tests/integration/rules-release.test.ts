@@ -133,6 +133,8 @@ it("does not mark history saved when the save fails, and can recover after the f
   expect(c.calls.filter((v: string) => v === "deploy")).toHaveLength(1);
 }));
 it("builds and runs a real rules-only Worker candidate while leaving plugin inputs unchanged", async () => fixture(async c => {
+  await fs.copyFile(path.join(actualRepo,'wrangler.mcp.jsonc'),path.join(c.repo,'wrangler.mcp.jsonc'));
+  await fs.mkdir(path.join(c.repo,'migrations'));await fs.copyFile(path.join(actualRepo,'migrations/0008_document_proof_issuances.sql'),path.join(c.repo,'migrations/0008_document_proof_issuances.sql'));
   await fs.cp(path.join(actualRepo, "src"), path.join(c.repo, "src"), { recursive: true });
   await fs.copyFile(path.join(actualRepo, "profiles/local-test.json"), path.join(c.repo, "profiles/local-test.json"));
   await fs.symlink(path.join(actualRepo, "node_modules"), path.join(c.repo, "node_modules"), "junction");

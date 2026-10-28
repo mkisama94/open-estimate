@@ -1,0 +1,9 @@
+{
+ "$schema":"node_modules/wrangler/config-schema.json",
+ "name":"open-estimate-preview-staging",
+ "account_id":"461a49a5bd16d90b629e8583ff7d7ec2",
+ "main":"src/web/document-worker.ts",
+ "compatibility_date":"2026-09-25",
+ "workers_dev":true,
+ "observability":{"enabled":false}
+}

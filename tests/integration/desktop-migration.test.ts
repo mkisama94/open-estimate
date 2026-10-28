@@ -66,12 +66,9 @@ describe("remote boundary", () => {
     };
     expect((await call("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "test", version: "1" } })).result.serverInfo.name).toBe("open-estimate-remote");
     const listed=(await call("tools/list",{})).result.tools;
-    expect(listed.map((t:any)=>t.name)).toEqual(["get_estimate_experience","show_estimate_step","get_skill_policy","get_measurement_rules","publish_estimate"]);
-    expect(listed.find((t:any)=>t.name==="publish_estimate").securitySchemes).toEqual([{type:"oauth2",scopes:["estimates:write"]}]);
-    const ui=(await call("tools/call",{name:"show_estimate_step",arguments:{stage:"confirmation"}})).result;
-    expect(ui.structuredContent).toEqual({stage:"confirmation"});
-    const resource=(await call("resources/read",{uri:ui._meta.ui.resourceUri})).result.contents[0];expect(resource.mimeType).toBe("text/html;profile=mcp-app");
-    expect(resource.text).not.toContain("照合コードを入力");
+    expect(listed.map((t:any)=>t.name)).toEqual(["get_skill_policy","get_measurement_rules","issue_document_proof"]);
+    expect(listed.find((t:any)=>t.name==="issue_document_proof").securitySchemes).toEqual([{type:"noauth"}]);
+    expect((await call('tools/call',{name:'show_estimate_step',arguments:{stage:'scope'}})).result.isError).toBe(true);
     expect((await call("tools/call",{name:"evaluate_model",arguments:args()})).result.isError).toBe(true);
     expect((await call("tools/call",{name:"show_preview_confirmation",arguments:{transfer_id:"pt_"+"1".repeat(32)}})).result.isError).toBe(true);
 

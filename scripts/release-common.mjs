@@ -3,6 +3,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { atomicJson, readJson, inventory, contentHash } from './build-skill-registry.mjs';
+import ts from 'typescript';
 
 export const run = (repo, script, args = []) => execFileSync(process.execPath, [path.resolve(repo, script), ...args], {
   cwd: repo, stdio: 'inherit', windowsHide: true, env: { ...process.env, WRANGLER_SEND_METRICS: 'false' }
@@ -74,8 +75,10 @@ export async function buildFrozenWorker(repo, dir, skills, rules) {
   await fs.copyFile(path.join(repo, 'package.json'), path.join(source, 'package.json'));
   await atomicJson(path.join(source, 'profiles/skill-releases.json'), skills);
   await atomicJson(path.join(source, 'profiles/measurement-rules.json'), rules);
-  const config = { name: 'open-estimate-mcp', main: './source/src/remote/worker.ts', compatibility_date: '2026-09-25',
-    compatibility_flags: ['nodejs_compat'], workers_dev: false, routes: [{ pattern: 'open-estimate.ai-orchestration.jp/mcp*', zone_name: 'ai-orchestration.jp' }], observability: { enabled: false } };
+  const parsed=ts.parseConfigFileTextToJson('wrangler.mcp.jsonc',await fs.readFile(path.join(repo,'wrangler.mcp.jsonc'),'utf8'));
+  if(parsed.error||parsed.config.name!=='open-estimate-mcp')throw new Error('INVALID_ISSUER_RELEASE_CONFIG');
+  const config = { ...parsed.config, main: './source/src/remote/worker.ts',
+    d1_databases:(parsed.config.d1_databases??[]).map(db=>({...db,migrations_dir:path.resolve(repo,db.migrations_dir)})) };
   await atomicJson(path.join(dir, 'build.json'), config);
   run(repo, 'node_modules/wrangler/bin/wrangler.js', ['deploy', '--config', path.join(dir, 'build.json'), '--dry-run', '--outdir', path.join(dir, 'artifacts')]);
   await atomicJson(path.join(dir, 'artifacts/wrangler.json'), { ...config, main: './worker.js', no_bundle: true });
@@ -113,14 +116,10 @@ export async function confirmDeployment(skills, rules, integrity, call = remoteC
   if (policy.isError || policy.structuredContent?.registry_sha256 !== contentHash(skills)) throw new Error('PRODUCTION_POLICY_MISMATCH');
   const got = await call('get_measurement_rules', request);
   if (got.isError || contentHash(got.structuredContent) !== contentHash(expected)) throw new Error('PRODUCTION_RULES_MISMATCH');
-  const args = { model: syntheticModel(), display_currency: 'USD', skill_integrity: integrity, ruleset_ref: expected.ruleset_ref };
-  const good = await call('evaluate_model', args);
-  if (good.isError || good.structuredContent?.assurance?.measurement_rules?.status !== 'ACCEPTED_CLIENT_REPORTED'
-    || good.structuredContent?.report?.measurement?.cfp !== 2) throw new Error('PRODUCTION_EVALUATION_FAILED');
-  const bad = await call('evaluate_model', { ...args, skill_integrity: { ...integrity, package_sha256: (integrity.package_sha256[0] === '0' ? '1' : '0') + integrity.package_sha256.slice(1) } });
-  if (bad.isError !== true || bad.structuredContent?.error?.code !== 'SKILL_INTEGRITY_MISMATCH' || bad.structuredContent?.report) throw new Error('PRODUCTION_REJECTION_FAILED');
-  let unknown = '0'.repeat(64);
-  while (rules.revisions.some(r => r.revision === unknown)) unknown = 'f' + unknown.slice(0, -1);
-  const rejected = await call('evaluate_model', { ...args, ruleset_ref: { ruleset_id: 'oes-measurement', revision: unknown } });
-  if (rejected.isError !== true || rejected.structuredContent?.error?.code !== 'RULESET_UNKNOWN' || rejected.structuredContent?.report) throw new Error('PRODUCTION_REJECTION_FAILED');
+  const bad = await call('get_measurement_rules', { ...request, skill_integrity: { ...integrity, package_sha256: (integrity.package_sha256[0] === '0' ? '1' : '0') + integrity.package_sha256.slice(1) } });
+  if (bad.isError !== true || bad.structuredContent?.error?.code !== 'SKILL_INTEGRITY_MISMATCH') throw new Error('PRODUCTION_REJECTION_FAILED');
+  let unknown='0'.repeat(64);while(rules.revisions.some(r=>r.revision===unknown))unknown='f'+unknown.slice(0,-1);
+  const rejected=await call('get_measurement_rules',{...request,ruleset_ref:{ruleset_id:'oes-measurement',revision:unknown}});
+  if(rejected.isError!==true||rejected.structuredContent?.error?.code!=='RULESET_UNKNOWN')throw new Error('PRODUCTION_REJECTION_FAILED');
+  // Rule acceptance does not issue a proof, save a document or depend on Web.
 }

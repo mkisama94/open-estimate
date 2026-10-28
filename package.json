@@ -1,6 +1,6 @@
 {
   "name": "open-estimate",
-  "version": "0.10.0",
+  "version": "0.11.1",
   "description": "Open Estimate — functional size measurement and estimation based on COSMIC",
   "type": "module",
   "main": "dist/index.js",
@@ -9,8 +9,8 @@
     "open-estimate": "dist/index.js"
   },
   "scripts": {
-    "build": "node scripts/clean-dist.mjs && tsc && node scripts/build-contract-validators.mjs && tsc && node scripts/build-measurement-rules.mjs && node scripts/update-skill-manifest.mjs && node scripts/build-contracts.mjs",
-    "build:worker": "node scripts/clean-dist.mjs && tsc && node scripts/build-contract-validators.mjs && tsc && node scripts/build-measurement-rules.mjs",
+    "build": "node scripts/clean-dist.mjs && tsc && node scripts/build-document-contracts.mjs && node scripts/build-contract-validators.mjs && tsc && node scripts/build-measurement-rules.mjs && node scripts/update-skill-manifest.mjs && node scripts/build-contracts.mjs",
+    "build:worker": "node scripts/clean-dist.mjs && tsc && node scripts/build-document-contracts.mjs && node scripts/build-contract-validators.mjs && tsc && node scripts/build-measurement-rules.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "test": "vitest run",
@@ -38,7 +38,12 @@
     "release": "node scripts/release-plugin.mjs release",
     "rules:prepare": "node scripts/release-rules.mjs prepare",
     "rules:publish": "node scripts/release-rules.mjs publish",
-    "rules:release": "node scripts/release-rules.mjs release"
+    "rules:release": "node scripts/release-rules.mjs release",
+    "build:document-web": "node scripts/build-document-web.mjs",
+    "test:document": "vitest run tests/unit/document.test.ts tests/unit/document-consent.test.ts tests/integration/document-system.test.ts tests/integration/document-issuer-d1.test.ts tests/architecture/document-boundaries.test.ts --maxWorkers=2",
+    "build:issuer": "wrangler deploy --config wrangler.mcp.jsonc --dry-run",
+    "build:local": "npm run build",
+    "ci:web:preview": "npm run build:document-web"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

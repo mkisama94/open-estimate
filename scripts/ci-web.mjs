@@ -50,7 +50,7 @@ export async function verifyBundle(config) {
 }
 async function prepare() {
   checkTarget();
-  run(repo, 'scripts/ci-mcp.mjs', ['check']);
+  // Legacy saved-result release checks do not require issuer registration.
   const parsed = ts.parseConfigFileTextToJson('wrangler.jsonc', await fs.readFile(path.join(repo, 'wrangler.jsonc'), 'utf8'));
   if (parsed.error) throw new Error('INVALID_WEB_CONFIG');
   await fs.mkdir(output, { recursive: true });

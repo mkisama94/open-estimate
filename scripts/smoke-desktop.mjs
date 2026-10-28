@@ -78,13 +78,13 @@ try {
   assert.equal(comparison.summary.format,'oes/run-comparison/v2');
   assert.equal(comparison.summary.identity.find(x=>x.key==='scope').status,'SAME');
   assert.equal(comparison.summary.identity.find(x=>x.key==='source_content').status,'UNKNOWN'); // Excluded .env has no content hash.
-  const preview=run('prepare-result-preview',{run_id:exported.local.run_id,display_currency:'USD'});
-  assert.equal(preview.status,'READY_FOR_REVIEW');assert.equal((await fs.readFile(preview.pdf.path)).subarray(0,5).toString(),'%PDF-');
+  const preview=run('create-document',{run_id:exported.local.run_id,display_currency:'USD'});
+  assert.equal(preview.status,'DOCUMENT_READY');assert.equal((await fs.readFile(preview.pdf)).subarray(0,5).toString(),'%PDF-');
   const client=new Client({name:'relocated-local-result',version:'1'},{capabilities:{}});
   await client.connect(new StdioClientTransport({command:process.execPath,args:[path.join(plugin,'server/dist/index.js')],cwd:temp,env:{...process.env,OES_RUNS_ROOT:path.join(temp,'runs')}}));
-  try{const card=await client.callTool({name:'preview_saved_estimate',arguments:{preview_id:preview.preview_id}});assert.notEqual(card.isError,true);assert.equal(card.structuredContent.snapshot_hash,preview.snapshot_hash);
+  try{const card=await client.callTool({name:'show_document',arguments:{document_dir:preview.dir}});assert.notEqual(card.isError,true);assert.equal(card.structuredContent.document_sha256,preview.document_sha256);
     const resource=await client.readResource({uri:card._meta.ui.resourceUri});assert.equal(resource.contents[0].mimeType,'text/html;profile=mcp-app');
-    const pdf=await client.callTool({name:'get_result_pdf',arguments:{preview_id:preview.preview_id}});assert.equal(Buffer.from(pdf._meta.pdf_base64,'base64').subarray(0,5).toString(),'%PDF-');
+    const pdf=await client.callTool({name:'get_document_pdf',arguments:{document_dir:preview.dir}});assert.equal(Buffer.from(pdf._meta.file_base64,'base64').subarray(0,5).toString(),'%PDF-');
   }finally{await client.close();}
   console.log(JSON.stringify({ status: 'PASS', relocated_package: true, immutable_run_after_purge:true,local_result_card:true,local_pdf:true, version: manifest.version }));
 } finally { await fs.rm(temp, { recursive: true, force: true }); }
