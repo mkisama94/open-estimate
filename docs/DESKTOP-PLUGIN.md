@@ -1,8 +1,10 @@
+> **仕様整理（2026-10-28）**：構成・責務・利用フローは[新システム仕様](implementation/SYSTEM-SPEC.md)を基準とします。本書は従来の実装・検証・個別技術の参考資料です。Web保存必須、表示時の再計算、認証との結合等の旧前提は新規設計へ適用しません。本書の合格記録は新仕様の受入完了を意味しません。
+
 # Open Estimate 0.10.0（ローカル実行対応ホスト向け）
 
 標準フローは「対象範囲の確認 → 解析 → チャット内プレビューとPDF → 一度の掲載同意 → 本人限定Web結果（30日保存）」。送信せず終了する場合もプレビューとPDFを利用できます。
 
-[設計と操作](implementation/ESTIMATE-PREVIEW-PUBLICATION.md) / [受入記録と外部作業](implementation/ESTIMATE-PREVIEW-PUBLICATION-ACCEPTANCE.md)
+[新システム仕様](implementation/SYSTEM-SPEC.md) / [受入記録と外部作業](implementation/ESTIMATE-PREVIEW-PUBLICATION-ACCEPTANCE.md)
 
 ## 必要な環境
 
