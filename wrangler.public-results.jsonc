@@ -1,0 +1,10 @@
+{
+ "$schema":"node_modules/wrangler/config-schema.json",
+ "name":"open-estimate-public-results",
+ "main":"src/web/public-results-worker.ts",
+ "compatibility_date":"2026-09-25",
+ "workers_dev":true,
+ "observability":{"enabled":false},
+ "vars":{"PUBLIC_RESULTS_ENABLED":"false","PUBLIC_RESULTS_ORIGIN":"https://open-estimate.ai-orchestration.jp","PUBLIC_RESULTS_ENVIRONMENT":"production"},
+ "triggers":{"crons":["17 * * * *"]}
+}

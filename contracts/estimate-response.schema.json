@@ -1,0 +1,46 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "oes/published-estimate/v1"
+    },
+    "status": {
+      "const": "PUBLISHED"
+    },
+    "public_result_id": {
+      "type": "string",
+      "pattern": "^res_[a-f0-9]{32}$"
+    },
+    "canonical_url": {
+      "type": "string",
+      "format": "uri",
+      "maxLength": 256
+    },
+    "result_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 24,
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 24,
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    }
+  },
+  "required": [
+    "schema_version",
+    "status",
+    "public_result_id",
+    "canonical_url",
+    "result_hash",
+    "published_at",
+    "expires_at"
+  ]
+}

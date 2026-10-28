@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 import {createDocument} from './create-document.js';
+import {prepareEstimateStart,startEstimateWorkflow,extendEstimateWorkflow,approveWorkflowAcquisition,approvedWorkflow,resumeEstimateWorkflow,showEstimateWorkflow,cancelEstimateWorkflow,withdrawEstimateWorkflow} from './estimate-workflow.js';
+import {completeEstimateWorkflow} from './complete-workflow.js';
+import {readWorkflowFile,workflowDirectory} from './workflow-store.js';
+import {jcsSha256} from '../core/canonical.js';
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
@@ -66,6 +70,13 @@ async function input() {
 }
 async function main() {
   const command = process.argv[2], args = await input();
+  if(command==='extend-estimate-workflow')return extendEstimateWorkflow(args);
+  if(command==='complete-estimate-workflow')return completeEstimateWorkflow(args);
+  if(command==='resume-estimate-workflow')return resumeEstimateWorkflow(args.workflow_id);
+  if(command==='show-estimate-workflow')return showEstimateWorkflow(args.workflow_id);
+  if(command==='cancel-estimate-workflow')return cancelEstimateWorkflow(args.workflow_id);
+  if(command==='withdraw-estimate-workflow')return withdrawEstimateWorkflow(args.workflow_id);
+  if(command==='get-estimate-workflow-pdf'){const dir=await workflowDirectory(args.workflow_id);return {path:path.join(dir,'estimate.pdf'),pdf_signed:false};}
   if(command==='create-document')return createDocument(args);
   if(command==='show-document')return showDocument(args.document_dir);
   if(command==='render-document-pdf')return renderDocumentPdfFile(args.document_dir);
@@ -99,7 +110,7 @@ async function main() {
       local_public_result_candidate: true,
       local_certificate_preparation: true, offline_certificate_verification: true,
       owner_preview_transfer: true,
-      local_result_preview:true,pdf_report:true,portable_document:true,document_proof:true,stateless_web_preview:true,standard_completion:"DOCUMENT_READY",
+      local_result_preview:true,pdf_report:true,portable_document:true,document_proof:true,stateless_web_preview:false,workflow_consent:true,estimate_proof:true,public_result_365_days:true,standard_completion:"SELECTED_WORKFLOW_STAGES_COMPLETE",
       remote_recalculation_required: false, persistent_evaluations: true, html_report: true, web_management: false, certificates: false, publishing: false } };
   await privateDirectory(base);
   if (command === "scan") {
@@ -147,6 +158,17 @@ async function main() {
       await fs.writeFile(temp, JSON.stringify(state), { flag: "wx", mode: 0o600 }); await fs.rename(temp, stateFile);
       return { status: "RULESET_BOUND", ruleset_ref: response.ruleset_ref, rule_ids: response.bundle.rule_ids };
     }
+    if(command==='show-estimate-start'){
+      const rules=requireBoundRules(state);
+      return {...await prepareEstimateStart({target_ref:state.root,target_hash:jcsSha256(state.root),plan_ref:stateFile,plan_hash:state.preflight.fingerprint,ruleset_ref:rules.ruleset_ref,display_currency:args.display_currency??'JPY'}),acquisition:state.preflight.summary,scope:state.scope};
+    }
+    if(command==='start-estimate-workflow'){
+      const draft=await readWorkflowFile<any>(args.workflow_id,'state.json');
+      if(draft.terms.target_hash!==jcsSha256(state.root)||draft.terms.plan_hash!==state.preflight.fingerprint)throw Error('WORKFLOW_SCOPE_CHANGE_REQUIRES_CONFIRMATION');
+      const result=await startEstimateWorkflow(args);state.workflow_id=args.workflow_id;state.confirmed=true;
+      const tmp=path.join(base,randomUUID()+'.tmp');await fs.writeFile(tmp,JSON.stringify(state),{flag:'wx',mode:0o600});await fs.rename(tmp,stateFile);return result;
+    }
+    if(state.workflow_id&&['prepare','read','export','authorize-partial'].includes(command))await approvedWorkflow(state.workflow_id,{target_hash:jcsSha256(state.root),plan_hash:state.preflight.fingerprint});
     if (command === "draft") {
       const raw = typeof args.assessment === "string" ? parseStrictJson(args.assessment) : args.assessment;
       if (!raw || typeof raw !== "object") throw new Error("ASSESSMENT_INPUT_REQUIRED");
@@ -169,9 +191,13 @@ async function main() {
       if (command === "confirm") result = { status: "CONFIRMED", confirmation: "assistant_reports_user_confirmation" };
       else if (command === "prepare") {
         if (Object.hasOwn(args,"scope")) throw new Error("SCOPE_CHANGE_REQUIRES_NEW_SCAN");
-        if (args.refresh_preflight === true) state.preflight = await planAcquisition(state.root,state.scope);
+        if (args.refresh_preflight === true) {
+          const fresh=await planAcquisition(state.root,state.scope);
+          if(state.workflow_id&&fresh.fingerprint!==state.preflight.fingerprint)await approveWorkflowAcquisition(state.workflow_id,jcsSha256(state.root),state.preflight,fresh);
+          state.preflight=fresh;
+        }
         result = await handlePrepareRepository({ relative_path: ".", scope:state.scope, preflight:state.preflight,
-          previous_snapshot_id:state.latest_snapshot_id, partial_authorized:args.user_requested_partial === true, split_acquisition:args.split_acquisition === true });
+          previous_snapshot_id:state.latest_snapshot_id, partial_authorized:!!state.workflow_id || args.user_requested_partial === true, split_acquisition:args.split_acquisition === true });
         Object.assign(result as object, { ruleset_ref: rules!.ruleset_ref, rule_ids: rules!.bundle.rule_ids });
         const id = (result as any).snapshot_id;
         state.snapshots[id] = { snapshot: mcpState.getSnapshot(id)!.snapshot, reads: [] };
@@ -185,7 +211,7 @@ async function main() {
         const tracker = mcpState.getSnapshot(args.snapshot_id)!.tracker;
         tracker.restoreReads(entry.reads);
         if (command === "authorize-partial") {
-          if (args.user_requested_partial !== true) throw new Error("EXPLICIT_PARTIAL_REQUEST_REQUIRED");
+          if (!state.workflow_id && args.user_requested_partial !== true) throw new Error("EXPLICIT_PARTIAL_REQUEST_REQUIRED");
           entry.snapshot.analysis_ready=true;
           entry.snapshot.acquisition.partial_authorized=true;
           result={status:"PARTIAL_AUTHORIZED",scope_coverage:entry.snapshot.acquisition.scope_coverage,
@@ -216,7 +242,7 @@ async function main() {
             local: { ...run, session_assessment_path: localPath, session_context_path: context.context_path, ...context, context_path: path.join(run.run_directory,"context.json"), scope: validated.scope, scope_record: validated.scope_record ?? null,
               records: recordState(validated), comparison: comparisonSummary(validated), report: createEvaluation(validated,getLocalProfile()).report,
               ledger_pointer: "/assessment/judgments", candidates_pointer: "/assessment/function_candidates" },
-            notice: "数値モデル・表示通貨・配布スキルのID/版/整合性確認用ハッシュ・測定ルールの参照版を送信します。対象ソース、名称、説明、パス、根拠本文、対象ソースhash、Assessment、判断台帳、ルール本文、ローカルcontextは送信しません。送信同意を確認し、長期保管が必要なAssessmentとcontextは一緒に保持してください。" };
+            notice: "新フローでは開始時の承認を適用して選択した工程を継続します。旧互換の送信は別同意です。数値モデル・表示通貨・配布スキルのID/版/整合性確認用ハッシュ・測定ルールの参照版を送信します。対象ソース、名称、説明、パス、根拠本文、対象ソースhash、Assessment、判断台帳、ルール本文、ローカルcontextは送信しません。送信同意を確認し、長期保管が必要なAssessmentとcontextは一緒に保持してください。" };
         } else throw new Error("UNKNOWN_COMMAND");
         entry.reads = tracker.exportReads();
       }

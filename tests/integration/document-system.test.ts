@@ -60,7 +60,7 @@ it('blocks executable HTML, embeds, forged badges, duplicate/unknown inputs, ove
 });
 it('keeps rule reads independent of issuer configuration and removes Web capability/progress/save from basic remote tools',async()=>{
  const call=async(method:string,params:unknown)=>{const r=await remote.fetch(new Request('https://x/mcp',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})}));return r.json() as any;};
- const tools=(await call('tools/list',{})).result.tools;expect(tools.map((t:any)=>t.name)).toEqual(['get_skill_policy','get_measurement_rules','issue_document_proof']);expect(tools[2].securitySchemes).toEqual([{type:'noauth'}]);
+ const tools=(await call('tools/list',{})).result.tools;expect(tools.map((t:any)=>t.name)).toEqual(['get_skill_policy','get_measurement_rules','issue_estimate_proof','issue_document_proof']);expect(tools[2].securitySchemes).toEqual([{type:'noauth'}]);
  expect((await call('tools/call',{name:'get_skill_policy',arguments:{}})).result.isError).not.toBe(true);
  const failed=(await call('tools/call',{name:'issue_document_proof',arguments:{}})).result;expect(failed.structuredContent.error.code).toBe('DOCUMENT_ISSUANCE_DISABLED');
 });

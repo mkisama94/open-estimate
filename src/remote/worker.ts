@@ -1,4 +1,6 @@
 import {proofRequestSchema} from '../contracts/document.js';
+import estimateSchemas from '../contracts/estimate.schema.json' with {type:'json'};
+import {issueEstimateProof,type EstimateIssuerEnvironment} from '../issuer/estimate-service.js';
 import {issueDocumentProof,type DocumentIssuerEnvironment} from '../issuer/runtime.js';
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
@@ -12,8 +14,8 @@ import { defaultRulesRegistry, measurementRulesArgsSchema, resolveMeasurementRul
 import type { RulesRegistry } from "../rules/measurement-contract.js";
 
 export default {
-  async fetch(request: Request, registry: SkillRegistry | { OES_ENFORCEMENT_AT?: string; OES_RULES_ENFORCEMENT_AT?: string } & DocumentIssuerEnvironment = defaultRegistry, rules: RulesRegistry = defaultRulesRegistry): Promise<Response> {
-    const environment:DocumentIssuerEnvironment = "releases" in registry ? {} : registry;
+  async fetch(request: Request, registry: SkillRegistry | { OES_ENFORCEMENT_AT?: string; OES_RULES_ENFORCEMENT_AT?: string } & EstimateIssuerEnvironment = defaultRegistry, rules: RulesRegistry = defaultRulesRegistry): Promise<Response> {
+    const environment:EstimateIssuerEnvironment = "releases" in registry ? {} : registry;
     // Cloudflare supplies ExecutionContext as argument three; tests may inject a registry.
     if (!Array.isArray(rules?.revisions)) rules = defaultRulesRegistry;
     // Cloudflare passes Env here; only tests pass an explicit registry.
@@ -48,10 +50,15 @@ export default {
       server.setRequestHandler(ListToolsRequestSchema,async()=>({tools:[
         {name:"get_skill_policy",description:"Read skill policy without target sources.",inputSchema:{type:"object",properties:{},additionalProperties:false},annotations:{readOnlyHint:true},securitySchemes:[{type:"noauth"}]},
         {name:"get_measurement_rules",description:"Get and bind the official measurement rules before reading source.",inputSchema:measurementRulesArgsSchema as any,annotations:{readOnlyHint:true},securitySchemes:[{type:"noauth"}]},
+        {name:'issue_estimate_proof',title:'構造化結果の数値検証・証明',description:'Apply the already selected workflow verification approval. Verify anonymous numeric input, fixed rules and structured EstimateResult; return a signed result hash. No Markdown, source, Web storage, URL or login. Retry the same operation for the same request.',inputSchema:estimateSchemas.request as any,annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:true},securitySchemes:[{type:'noauth'}]},
         {name:'issue_document_proof',title:'この文書の数値検証・証明を取得',description:'Only after explicit consent to this exact request and destination: verify the frozen numeric model, rules and standard Markdown, sign the document hash and return a portable proof. Anonymous; no owner identity, Web URL or document/model storage. Retry the identical operation after a lost response.',inputSchema:proofRequestSchema as any,annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:true},securitySchemes:[{type:'noauth'}]}
       ]}));
       server.setRequestHandler(CallToolRequestSchema, async req => {
         try {
+          if(req.params.name==='issue_estimate_proof'){
+            const result=await issueEstimateProof(req.params.arguments,environment,{skills:policy,rules,now:Date.now()});
+            return {structuredContent:result,content:[{type:'text',text:JSON.stringify(result)}]};
+          }
           if(req.params.name==='issue_document_proof'){
             const result=await issueDocumentProof(req.params.arguments,environment,{skills:policy,rules,now:Date.now()});
             return {structuredContent:result,content:[{type:"text",text:JSON.stringify(result)}]};
@@ -68,7 +75,7 @@ export default {
           throw new Error("UNKNOWN_TOOL");
         } catch (e: any) {
           const code = /^[A-Z][A-Z0-9_]+$/.test(e.message) ? e.message : "REMOTE_EVALUATION_FAILED";
-          const notice = req.params.name==='issue_document_proof' ? '文書証明は未取得です。元文書とPDFを保持してください。同じ内容は同じ操作IDで再送できます。内容・数値の不一致は差し替えず新しい文書版として確認してください。'
+          const notice = req.params.name==='issue_estimate_proof' ? '構造化結果の証明は未取得です。ローカル結果・PDFを保持し、通信障害は同じ操作IDで再開してください。形式・計算不一致は自動修正しません。' : req.params.name==='issue_document_proof' ? '文書証明は未取得です。元文書とPDFを保持してください。同じ内容は同じ操作IDで再送できます。内容・数値の不一致は差し替えず新しい文書版として確認してください。'
             : code === "RULESET_UNAVAILABLE" ? "配信側に有効な測定ルールがありません。運用側で配信を復旧してください。"
             : code === "RULESET_INCOMPATIBLE" ? "対応するプラグインへ更新してください。古いルールへの自動切替は行いません。"
             : code.startsWith("RULE") || code.includes("RULESET") || code.includes("MEASUREMENT_RULES") ? "正規ルールを取得して固定してください。未知・停止・変更された版は別版に差し替えず、新しい解析セッションで再解析してください。"

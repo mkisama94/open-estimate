@@ -1,0 +1,6 @@
+{
+ "environment":"production",
+ "proof_destination":"https://open-estimate.ai-orchestration.jp/mcp",
+ "publication_destination":"https://open-estimate.ai-orchestration.jp/api/results",
+ "result_origin":"https://open-estimate.ai-orchestration.jp"
+}

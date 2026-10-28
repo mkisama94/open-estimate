@@ -75,6 +75,11 @@ export class WorkspaceSession {
     return selected.root;
   }
   current() { return this.selected?.root ?? null; }
+  async candidate() {
+    const c=this.pending;if(!c)throw Error('CANDIDATE_NOT_FOUND');
+    if((await this.roots()).key!==c.roots_key)throw Error('PROJECT_CHANGED_RECONFIRM_REQUIRED');
+    return {candidate_id:c.candidate_id,root:c.root,plan:c.plan};
+  }
   async acquisitionOptions(refresh = false) {
     const root = await this.requireRoot();
     if (refresh) this.selected!.plan = await planAcquisition(root,this.selected!.plan.scope);

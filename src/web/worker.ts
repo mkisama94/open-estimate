@@ -17,9 +17,10 @@ import { frbProvider } from "../profiles/frb.js";
 import {publishAuthenticatedEstimate,publicationAuthChallenge,type EstimatePublicationEnvironment} from "../remote/estimate-publishing.js";
 import {isSavedEstimatePath,savedEstimatePage} from "./saved-estimates.js";
 import documentWorker from './document-worker.js';
+import publicResultsWorker,{isPublicResultsPath,type PublicResultsEnvironment} from './public-results-worker.js';
 
 interface Assets {fetch(request:Request):Promise<Response>}
-interface Env extends PublicResultEnvironment {OWNER_PREVIEW_ENABLED?:string;PREVIEW_TRANSFER_CODE_SECRET?:string;OWNER_PREVIEW_ENGINE_SHA256?:string;OWNER_PREVIEW_ENGINE_VERSION?:string;OWNER_PREVIEW_GENERATION?:string;OWNER_PREVIEW_LIMITER?:{limit(options:{key:string}):Promise<{success:boolean}>};ASSETS:Assets;ISSUANCE_ENABLED?:string;PUBLICATION_READ_ENABLED?:string;CERTIFICATES_DB?:import("./certificate-readiness.js").ReadinessDatabase;WEB_LOGIN_ENABLED?:string;AUTH0_ISSUER?:string;AUTH0_WEB_CLIENT_ID?:string;AUTH0_WEB_CLIENT_SECRET?:string;BROWSER_SESSION_SECRET?:string;BROWSER_LOGIN_LIMITER?:{limit(options:{key:string}):Promise<{success:boolean}>}}
+interface Env extends PublicResultEnvironment, PublicResultsEnvironment {OWNER_PREVIEW_ENABLED?:string;PREVIEW_TRANSFER_CODE_SECRET?:string;OWNER_PREVIEW_ENGINE_SHA256?:string;OWNER_PREVIEW_ENGINE_VERSION?:string;OWNER_PREVIEW_GENERATION?:string;OWNER_PREVIEW_LIMITER?:{limit(options:{key:string}):Promise<{success:boolean}>};ASSETS:Assets;ISSUANCE_ENABLED?:string;PUBLICATION_READ_ENABLED?:string;CERTIFICATES_DB?:import("./certificate-readiness.js").ReadinessDatabase;WEB_LOGIN_ENABLED?:string;AUTH0_ISSUER?:string;AUTH0_WEB_CLIENT_ID?:string;AUTH0_WEB_CLIENT_SECRET?:string;BROWSER_SESSION_SECRET?:string;BROWSER_LOGIN_LIMITER?:{limit(options:{key:string}):Promise<{success:boolean}>}}
 const headers={"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store","X-Content-Type-Options":"nosniff","X-Robots-Tag":"noindex"};
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers});
 const codeStatus:Record<string,number>={INVALID_INPUT:400,INPUT_TOO_LARGE:413,AUTH_REQUIRED:401,APPROVAL_REQUIRED:403,AUTH_CONSENT_NOT_READY:403,NOT_FOUND:404,RESULT_MISMATCH:409,BASIS_MISMATCH:409,DRAFT_CHANGED:409,IDEMPOTENCY_CONFLICT:409,ALREADY_CONSUMED:409,PREVIEW_EXPIRED:410,PUBLICATION_WITHDRAWN:410,MODEL_UNSUPPORTED:422,BASIS_UNSUPPORTED:422,RULESET_NOT_ISSUABLE:422,SKILL_NOT_ISSUABLE:422,RATE_LIMITED:429,ISSUANCE_DISABLED:503,SIGNING_UNAVAILABLE:503,STATUS_UNAVAILABLE:503};
@@ -81,6 +82,7 @@ export function createCertificateWorker(service:CertificateService,auth:AuthAdap
 }
 // G1/G2 are unresolved. Shipping this Worker cannot enable signing merely by setting a flag.
 export default {async fetch(request:Request,env:Env):Promise<Response> {
+  if(isPublicResultsPath(new URL(request.url).pathname))return publicResultsWorker.fetch(request,env);
   if(new URL(request.url).pathname==='/preview')return documentWorker.fetch(request);
   if(request.method==="GET" && new URL(request.url).pathname==="/api/v1/certificate-readiness")return (await import("./certificate-readiness.js")).certificateReadiness(env.CERTIFICATES_DB);
   const path=new URL(request.url).pathname;
@@ -137,8 +139,9 @@ export default {async fetch(request:Request,env:Env):Promise<Response> {
   if(dynamic(new URL(request.url).pathname))return json({error:{code:"AUTH_CONSENT_NOT_READY",request_id:randomUUID(),retryable:false}},403);
   return env.ASSETS.fetch(request);
 },async scheduled(_event:unknown,env:Env) {
+  if(env.PUBLIC_RESULTS_DB)await publicResultsWorker.scheduled(_event,env);
   const db=env.CERTIFICATES_DB as import("./browser-login.js").BrowserLoginDatabase|undefined;
-  if(!db || typeof db.batch!=="function")throw new Error("STATUS_UNAVAILABLE");
+  if(!db || typeof db.batch!=="function"){if(env.PUBLIC_RESULTS_DB)return;throw new Error("STATUS_UNAVAILABLE");}
   await (await import("./browser-login.js")).purgeBrowserSessions(db,Date.now());
   if(await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='saved_estimates'").first())await db.batch([db.prepare("DELETE FROM saved_estimates WHERE expires_at<=?").bind(Date.now())]);
   if(await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='estimate_publications'").first())await db.batch([db.prepare("DELETE FROM estimate_publications WHERE expires_at<=?").bind(Date.now())]);

@@ -41,7 +41,7 @@ const json = async (file, data) => { await fs.mkdir(path.dirname(file), { recurs
 const manifest = JSON.parse(await fs.readFile(path.join(repo, 'plugin/plugin.json'), 'utf8'));
 await json(path.join(plugin, '.codex-plugin/plugin.json'), manifest);
 // Select the project through discovery and confirmation; plugin cwd is not the project.
-await json(path.join(plugin, '.mcp.json'), { mcpServers: { 'open-estimate-local': {type:'stdio',command:'node',args:['${PLUGIN_ROOT}/server/dist/index.js'],cwd:'${PLUGIN_ROOT}'}, 'open-estimate': {
+await json(path.join(plugin, '.mcp.json'), { mcpServers: { 'open-estimate-local': {type:'stdio',command:'node',args:['./server/dist/index.js'],cwd:'.'}, 'open-estimate': {
   type: 'http', url: 'https://open-estimate.ai-orchestration.jp/mcp'
 } } });
 for (const dir of ['dist', 'contracts', 'profiles', 'skills'])
@@ -49,7 +49,7 @@ for (const dir of ['dist', 'contracts', 'profiles', 'skills'])
 await fs.cp(path.join(repo, 'skills'), path.join(plugin, 'skills'), { recursive: true });
 try { await fs.copyFile(path.join(repo, 'LICENSE'), path.join(plugin, 'LICENSE')); } catch(e) { if(e.code !== 'ENOENT') throw e; }
 await fs.copyFile(path.join(repo, 'docs/DESKTOP-PLUGIN.md'), path.join(plugin, 'README.md'));
-for (const file of ['SYSTEM-SPEC.md','SYSTEM-IMPLEMENTATION-PLAN.md','SYSTEM-IMPLEMENTATION-ACCEPTANCE.md','DOCUMENT-OPERATIONS.md','DOCUMENT-STAGING-ACCEPTANCE.md']) { for (const target of [plugin, marketplace]) { await fs.mkdir(path.join(target,'implementation'),{recursive:true}); await fs.copyFile(path.join(repo,'docs/implementation',file),path.join(target,'implementation',file)); } }
+for (const file of ['SYSTEM-SPEC.md','SYSTEM-IMPLEMENTATION-PLAN.md','SYSTEM-IMPLEMENTATION-ACCEPTANCE.md','DOCUMENT-OPERATIONS.md','DOCUMENT-STAGING-ACCEPTANCE.md','PUBLICATION-OPERATIONS.md','PUBLICATION-IMPLEMENTATION-MAP.md','PUBLICATION-STAGING-ACCEPTANCE.md','WEB-PUBLICATION-SIMPLIFICATION-PROPOSAL.md']) { for (const target of [plugin, marketplace]) { await fs.mkdir(path.join(target,'implementation'),{recursive:true}); await fs.copyFile(path.join(repo,'docs/implementation',file),path.join(target,'implementation',file)); } }
 await fs.mkdir(path.join(plugin, 'implementation'), { recursive: true });
 await fs.copyFile(path.join(repo, 'docs/implementation/PLUGIN-QUALITY-0.8.0.md'), path.join(plugin, 'implementation/PLUGIN-QUALITY-0.8.0.md'));
 await fs.copyFile(path.join(repo, 'docs/implementation/PLUGIN-QUALITY-0.8.1.md'), path.join(plugin, 'implementation/PLUGIN-QUALITY-0.8.1.md'));

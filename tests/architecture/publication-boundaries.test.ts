@@ -1,0 +1,4 @@
+import {it,expect} from 'vitest';
+import {build} from 'esbuild';
+it('keeps stored-result Web/PDF independent of numeric engines, issuer, local state, MCP and OAuth',async()=>{const r=await build({entryPoints:['src/web/public-results-worker.ts'],bundle:true,write:false,format:'esm',platform:'browser',metafile:true});const inputs=Object.keys(r.metafile!.inputs).join('\n');expect(inputs).not.toMatch(/src\/(issuer|local|remote)\/|src\/core\/(numeric-model|estimate|measure|certificate-contract)\.|browser-login|saved-estimates|pdfkit/);expect(r.outputFiles[0].text).not.toContain("importKey('pkcs8'");});
+it('keeps the remote issuer independent of Web storage, PDF and local state',async()=>{const r=await build({entryPoints:['src/remote/worker.ts'],bundle:true,write:false,format:'esm',platform:'node',metafile:true});expect(Object.keys(r.metafile!.inputs).join('\n')).not.toMatch(/src\/(web|local)\/|pdf-lib|pdfkit/);});

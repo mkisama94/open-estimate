@@ -11,7 +11,10 @@ import type {IssuanceCatalog} from '../core/certificate.js';
 import type {FxProvider} from '../profiles/frb.js';
 /** Explicit numeric verification, independent of Web publication and ownership. */
 export async function validateDocumentCalculation(request:DocumentProofRequest,catalog:IssuanceCatalog){
- const {document:d,validation_input:input}=request;
+ await validateCalculationData(request.document,request.validation_input,catalog);
+ assertDocumentMarkdown(request.document,request.markdown);
+}
+export async function validateCalculationData(d:DocumentProofRequest['document'],input:DocumentProofRequest['validation_input'],catalog:IssuanceCatalog){
  const integrity=checkSkillIntegrity(input.skill_integrity,catalog.skills,catalog.now);
  checkRulesetReference(input.ruleset_ref,clientRelease(input.skill_integrity,catalog.skills),catalog.rules,catalog.now,integrity);
  if(integrity.status!=='MATCHED_CLIENT_REPORTED')throw new Error('DOCUMENT_CLIENT_NOT_SUPPORTED');
@@ -23,5 +26,4 @@ export async function validateDocumentCalculation(request:DocumentProofRequest,c
  const provider={get:async()=>({status:q.localized_reference.status,snapshot:q.fx_snapshot,limitation_codes:q.limitation_codes.filter(x=>!report.limitation_codes.includes(x))})} as FxProvider;
  const expected=await createDisplayQuote({report,basis:profile,report_hash:hash},provider,q.locale,q.display_currency,()=>new Date(q.displayed_at));
  if(jcsSha256(expected)!==jcsSha256(q))throw new Error('DOCUMENT_QUOTE_MISMATCH');
- assertDocumentMarkdown(d,request.markdown);
 }

@@ -1,0 +1,42 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {execFileSync} from 'node:child_process';
+import {hashSkillPackage,inspectSkillPackage} from '../dist/profiles/skill-package.js';
+import {registerCandidate,readJson,inventory} from './build-skill-registry.mjs';
+if(process.argv[2]!=='--deploy')throw Error('EXPLICIT_STAGING_DEPLOY_REQUIRED');
+const revision=process.argv[3]??'1';if(!/^[1-9][0-9]?$/.test(revision))throw Error('INVALID_REVISION');
+const repo=fileURLToPath(new URL('../',import.meta.url)),pkg=await readJson(path.join(repo,'package.json'));
+const prior=await readJson(path.join(repo,'release/document-staging/0.11.1-staging.2/STAGING.json'));
+const issuer='https://open-estimate-proof-staging.mkisama.workers.dev',origin='https://open-estimate-results-staging.mkisama.workers.dev';
+const services={environment:'test',proof_destination:issuer+'/mcp',publication_destination:origin+'/api/results',result_origin:origin};
+const key=prior.key;if(key.issuer!==issuer||key.environment!=='test')throw Error('STAGING_KEY_INVALID');
+const version=pkg.version+'-staging.'+revision,root=path.join(repo,'release/publication-staging',version),source=path.join(root,'source'),marketplace=path.join(root,'marketplace'),plugin=path.join(marketplace,'plugins/open-estimate');
+await fs.mkdir(path.dirname(root),{recursive:true});await fs.mkdir(root,{recursive:false});await fs.mkdir(source);
+const json=async(file,value)=>{await fs.mkdir(path.dirname(file),{recursive:true});await fs.writeFile(file,JSON.stringify(value,null,2)+'\n');};
+for(const dir of ['src','profiles'])await fs.cp(path.join(repo,dir),path.join(source,dir),{recursive:true});await json(path.join(source,'package.json'),{...pkg,version});
+await fs.cp(path.join(repo,'release/local-marketplace'),marketplace,{recursive:true});
+for(const base of [source,path.join(plugin,'server')]){await json(path.join(base,'profiles/estimate-services.json'),services);await json(path.join(base,'profiles/document-signing-keys.json'),[key]);}
+for(const base of [plugin,path.join(plugin,'server')]){
+ const skill=path.join(base,'skills/open-estimate-assessor'),file=path.join(skill,'SKILL.md');let text=await fs.readFile(file,'utf8');text=text.replaceAll('https://open-estimate.ai-orchestration.jp/api/results',services.publication_destination).replaceAll('https://open-estimate.ai-orchestration.jp/mcp',services.proof_destination)+'\nステージング専用。合成対象だけで受入し、本番の完了と混同しない。\n';await fs.writeFile(file,text);
+ const old=await readJson(path.join(skill,'skill.manifest.json'));await json(path.join(skill,'skill.manifest.json'),{...old,skill_version:version,...hashSkillPackage(skill)});
+}
+const previousPublication=Number(revision)>1?path.join(repo,'release/publication-staging',pkg.version+'-staging.'+(Number(revision)-1),'source/profiles/skill-releases.json'):path.join(prior.root,'source/profiles/skill-releases.json');
+const integrity=inspectSkillPackage(path.join(plugin,'skills/open-estimate-assessor')),registry=registerCandidate(await readJson(previousPublication),integrity,'oes/measurement-client/v1');
+for(const base of [source,path.join(plugin,'server')])await json(path.join(base,'profiles/skill-releases.json'),registry);
+await json(path.join(plugin,'server/package.json'),{...pkg,version});
+const manifest=await readJson(path.join(plugin,'.codex-plugin/plugin.json'));await json(path.join(plugin,'.codex-plugin/plugin.json'),{...manifest,version,interface:{...manifest.interface,displayName:'Open Estimate 365日公開（ステージング）'}});
+const connections=await readJson(path.join(plugin,'.mcp.json'));connections.mcpServers['open-estimate-proof-staging']={...connections.mcpServers['open-estimate'],url:services.proof_destination};delete connections.mcpServers['open-estimate'];connections.mcpServers['open-estimate-local-staging']=connections.mcpServers['open-estimate-local'];delete connections.mcpServers['open-estimate-local'];await json(path.join(plugin,'.mcp.json'),connections);
+const listing=await readJson(path.join(marketplace,'.agents/plugins/marketplace.json'));listing.name='open-estimate-publication-staging';listing.interface.displayName='Open Estimate 一括同意・公開受入';await json(path.join(marketplace,'.agents/plugins/marketplace.json'),listing);
+const common={account_id:'461a49a5bd16d90b629e8583ff7d7ec2',compatibility_date:'2026-09-25',workers_dev:true,observability:{enabled:false}};
+const issuerDb={database_name:'open-estimate-document-proofs-staging',database_id:'9076c6c2-4047-47c4-b072-ecf0e5c3573c'},webDb={binding:'PUBLIC_RESULTS_DB',database_name:'open-estimate-public-results-staging',database_id:'37bd7550-0eff-4696-8bd1-71727d70284d'};
+const issuerConfig={...common,name:'open-estimate-proof-staging',main:'./source/src/remote/worker.ts',compatibility_flags:['nodejs_compat'],vars:{DOCUMENT_ISSUANCE_ENABLED:'true',ESTIMATE_ISSUANCE_ENABLED:'true',DOCUMENT_ISSUER_ORIGIN:issuer,DOCUMENT_ENVIRONMENT:'test',DOCUMENT_SIGNING_KEY_ID:key.key_id,DOCUMENT_SIGNING_PUBLIC_KEY:key.public_key},d1_databases:[{...issuerDb,binding:'DOCUMENT_PROOF_DB'},{...issuerDb,binding:'ESTIMATE_PROOF_DB'}],ratelimits:[{name:'DOCUMENT_ISSUANCE_LIMITER',namespace_id:'2026102803',simple:{limit:20,period:60}}]};
+const webConfig={...common,name:'open-estimate-results-staging',main:'./source/src/web/public-results-worker.ts',vars:{PUBLIC_RESULTS_ENABLED:'true',PUBLIC_RESULTS_ORIGIN:origin,PUBLIC_RESULTS_ENVIRONMENT:'test'},d1_databases:[webDb],ratelimits:[{name:'PUBLIC_RESULTS_LIMITER',namespace_id:'2026102804',simple:{limit:20,period:60}}],triggers:{crons:['17 * * * *']}};
+const issuerFile=path.join(root,'issuer.json'),webFile=path.join(root,'web.json');await json(issuerFile,issuerConfig);await json(webFile,webConfig);
+const cli=path.join(repo,'node_modules/wrangler/bin/wrangler.js');const run=(args,capture=false)=>execFileSync(process.execPath,[cli,...args],{cwd:repo,windowsHide:true,env:{...process.env,WRANGLER_SEND_METRICS:'false'},encoding:'utf8',stdio:capture?['pipe','pipe','pipe']:'inherit'});
+if(!JSON.parse(run(['secret','list','--config',issuerFile],true)).some(s=>s.name==='DOCUMENT_SIGNING_PRIVATE_KEY'))throw Error('EXISTING_STAGING_SECRET_REQUIRED');
+run(['d1','execute',issuerDb.database_name,'--remote','--config',issuerFile,'--file',path.join(repo,'migrations/0009_estimate_proof_issuances.sql')]);
+run(['d1','execute',webDb.database_name,'--remote','--config',webFile,'--file',path.join(repo,'migrations/0010_public_estimate_results.sql')]);
+run(['deploy','--config',issuerFile]);run(['deploy','--config',webFile]);
+await json(path.join(marketplace,'BUILD.json'),{release_status:'STAGING_ONLY_HOST_ACCEPTANCE_PENDING',plugin_version:version,built_at:new Date().toISOString(),files:await inventory(plugin)});
+const result={status:'STAGING_DEPLOYED_HOST_ACCEPTANCE_PENDING',version,root,marketplace,services,key,issuer_database:issuerDb,web_database:webDb,production_modified:false,private_key:'UNCHANGED_WORKER_SECRET_ONLY'};await json(path.join(root,'STAGING.json'),result);console.log(JSON.stringify(result));

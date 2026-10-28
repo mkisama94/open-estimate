@@ -15,7 +15,7 @@ import type {EstimateDocument,DocumentValidationInput} from '../contracts/docume
 import {renderDocumentMarkdown} from '../document/markdown.js';
 import {documentsRoot} from './document-paths.js';
 import {readDocumentFile,writeDocumentFile,jsonFile,renderDocumentPdfFile,showDocument} from './document-result.js';
-export async function createDocument(args:{run_id:string;display_currency?:string},provider:FxProvider=frbProvider){
+export async function fixedDocumentFromRun(args:{run_id:string;display_currency?:string},provider:FxProvider=frbProvider){
  const run=await readRun(args.run_id),model=JSON.parse((await readDocumentFile(run.dir,'model.json')).toString());
  if(jcsSha256(model)!==run.metadata.numeric_model_hash)throw new Error('RUN_CHECKSUM_MISMATCH');
  const context=run.metadata.rules_context as any;validateRulesBundle(context.bundle,context.ruleset_ref);
@@ -24,6 +24,10 @@ export async function createDocument(args:{run_id:string;display_currency?:strin
  const input:DocumentValidationInput={schema_version:'oes/document-validation-input/v1',model,display_currency:args.display_currency??'JPY',skill_integrity:{format:'oes/skill-integrity/v1',skill_id:'open-estimate-assessor',skill_version:run.metadata.skill.version,hash_rule:'oes/skill-package/v1',package_sha256:run.metadata.skill.declared_package_sha256},ruleset_ref:context.ruleset_ref,quality:result.quality,expected_report_hash:reportHash};
  const display_quote=await createDisplayQuote({report,basis:profile,report_hash:reportHash},provider,'ja-JP',input.display_currency);
  const document:EstimateDocument={schema_version:'oes/estimate-document/v1',template_version:'oes/estimate-markdown/v1',measured_at:run.assessment.assessor.finished_at,ruleset_ref:context.ruleset_ref,scope:'AGREED_AS_BUILT_FUNCTIONAL_SCOPE',scope_coverage:run.assessment.input.acquisition?.scope_coverage??'UNKNOWN',result,display_quote};
+ return {document,input,run};
+}
+export async function createDocument(args:{run_id:string;display_currency?:string},provider:FxProvider=frbProvider){
+ const {document,input,run}=await fixedDocumentFromRun(args,provider);
  const markdown=renderDocumentMarkdown(document);await privateDirectory(documentsRoot());const dir=path.join(documentsRoot(),randomUUID());await fs.mkdir(dir,{mode:0o700});
  await writeDocumentFile(dir,'document.json',jsonFile(document));await writeDocumentFile(dir,'estimate.md',markdown);
  await writeDocumentFile(dir,'document-ready.json',jsonFile({document_sha256:await documentHash(markdown),json_sha256:sha256Hex(jsonFile(document))}));
