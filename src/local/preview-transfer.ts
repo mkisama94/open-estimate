@@ -9,8 +9,8 @@ import { jcsSha256 } from "../core/canonical.js";
 import { readCertificateJson } from "../core/certificate-json.js";
 import { resolveSafePath } from "../collector/safe-paths.js";
 import { certificateSubmissionsRoot,readCertificateSubmission } from "./certificate-submissions.js";
-import { estimateSubmissionsRoot,readEstimateSubmission } from "./estimate-submissions.js";
-import { ESTIMATE_POLICY,ESTIMATE_METADATA_HASH } from "../core/estimate-preview.js";
+
+
 import { anyOwnerPreviewSchema,type OwnerPreview } from "../core/preview-transfer-contract.js";
 export interface PreviewCliOptions {origin?:string;environment?:"test"|"production";send?:typeof fetch;now?:()=>number;sleep?:(milliseconds:number,signal?:AbortSignal)=>Promise<void>;signal?:AbortSignal;emit?:(value:PreviewCliOutput)=>void}
 export interface PreviewCliOutput {status:string;submission_id:string;transfer_id?:string;verification_url?:string;user_code?:string;preview_url?:string;expires_at?:string;saved:boolean;issued:false;published:false;notice?:string;web_complete?:boolean;result?:OwnerPreview}
@@ -22,16 +22,16 @@ async function atomicWrite(dir:string,name:string,value:unknown){
   await fs.rename(temp,destination);
 }
 /** Test transport injection is an in-process API only. CLI never accepts an origin, credential or owner. */
-export async function previewEstimate(value:unknown,options:PreviewCliOptions={}){return previewCertificate(value,options,true);}
-export async function previewCertificate(value:unknown,options:PreviewCliOptions={},numeric=false) {
+
+export async function previewCertificate(value:unknown,options:PreviewCliOptions={}) {
   const args=checkContract<{submission_id:string}>(obj({submission_id:uuidSchema}),value);
-  const readSubmission=numeric?readEstimateSubmission:readCertificateSubmission;
+  const readSubmission=readCertificateSubmission;
   const submission:any=await readSubmission(args.submission_id);
   const origin=options.origin??PRODUCTION_ORIGIN,environment=options.environment??"production";assertEnvironment(origin,environment);
   const send=options.send??fetch,now=options.now??Date.now,sleep=options.sleep??((ms,signal)=>pause(ms,undefined,{signal}));
-  const base=await resolveSafePath(args.submission_id,numeric?estimateSubmissionsRoot():certificateSubmissionsRoot()),lockPath=await resolveSafePath("preview.lock",base),lock=await fs.open(lockPath,"wx",0o600);
+  const base=await resolveSafePath(args.submission_id,certificateSubmissionsRoot()),lockPath=await resolveSafePath("preview.lock",base),lock=await fs.open(lockPath,"wx",0o600);
   const output=(status:string,saved=true):PreviewCliOutput=>({status,submission_id:args.submission_id,saved,issued:false,published:false});
-  const metadataHash=numeric?ESTIMATE_METADATA_HASH:jcsSha256(submission.metadata),policyVersion=numeric?ESTIMATE_POLICY:POLICY_VERSION;
+  const metadataHash=jcsSha256(submission.metadata),policyVersion=POLICY_VERSION;
   const binding=transferBinding(origin,{input_commitment:submission.input_commitment,metadata_hash:metadataHash,policy_version:policyVersion}),submissionHash=jcsSha256(submission);
   try {
     let state:State;
@@ -47,7 +47,7 @@ export async function previewCertificate(value:unknown,options:PreviewCliOptions
       created_at:now(),attempted:false,transfer_id:null,user_code:null,verification_url:null,expires_at:null};}
     const persist=async()=>{try{await atomicWrite(base,"preview-state.json",state);}catch{throw new Error("PREVIEW_STATE_WRITE_FAILED");}};
     await persist(); // No HTTP before the secret, retry ID, input binding and original digest are durable.
-    options.emit?.({...output("LOCAL_CONTENT_NOTICE"),notice:numeric?"数値モデル・数値の品質集計・表示通貨・スキルと測定規則の版を送信し、再計算して本人限定のWeb結果を15分間表示します。ソース・対象名・パス・根拠・公開用説明は送りません。ブラウザーの同意後にのみ入力を送信します。保存・署名・一般公開は別操作です。":"数値モデル・公開候補・公開用説明をサーバーで再計算し、本人限定で15分間表示します。ソース・元run情報は送信しません。発行・一般公開の承認ではありません。ブラウザーの同意後にのみ入力を送信します。"});
+    options.emit?.({...output("LOCAL_CONTENT_NOTICE"),notice:"数値モデル・公開候補・公開用説明をサーバーで再計算し、本人限定で15分間表示します。ソース・元run情報は送信しません。発行・一般公開の承認ではありません。ブラウザーの同意後にのみ入力を送信します。"});
     let budget=125;
     const request=async(route:string,body:unknown,authenticate:boolean,key?:string):Promise<any>=>{
       for(;;){
@@ -73,12 +73,10 @@ export async function previewCertificate(value:unknown,options:PreviewCliOptions
       }
     };
     const ready=async(status:TransferStatus)=>{
-      if(!status.preview_id || !status.draft_hash || status.preview_url!==origin+(numeric?"/manage/estimate-previews/":"/manage/certificate-previews/")+status.preview_id)throw new Error("INVALID_PREVIEW_RESPONSE");
-      const dto=numeric?checkContract<OwnerPreview>(anyOwnerPreviewSchema,await request("/api/v1/preview-transfers/"+status.transfer_id+"/result",{},true)):undefined;
-      if(dto && (dto.preview_id!==status.preview_id || dto.draft_hash!==status.draft_hash || dto.report_hash!==submission.estimate_input.expected_report_hash))throw new Error("RESULT_MISMATCH");
-      const result={...output("READY"),preview_url:status.preview_url,expires_at:status.expires_at,...(numeric?{web_complete:true,transfer_id:status.transfer_id,result:dto}:{})};
-      try {await atomicWrite(base,"preview-response-"+randomUUID()+".json",numeric?{status,result:dto}:status);state.expires_at=status.expires_at;await persist();return result;}
-      catch{return {...result,status:"READY_LOCAL_SAVE_INCOMPLETE",saved:false,notice:"プレビュー作成済み・ローカル保存未完了。"+(numeric?"resume-estimate":"resume-preview")+"で同じ受付から回復してください。"};}
+      if(!status.preview_id || !status.draft_hash || status.preview_url!==origin+"/manage/certificate-previews/"+status.preview_id)throw new Error("INVALID_PREVIEW_RESPONSE");
+      const result={...output("READY"),preview_url:status.preview_url,expires_at:status.expires_at};
+      try {await atomicWrite(base,"preview-response-"+randomUUID()+".json",status);state.expires_at=status.expires_at;await persist();return result;}
+      catch{return {...result,status:"READY_LOCAL_SAVE_INCOMPLETE",saved:false,notice:"プレビュー作成済み・ローカル保存未完了。resume-previewで同じ受付から回復してください。"};}
     };
     if(!state.transfer_id){
       const previous=state.attempted;state.attempted=true;await persist();
@@ -102,7 +100,7 @@ export async function previewCertificate(value:unknown,options:PreviewCliOptions
         // Recheck immutable input and its original checksum immediately before sending it.
         if(jcsSha256(await readSubmission(args.submission_id))!==submissionHash)throw new Error("INVALID_SUBMISSION");
         await persist();
-        const payload=numeric?{estimate_input:submission.estimate_input,nonce:submission.nonce,policy_version:ESTIMATE_POLICY}:{frozen_input:submission.frozen_input,nonce:submission.nonce,metadata:submission.metadata,policy_version:POLICY_VERSION};
+        const payload={frozen_input:submission.frozen_input,nonce:submission.nonce,metadata:submission.metadata,policy_version:POLICY_VERSION};
         const response=checkContract<TransferStatus>(transferStatusSchema,await request("/api/v1/preview-transfers/"+state.transfer_id+"/preview",payload,true));
         if(response.state!=="READY" || response.transfer_id!==state.transfer_id)throw new Error("INVALID_PREVIEW_RESPONSE");return ready(response);
       }

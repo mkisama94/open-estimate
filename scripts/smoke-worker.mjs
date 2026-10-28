@@ -51,36 +51,15 @@ try {
   assert.equal(fetched.structuredContent.ruleset_ref.revision, rules.current_revision);
   assert.equal(contentHash(fetched.structuredContent.bundle), rules.current_revision);
   assert.deepEqual(fetched.structuredContent.bundle, rules.revisions.find(r => r.revision === rules.current_revision).bundle);
-  const model = { version: 'oes/remote-model/v1', analysis_complete: true, partial: false, applicability_limit: false, users: 1, stores: 0, groups: [0],
-    processes: [{ status: 'accepted', trigger_user: 0, trigger_group: 0, movements: [
-      { type: 'Entry', group: 0, peer: 0, store: null, distinct: false, variant: null },
-      { type: 'Exit', group: 0, peer: 0, store: null, distinct: false, variant: null }] }] };
-  const args = { model, display_currency: 'USD', skill_integrity: integrity, ruleset_ref: fetched.structuredContent.ruleset_ref };
-  const legacy = await call('evaluate_model', { model, display_currency: 'USD' });
-  const skillGrace = Date.now() < Date.parse(enforcement);
-  const rulesGrace = Date.now() < Date.parse(rules.rules_enforcement_at ?? enforcement);
-  if (skillGrace && rulesGrace) {
-    assert.notEqual(legacy.isError, true, JSON.stringify(legacy));
-    assert.equal(legacy.structuredContent.assurance.skill_integrity.status, 'LEGACY_UNCHECKED');
-    assert.equal(legacy.structuredContent.assurance.measurement_rules.status, 'LEGACY_LOCAL_RULES');
-    assert.equal(legacy.structuredContent.evaluation_context_hash, null);
-  } else {
-    assert.equal(legacy.isError, true);
-    assert.equal(legacy.structuredContent.error.code, skillGrace ? 'RULESET_REQUIRED' : 'SKILL_INTEGRITY_REQUIRED');
-  }
-  const omittedRules = await call('evaluate_model', { model, display_currency: 'USD', skill_integrity: integrity });
-  assert.equal(omittedRules.isError, true); assert.equal(omittedRules.structuredContent.error.code, 'RULESET_REQUIRED');
-  const good = await call('evaluate_model', args);
-  assert.notEqual(good.isError, true, JSON.stringify(good));
-  assert.equal(good.structuredContent.assurance.skill_integrity.status, 'MATCHED_CLIENT_REPORTED');
-  assert.equal(good.structuredContent.report.measurement.cfp, 2);
-  assert.equal(good.structuredContent.assurance.measurement_rules.status, 'ACCEPTED_CLIENT_REPORTED');
-  const bad = await call('evaluate_model', { ...args, skill_integrity: { ...integrity, package_sha256: (integrity.package_sha256[0] === '0' ? '1' : '0') + integrity.package_sha256.slice(1) } });
-  assert.equal(bad.isError, true); assert.equal(bad.structuredContent.error.code, 'SKILL_INTEGRITY_MISMATCH');
-  assert.equal(bad.structuredContent.report, undefined);
-  const unknown = await call('evaluate_model', { ...args, ruleset_ref: { ruleset_id: 'oes-measurement', revision: '0'.repeat(64) } });
-  assert.equal(unknown.isError, true); assert.equal(unknown.structuredContent.error.code, 'RULESET_UNKNOWN');
-  console.log(JSON.stringify({ status: 'PASS', execution: 'LOCAL_WORKER_BUNDLE', cfp: 2, mismatch_rejected: true }));
+  const retired = await call('evaluate_model', {});
+  assert.equal(retired.isError, true);assert.equal(retired.structuredContent.error.code,'UNKNOWN_TOOL');
+  const bad = await call('get_measurement_rules', {skill_integrity:{...integrity,package_sha256:(integrity.package_sha256[0]==='0'?'1':'0')+integrity.package_sha256.slice(1)},client_protocol:'oes/measurement-client/v1'});
+  assert.equal(bad.isError,true);assert.equal(bad.structuredContent.error.code,'SKILL_INTEGRITY_MISMATCH');
+  const unknown = await call('get_measurement_rules', {skill_integrity:integrity,client_protocol:'oes/measurement-client/v1',ruleset_ref:{ruleset_id:'oes-measurement',revision:'0'.repeat(64)}});
+  assert.equal(unknown.isError,true);assert.equal(unknown.structuredContent.error.code,'RULESET_UNKNOWN');
+  const publication=await call('publish_estimate',{});assert.equal(publication.isError,true);assert.equal(publication.structuredContent.error.code,'AUTH_CONFIGURATION_REQUIRED');
+  console.log(JSON.stringify({status:'PASS',execution:'LOCAL_WORKER_BUNDLE',legacy_evaluation_retired:true,mismatch_rejected:true,authenticated_publication_required:true}));
+
 } finally {
   child.kill();
   await new Promise(resolve => { if (stopped) resolve(); else { child.once('exit', resolve); setTimeout(resolve, 3000).unref(); } });

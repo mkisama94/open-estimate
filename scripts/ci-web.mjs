@@ -20,7 +20,12 @@ export function checkPrerequisites(secrets, tables) {
   }
   if (!tables.find(t => t.name === 'preview_transfer_consents')?.sql?.includes('prepare_estimate_preview')) throw new Error('MISSING_MIGRATION:0006_estimate_preview_consents.sql');
 }
-function prerequisites() {
+export function checkPublicationPrerequisites(vars,tables){
+  if(vars.ESTIMATE_PUBLICATION_ENABLED!=='true')throw new Error('ESTIMATE_PUBLICATION_DISABLED');
+  for(const name of ['AUTH0_ISSUER','AUTH0_API_AUDIENCE','AUTH0_MCP_CLIENT_IDS'])if(!vars[name])throw new Error('MISSING_PUBLICATION_CONFIGURATION:'+name);
+  for(const name of ['saved_estimates','estimate_publications','operation_guards','browser_sessions','browser_login_transactions'])if(!tables.some(t=>t.name===name))throw new Error('MISSING_TABLE:'+name);
+}
+function prerequisites(vars) {
   const query = args => JSON.parse(execFileSync(process.execPath, [path.join(repo, 'node_modules/wrangler/bin/wrangler.js'), ...args], {
     cwd: repo, encoding: 'utf8', windowsHide: true, env: { ...process.env, WRANGLER_SEND_METRICS: 'false' }
   }));
@@ -28,6 +33,7 @@ function prerequisites() {
   const result = query(['d1', 'execute', 'open-estimate-certificates', '--remote', '--config', 'wrangler.jsonc', '--command', "SELECT name,sql FROM sqlite_master WHERE type='table'", '--json']);
   if (!Array.isArray(result) || result.some(r => r.success === false)) throw new Error('DB_CHECK_FAILED');
   checkPrerequisites(secrets, result.flatMap(r => r.results ?? []));
+  checkPublicationPrerequisites(vars,result.flatMap(r=>r.results??[]));
 }
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 export function deploymentConfig(config, root, bundle, hash, version) {
@@ -68,7 +74,7 @@ async function main() {
   const configFile = path.join(output, 'wrangler.json');
   const config = JSON.parse(await fs.readFile(configFile, 'utf8'));
   await verifyBundle(config);
-  if (mode === 'deploy') prerequisites();
+  if (mode === 'deploy') prerequisites(config.vars);
   run(repo, 'node_modules/wrangler/bin/wrangler.js', ['deploy', '--config', configFile, ...(mode === 'check' ? ['--dry-run'] : [])]);
   if (mode === 'deploy') {
     // GET is deliberately unsupported here: this verifies controller readiness
@@ -80,7 +86,7 @@ async function main() {
     const invalid = await fetch('https://open-estimate.ai-orchestration.jp/api/v1/preview-transfers',{method:'POST',headers:{'content-type':'application/json','Idempotency-Key':'00000000-0000-4000-8000-000000000000'},body:'{}',redirect:'error',signal:AbortSignal.timeout(10000)});
     if(invalid.status!==400 || (await invalid.json()).error?.code!=='INVALID_INPUT')throw new Error('PRODUCTION_PREVIEW_VALIDATION_FAILED');
     const capabilities = await fetch('https://open-estimate.ai-orchestration.jp/api/v1/estimate-capabilities', {redirect:'error',signal:AbortSignal.timeout(10000)}).then(r=>r.json());
-    if(capabilities.schema_version!=='oes/estimate-experience/v1' || capabilities.web?.available!==true)throw new Error('PRODUCTION_ESTIMATE_NOT_READY');
+    if(capabilities.schema_version!=='oes/estimate-experience/v2' || capabilities.web?.available!==true || capabilities.standard_completion!=='WEB_SAVED')throw new Error('PRODUCTION_ESTIMATE_NOT_READY');
   }
   console.log(JSON.stringify({ status: 'PASS', mode, engine_version: config.vars.OWNER_PREVIEW_ENGINE_VERSION }));
 }

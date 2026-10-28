@@ -1,4 +1,7 @@
 import fs from 'node:fs';
+import {publicationRequestSchema,resultSnapshotSchema} from '../dist/core/estimate-publication.js';
+fs.writeFileSync(new URL('../contracts/estimate-publication-request.schema.json',import.meta.url),JSON.stringify(publicationRequestSchema,null,2)+'\n');
+fs.writeFileSync(new URL('../contracts/estimate-result-snapshot.schema.json',import.meta.url),JSON.stringify(resultSnapshotSchema,null,2)+'\n');
 const old = JSON.parse(fs.readFileSync(new URL('../contracts/oes-ph1.schema.json', import.meta.url), 'utf8'));
 const report = structuredClone(old.definitions.Report);
 for (const key of ['generated_at', 'localized_reference']) {

@@ -5,6 +5,9 @@
   "compatibility_date": "2026-09-25",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
-  "routes": [{ "pattern": "open-estimate.ai-orchestration.jp/mcp*", "zone_name": "ai-orchestration.jp" }],
+  "routes": [{ "pattern": "open-estimate.ai-orchestration.jp/mcp*", "zone_name": "ai-orchestration.jp" }, { "pattern": "open-estimate.ai-orchestration.jp/.well-known/oauth-protected-resource/mcp", "zone_name": "ai-orchestration.jp" }],
+  "vars": {"ESTIMATE_PUBLICATION_ENABLED":"false","AUTH0_ISSUER":"https://auth.ai-orchestration.jp/"},
+  "ratelimits": [{"name":"ESTIMATE_PUBLICATION_LIMITER","namespace_id":"2026102801","simple":{"limit":10,"period":60}}],
+  "d1_databases": [{"binding":"CERTIFICATES_DB","database_name":"open-estimate-certificates","database_id":"bdb25739-fcee-4fa8-8dd2-9453a75bbaca","migrations_dir":"migrations"}],
   "observability": { "enabled": false }
 }

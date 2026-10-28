@@ -62,6 +62,7 @@ describe("skill policy", () => {
   });
   it("enforces on real HTTP MCP calls and returns no report on rejection", async () => {
     const r = registry(); r.enforcement_at = "2020-01-01T00:00:00Z";
+    r.releases[0].measurement_client_protocol="oes/measurement-client/v1";
     const call = async (name: string, arguments_: unknown) => {
       const res = await worker.fetch(new Request("https://example.test/mcp", { method: "POST",
         headers: { "content-type": "application/json", accept: "application/json, text/event-stream" },
@@ -70,10 +71,10 @@ describe("skill policy", () => {
     };
     expect((await call("get_skill_policy", {})).structuredContent.accepted_releases).toHaveLength(1);
     expect((await call("get_skill_policy", { path: "SECRET" })).isError).toBe(true);
-    expect((await call("evaluate_model", args())).structuredContent.assurance.skill_integrity.status).toBe("MATCHED_CLIENT_REPORTED");
-    for (const [value, code] of [[undefined, "SKILL_INTEGRITY_REQUIRED"], [{ ...integrity, package_sha256: "c".repeat(64) }, "SKILL_INTEGRITY_MISMATCH"],
-      [{ ...integrity, source: "SOURCE_CANARY" }, "INVALID_SKILL_INTEGRITY"]] as const) {
-      const bad = await call("evaluate_model", { ...args(), skill_integrity: value });
+    expect((await call("get_measurement_rules", {skill_integrity:integrity,client_protocol:"oes/measurement-client/v1"})).structuredContent.skill_integrity.status).toBe("MATCHED_CLIENT_REPORTED");
+    for (const [value, code] of [[undefined, "INVALID_MEASUREMENT_RULES_REQUEST"], [{ ...integrity, package_sha256: "c".repeat(64) }, "SKILL_INTEGRITY_MISMATCH"],
+      [{ ...integrity, source: "SOURCE_CANARY" }, "INVALID_MEASUREMENT_RULES_REQUEST"]] as const) {
+      const bad = await call("get_measurement_rules", { skill_integrity: value,client_protocol:"oes/measurement-client/v1" });
       expect(bad.isError).toBe(true); expect(bad.structuredContent.error.code).toBe(code);
       expect(JSON.stringify(bad)).not.toMatch(/SOURCE_CANARY|report|cfp|person_hours|amount_usd/);
     }

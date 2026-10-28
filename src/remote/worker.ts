@@ -1,6 +1,7 @@
 import {experienceUiUri,experienceUiHtml} from "./experience-ui.js";
 import {getExperienceCapabilities,experienceStepSchema,experienceStep,experienceResponse} from "./experience.js";
-import {previewUiUri,previewUiHtml} from "./preview-ui.js";
+import {publicationRequestSchema} from "../core/estimate-publication.js";
+import {publishAuthenticatedEstimate,publicationResourceMetadata,publicationAuthChallenge,protectedResourcePath,type EstimatePublicationEnvironment} from "./estimate-publishing.js";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { ListResourcesRequestSchema, ReadResourceRequestSchema, ListToolsRequestSchema, CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
@@ -14,7 +15,8 @@ import { defaultRulesRegistry, measurementRulesArgsSchema, resolveMeasurementRul
 import type { RulesRegistry } from "../rules/measurement-contract.js";
 
 export default {
-  async fetch(request: Request, registry: SkillRegistry | { OES_ENFORCEMENT_AT?: string; OES_RULES_ENFORCEMENT_AT?: string } = defaultRegistry, rules: RulesRegistry = defaultRulesRegistry): Promise<Response> {
+  async fetch(request: Request, registry: SkillRegistry | { OES_ENFORCEMENT_AT?: string; OES_RULES_ENFORCEMENT_AT?: string } & EstimatePublicationEnvironment = defaultRegistry, rules: RulesRegistry = defaultRulesRegistry): Promise<Response> {
+    const environment:EstimatePublicationEnvironment = "releases" in registry ? {} : registry;
     // Cloudflare supplies ExecutionContext as argument three; tests may inject a registry.
     if (!Array.isArray(rules?.revisions)) rules = defaultRulesRegistry;
     // Cloudflare passes Env here; only tests pass an explicit registry.
@@ -26,6 +28,7 @@ export default {
     }
     const policy = registry as SkillRegistry;
     const url = new URL(request.url);
+    if(url.pathname===protectedResourcePath && request.method==="GET"){try{return Response.json(publicationResourceMetadata(environment),{headers:{"Cache-Control":"no-store"}});}catch{return Response.json({error:"AUTH_CONFIGURATION_REQUIRED"},{status:503});}}
     if (url.pathname !== "/mcp") return new Response("Not found", { status: 404 });
     if (request.method !== "POST") return new Response("Method not allowed", { status: 405, headers: { Allow: "POST" } });
     const origin = request.headers.get("origin");
@@ -46,18 +49,23 @@ export default {
       const parsed = parseStrictJson(raw);
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return new Response("Invalid request", { status: 400 });
       const server = new Server({ name: "open-estimate-remote", title: "オープン工数見積：数値モデル再計算専用", version: pkg.version }, { capabilities: { tools: {}, resources: {} } });
-      server.setRequestHandler(ListResourcesRequestSchema,async()=>({resources:[{uri:experienceUiUri,name:"Open Estimate journey",mimeType:"text/html;profile=mcp-app"},{uri:previewUiUri,name:"Open Estimate confirmation",mimeType:"text/html;profile=mcp-app"}]}));
-      server.setRequestHandler(ReadResourceRequestSchema,async req=>{if(req.params.uri===experienceUiUri)return {contents:[{uri:experienceUiUri,mimeType:"text/html;profile=mcp-app",text:experienceUiHtml,_meta:{ui:{csp:{connectDomains:[],resourceDomains:[]}}}}]};if(req.params.uri!==previewUiUri)throw new Error("NOT_FOUND");return {contents:[{uri:previewUiUri,mimeType:"text/html;profile=mcp-app",text:previewUiHtml,_meta:{ui:{csp:{connectDomains:[],resourceDomains:[]}}}}]};});
-      server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: [{name:"get_estimate_experience",title:"見積からWeb表示までの案内",description:"見積開始時に必ず呼び出す。対象情報を送らず、本人用Web・保存の本番準備を確認し、全体像のUIを表示。Web不可なら解析前に知らせる。",inputSchema:{type:"object",properties:{},additionalProperties:false},annotations:{readOnlyHint:true},_meta:{ui:{resourceUri:experienceUiUri}}},{name:"show_estimate_step",title:"見積の進捗と次の操作",description:"対象確認・解析・送信確認・結果・失敗で必ず呼び出す表示専用ツール。scopeではローカルの対象範囲をチャットで先に表示する。confirmationはCLIのtransfer_id、resultはREADY応答のURLと期限のみを渡す。ソース・名称・パス・照合コードを渡さない。表示やボタンの初期選択は同意ではない。",inputSchema:experienceStepSchema as any,annotations:{readOnlyHint:true},_meta:{ui:{resourceUri:experienceUiUri}}},{name:"show_preview_confirmation",title:"送信内容を確認する",description:"ローカルCLIが返したtransfer_idから公式Webの送信確認ボタンを表示します。ソースや数値モデルは渡さないでください。表示だけでは同意・送信になりません。",inputSchema:{type:"object",properties:{transfer_id:{type:"string",pattern:"^pt_[a-f0-9]{32}$"}},required:["transfer_id"],additionalProperties:false},annotations:{readOnlyHint:true,destructiveHint:false},_meta:{ui:{resourceUri:previewUiUri}}},{ name: "get_skill_policy", description: "対象ソースを送らず、スキルの整合性申告ポリシーを取得します。実ファイルから計算し、正規値を転記しないでください。", inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true } }, { name: "get_measurement_rules", description: "実計算したスキル情報を照合し、互換な測定ルールの全文と版を返します。対象ソース・対象パスは送らないでください。取得した本文をbind-rulesで解析セッションへ固定してください。", inputSchema: measurementRulesArgsSchema as any, annotations: { readOnlyHint: true, destructiveHint: false } }, { name: "evaluate_model",
-        title: "数値モデル再計算専用（フォルダー走査・ソース解析なし）",
-        description: "数値モデル・表示通貨・配布スキルのID/版/整合性確認用ハッシュ・固定した測定ルールのruleset_refを送信します。対象ソース、対象パス、Assessment、判断台帳、ルール本文、ローカルcontextは送信しません。対象ソースコード、名称、説明、ファイルパス、根拠本文、対象ソースのハッシュは送信しません。正規配布版との申告ハッシュ一致を確認してから再計算します。PC上のフォルダーの走査やソース解析は行いません。フォルダーパス・ソースを渡さないでください。ソースからの見積りには対象を読取・補助CLIを実行できるWork／Codexとソース解析用プラグインが必要です。Recalculates a client-reported numeric model using server TEST rules and display-time FRB rates. No evaluation ID, storage, HTML report, source audit, certificate or publication.",
-        inputSchema: remoteArgsSchema as any,
-        annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: true } }] }));
+      server.setRequestHandler(ListResourcesRequestSchema,async()=>({resources:[{uri:experienceUiUri,name:"Open Estimate journey",mimeType:"text/html;profile=mcp-app"}]}));
+      server.setRequestHandler(ReadResourceRequestSchema,async req=>{if(req.params.uri!==experienceUiUri)throw new Error("NOT_FOUND");return {contents:[{uri:experienceUiUri,mimeType:"text/html;profile=mcp-app",text:experienceUiHtml,_meta:{ui:{csp:{connectDomains:[],resourceDomains:[]}}}}]};});
+      server.setRequestHandler(ListToolsRequestSchema,async()=>({tools:[
+        {name:"get_estimate_experience",description:"Get general service availability without sending estimate data. Result preview and PDF are generated locally before consent.",inputSchema:{type:"object",properties:{},additionalProperties:false},annotations:{readOnlyHint:true},securitySchemes:[{type:"noauth"}],_meta:{ui:{resourceUri:experienceUiUri}}},
+        {name:"show_estimate_step",description:"Display a generic step, or the saved result URL after publication. Never send estimate data before consent.",inputSchema:experienceStepSchema as any,annotations:{readOnlyHint:true},securitySchemes:[{type:"noauth"}],_meta:{ui:{resourceUri:experienceUiUri}}},
+        {name:"get_skill_policy",description:"Read skill policy without target sources.",inputSchema:{type:"object",properties:{},additionalProperties:false},annotations:{readOnlyHint:true},securitySchemes:[{type:"noauth"}]},
+        {name:"get_measurement_rules",description:"Get and bind the official measurement rules before reading source.",inputSchema:measurementRulesArgsSchema as any,annotations:{readOnlyHint:true},securitySchemes:[{type:"noauth"}]},
+        {name:"publish_estimate",title:"この結果をWebに掲載する",description:"After the user explicitly consents in chat to the exact local preview and PDF, validate and save that immutable numeric result to their authenticated account for 30 days. Returns the saved URL directly; no browser confirmation, preview transfer or polling. Reuse the identical operation and consent for retries. No source, paths, ledger, public sharing or certificates.",inputSchema:publicationRequestSchema as any,annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:true},securitySchemes:[{type:"oauth2",scopes:["estimates:write"]}]}
+      ]}));
       server.setRequestHandler(CallToolRequestSchema, async req => {
         try {
           if(req.params.name==="get_estimate_experience"){if(!req.params.arguments || Object.keys(req.params.arguments).length)throw new Error("INVALID_INPUT");return experienceResponse({stage:"start",capabilities:await getExperienceCapabilities()});}
-          if(req.params.name==="show_estimate_step")return experienceResponse({...experienceStep(req.params.arguments),capabilities:await getExperienceCapabilities()});
-          if(req.params.name==="show_preview_confirmation"){const a=req.params.arguments;if(!a || Object.keys(a).length!==1 || typeof a.transfer_id!=="string" || !/^pt_[a-f0-9]{32}$/.test(a.transfer_id))throw new Error("INVALID_INPUT");return {structuredContent:{transfer_id:a.transfer_id},content:[{type:"text",text:"送信確認: https://open-estimate.ai-orchestration.jp/manage/preview-transfers/"+a.transfer_id}],_meta:{ui:{resourceUri:previewUiUri}}};}
+          if(req.params.name==="show_estimate_step")return experienceResponse(experienceStep(req.params.arguments));
+          if(req.params.name==="publish_estimate"){
+            const result=await publishAuthenticatedEstimate(request,req.params.arguments,environment,policy,rules);
+            return {structuredContent:result,content:[{type:"text",text:JSON.stringify(result)}]};
+          }
           if (req.params.name === "get_skill_policy") {
             if (!req.params.arguments || Object.keys(req.params.arguments).length) throw new Error("INVALID_SKILL_POLICY_ARGUMENTS");
             const result = getSkillPolicy(policy);
@@ -67,16 +75,16 @@ export default {
             const result = resolveMeasurementRules(req.params.arguments, rules, policy);
             return { structuredContent: result, content: [{ type: "text", text: JSON.stringify(result) }] };
           }
-          if (req.params.name !== "evaluate_model") throw new Error("UNKNOWN_TOOL");
-          const result = await evaluateRemote(req.params.arguments, profile as LocalProfile, undefined, policy, Date.now(), rules);
-          return { structuredContent: result, content: [{ type: "text", text: JSON.stringify(result) }] };
+          throw new Error("UNKNOWN_TOOL");
         } catch (e: any) {
           const code = /^[A-Z][A-Z0-9_]+$/.test(e.message) ? e.message : "REMOTE_EVALUATION_FAILED";
-          const notice = code === "RULESET_UNAVAILABLE" ? "配信側に有効な測定ルールがありません。運用側で配信を復旧してください。"
+          const notice = req.params.name==="publish_estimate" ? (["RESULT_MISMATCH","BASIS_MISMATCH"].includes(code)?"確認した数値または計算条件と一致しません。結果を差し替えず、差分を確認して新しいプレビューへ戻ってください。":code.startsWith("CONSENT")?"確認した掲載条件を再確認してください。元の結果とPDFは保持されています。":"掲載は未完了です。元の結果とPDFを保持し、接続設定や認証を確認して同じ掲載操作から再開してください。")
+            : code === "RULESET_UNAVAILABLE" ? "配信側に有効な測定ルールがありません。運用側で配信を復旧してください。"
             : code === "RULESET_INCOMPATIBLE" ? "対応するプラグインへ更新してください。古いルールへの自動切替は行いません。"
             : code.startsWith("RULE") || code.includes("RULESET") || code.includes("MEASUREMENT_RULES") ? "正規ルールを取得して固定してください。未知・停止・変更された版は別版に差し替えず、新しい解析セッションで再解析してください。"
             : "正規最新版の実ファイルをCLIで検査し、変更・不一致時は新しい解析セッションを開始してください。";
           const result = { error: { code, notice } };
+          if(code==="AUTH_REQUIRED")return {isError:true,content:[{type:"text",text:"ログインが必要です。同じ掲載操作を認証後に再実行してください。"}],_meta:{"mcp/www_authenticate":[publicationAuthChallenge]}};
           return { isError: true, structuredContent: result, content: [{ type: "text", text: JSON.stringify(result) }] };
         }
       });

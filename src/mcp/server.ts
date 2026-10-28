@@ -15,6 +15,10 @@ import { handleRenderReport } from "./tools/render-report.js";
 import { OES_RESOURCES, handleReadResource } from "./resources.js";
 import { CURRENCIES } from "../profiles/frb.js";
 import fs from "node:fs";
+import {showResultPreview,readResultPreview} from "../local/estimate-result.js";
+import {resultWidgetUri,resultWidgetHtml} from "../local/result-widget.js";
+import {resolveSafePath} from "../collector/safe-paths.js";
+import {promises as files} from "node:fs";
 
 const contract = JSON.parse(fs.readFileSync(new URL("../../contracts/local-preview.schema.json", import.meta.url), "utf8"));
 const object = (properties: Record<string, unknown>, required: string[] = []) => ({ type: "object" as const, properties, required, additionalProperties: false });
@@ -24,6 +28,8 @@ const display = { locale: { type: "string", maxLength: 64 }, display_currency: {
 const output = (properties: Record<string, unknown>, required: string[]) => object(properties, required);
 const definition = (key: string) => ({ ...contract.$defs[key], $defs: contract.$defs });
 const tools = [
+  {name:"preview_saved_estimate",description:"Display an already prepared local result and PDF without sending estimate data to Open Estimate. The publication button sends a user-authored chat choice; rendering does not publish.",inputSchema:object({preview_id:str},["preview_id"]),outputSchema:{type:"object" as const},handler:async(args:any)=>showResultPreview(args.preview_id),readOnly:true,network:false,_meta:{ui:{resourceUri:resultWidgetUri}}},
+  {name:"get_result_pdf",description:"Read the verified local PDF for the displayed result. Does not send or publish.",inputSchema:object({preview_id:str},["preview_id"]),outputSchema:{type:"object" as const},handler:async(args:any)=>{const view=await showResultPreview(args.preview_id);if(!view.pdf)throw new Error("PDF_REQUIRED");return {preview_id:args.preview_id,pdf_base64:(await files.readFile(view.pdf.path)).toString("base64")};},readOnly:true,network:false},
   { name: "discover_workspace", description: "Scan metadata and capacity only, with measurement/supporting/excluded scope rules. Confirm the returned scope before reading source.", inputSchema: object({ context_path: str, relative_path: str, scope:scopeSchema }), outputSchema: { type: "object" as const }, handler: async (_: any) => ({}), readOnly: true, network: false },
   { name: "confirm_workspace", description: "Confirm the exact scanned candidate only after the user agrees in chat. user_confirmed is an assistant report, not independent proof of consent. false cancels.", inputSchema: object({ candidate_id: str, user_confirmed: { type: "boolean" } }, ["candidate_id", "user_confirmed"]), outputSchema: { type: "object" as const }, handler: async (_: any) => ({}), readOnly: false, network: false },
   { name: "get_assessor_contract", description: "Get the schema, trusted assessor workflow, configured workspace, TEST coefficients, scope and capabilities. Call before reading source.", inputSchema: object({}),
@@ -54,7 +60,7 @@ export function createMcpServer(): Server {
   const workspace = new WorkspaceSession(server, () => {mcpState.clearSnapshots();previousSnapshot=undefined;});
   server.setNotificationHandler(RootsListChangedNotificationSchema, async () => workspace.reset());
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: tools.map(t => ({ name: t.name, description: t.description, inputSchema: t.inputSchema, outputSchema: t.outputSchema,
+    tools: tools.map(t => ({ name: t.name, description: t.description, inputSchema: t.inputSchema, outputSchema: t.outputSchema,_meta:"_meta" in t?t._meta:undefined,
       annotations: { readOnlyHint: t.readOnly, destructiveHint: false, idempotentHint: t.name === "get_assessor_contract" || t.name === "read_repository_file", openWorldHint: t.network } }))
   }));
   server.setRequestHandler(CallToolRequestSchema, async request => {
@@ -65,6 +71,11 @@ export function createMcpServer(): Server {
       const validate = validators.get(tool.name)!;
       if (!validate(args)) return { isError: true, content: [{ type: "text" as const, text: JSON.stringify({ error: { code: "INVALID_TOOL_ARGUMENTS", details: validate.errors?.map(e => ({ pointer: e.instancePath, message: e.message })) } }) }] };
       let result: any;
+      if(tool.name==="get_result_pdf"||tool.name==="preview_saved_estimate") {
+        result=await tool.handler(args as any);
+        if(tool.name==="get_result_pdf")return {structuredContent:{preview_id:result.preview_id,status:"PDF_READY"},content:[{type:"text" as const,text:"ローカルPDFを取得しました。"}],_meta:{pdf_base64:result.pdf_base64}};
+        return {structuredContent:result,content:[{type:"text" as const,text:JSON.stringify(result)}],_meta:{ui:{resourceUri:resultWidgetUri}}};
+      }
       if (tool.name === "discover_workspace") result = await workspace.discover(args);
       else if (tool.name === "confirm_workspace") result = await workspace.confirm(args as any);
       else if (tool.name === "get_assessor_contract") result = { ...await handleGetAssessorContract(), workspace_root: workspace.current(), workspace_selection: "discover_then_confirm", requires_workspace_confirmation: true };
@@ -84,8 +95,8 @@ export function createMcpServer(): Server {
       return { isError: true, content: [{ type: "text" as const, text: JSON.stringify({ error: { code, message: code, details: err.errors } }) }] };
     }
   });
-  server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: OES_RESOURCES }));
-  server.setRequestHandler(ReadResourceRequestSchema, async request => ({ contents: [await handleReadResource(request.params.uri)] }));
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [...OES_RESOURCES,{uri:resultWidgetUri,name:"Local estimate result",mimeType:"text/html;profile=mcp-app"}] }));
+  server.setRequestHandler(ReadResourceRequestSchema, async request => ({ contents: [request.params.uri===resultWidgetUri?{uri:resultWidgetUri,mimeType:"text/html;profile=mcp-app",text:resultWidgetHtml,_meta:{ui:{csp:{connectDomains:[],resourceDomains:[]}}}}:await handleReadResource(request.params.uri)] }));
   server.setRequestHandler(ListPromptsRequestSchema, async () => ({ prompts: [{ name: "cosmic-assessment", description: "Assess implemented source with evidence, TEST effort and current FRB conversion", arguments: [{ name: "relative_path", required: false }] }] }));
   server.setRequestHandler(GetPromptRequestSchema, async request => {
     if (request.params.name !== "cosmic-assessment") throw new Error("UNKNOWN_PROMPT");

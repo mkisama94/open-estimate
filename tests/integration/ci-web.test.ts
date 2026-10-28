@@ -3,7 +3,12 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 // @ts-ignore native deployment script
-import {deploymentConfig,sha256,verifyBundle,checkPrerequisites,checkTarget} from '../../scripts/ci-web.mjs';
+import {deploymentConfig,sha256,verifyBundle,checkPrerequisites,checkTarget,checkPublicationPrerequisites} from '../../scripts/ci-web.mjs';
+it('requires publication auth settings and the direct-save migration before enabling deployment',()=>{
+ const vars={ESTIMATE_PUBLICATION_ENABLED:'true',AUTH0_ISSUER:'https://auth.example/',AUTH0_API_AUDIENCE:'https://example/mcp',AUTH0_MCP_CLIENT_IDS:'host-client'};
+ const tables=['saved_estimates','estimate_publications','operation_guards','browser_sessions','browser_login_transactions'].map(name=>({name}));
+ expect(()=>checkPublicationPrerequisites(vars,tables)).not.toThrow();expect(()=>checkPublicationPrerequisites({},tables)).toThrow('ESTIMATE_PUBLICATION_DISABLED');expect(()=>checkPublicationPrerequisites({...vars,AUTH0_API_AUDIENCE:''},tables)).toThrow('MISSING_PUBLICATION_CONFIGURATION');expect(()=>checkPublicationPrerequisites(vars,[])).toThrow('MISSING_TABLE');
+});
 
 it('deploys the hashed bundle unchanged and rejects a replaced artifact',async()=>{
   const dir=await fs.mkdtemp(path.join(os.tmpdir(),'oes-web-build-'));

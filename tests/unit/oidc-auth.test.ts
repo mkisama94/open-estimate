@@ -11,6 +11,11 @@ async function token(changes:Record<string,unknown>={},header:Record<string,unkn
     .setProtectedHeader({alg:"RS256",kid:"test-rsa",...header}).sign(pair.privateKey);
 }
 const request=(value:string)=>new Request("https://api-test.example.org/api/v1/publications",{headers:{Authorization:"Bearer "+value}});
+it("binds estimate publication to the same verified owner without certificate permissions",async()=>{
+ const p=await adapter().authenticate(request(await token({scope:"openid estimates:write"})));
+ expect(p?.scopes).toEqual(["estimates:write"]);expect(p?.subject).toBe(oidcOwnerId(issuer,"google-oauth2|synthetic"));
+ expect(p?.scopes).not.toContain("certificates:manage");
+});
 it("verifies signed human access token and derives owner only from issuer/sub",async()=>{
   const a=adapter(),principal=await a.authenticate(request(await token({email:"alice@example.org"})));
   expect(principal).toEqual({subject:oidcOwnerId(issuer,"google-oauth2|synthetic"),scopes:["certificates:manage"],expires_at:(seconds+300)*1000,authentication_strength:"OIDC_ACCESS_TOKEN_VERIFIED"});

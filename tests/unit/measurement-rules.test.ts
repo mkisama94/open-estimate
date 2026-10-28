@@ -60,16 +60,15 @@ describe("central rule acceptance", () => {
     await expect(evaluateRemote({ ...legacy, skill_integrity: integrity }, getLocalProfile(), undefined, skills, now, rules)).rejects.toThrow("RULESET_REQUIRED");
     await expect(evaluateRemote({ ...legacy, skill_integrity: { ...integrity, package_sha256: "b".repeat(64) } }, getLocalProfile(), undefined, skills, now, rules)).rejects.toThrow("SKILL_INTEGRITY_MISMATCH");
   });
-  it("allows legacy requests over HTTP during migration without marking rules or skill as verified", async () => {
+  it("retires recalculation-only HTTP requests even inside the old migration window", async () => {
     const skills = skillRegistry(integrity), rules = measurementRegistry();
     skills.enforcement_at = rules.rules_enforcement_at = "2100-01-01T00:00:00Z";
     const res = await worker.fetch(new Request("https://example.test/mcp", { method: "POST", headers: { "content-type": "application/json", accept: "application/json, text/event-stream" },
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "evaluate_model", arguments: { model, display_currency: "USD" } } }) }), skills, rules);
     const result = (await res.json() as any).result;
-    expect(result.isError).not.toBe(true);
-    expect(result.structuredContent.assurance.skill_integrity.status).toBe("LEGACY_UNCHECKED");
-    expect(result.structuredContent.assurance.measurement_rules.status).toBe("LEGACY_LOCAL_RULES");
-    expect(result.structuredContent.evaluation_context_hash).toBeNull();
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent.error.code).toBe("UNKNOWN_TOOL");
+    expect(result.structuredContent.report).toBeUndefined();
   });
   it("returns the full current and an explicit old version without substituting current", () => {
     const r = measurementRegistry(), skills = skillRegistry(integrity);
@@ -130,6 +129,6 @@ describe("central rule acceptance", () => {
     expect(JSON.parse(fetched.content[0].text)).toEqual(fetched.structuredContent);
     expect(fetched.structuredContent.bundle.instructions_markdown).toBe(generatedRules.bundle.instructions_markdown);
     const bad = await call("evaluate_model", { model, skill_integrity: integrity, display_currency: "USD" });
-    expect(bad.isError).toBe(true); expect(bad.structuredContent.error.code).toBe("RULESET_REQUIRED"); expect(bad.structuredContent.report).toBeUndefined();
+    expect(bad.isError).toBe(true); expect(bad.structuredContent.error.code).toBe("UNKNOWN_TOOL"); expect(bad.structuredContent.report).toBeUndefined();
   });
 });

@@ -4,7 +4,7 @@ import { transferCreateSchema,transferSubmissionSchema,transferSecretHash,transf
 import { assertEnvironment,inputCommitment,createApprovedDraft,draftHash,type IssuanceCatalog } from "../core/certificate.js";
 import { jcsSha256 } from "../core/canonical.js";
 import { PreviewTransferRepository,type TransferRow } from "./preview-transfer-repository.js";
-import { ESTIMATE_POLICY,ESTIMATE_METADATA_HASH,estimateCommitment,recomputeEstimate,type EstimateSubmission,type EstimateDraft } from "../core/estimate-preview.js";
+import { ESTIMATE_POLICY,type EstimateSubmission,type EstimateDraft } from "../core/estimate-preview.js";
 import type { FxProvider } from "../profiles/frb.js";
 const equal=(a:string,b:string)=>{const x=Buffer.from(a),y=Buffer.from(b);return x.length===y.length && timingSafeEqual(x,y);};
 const opaque=(prefix:string)=>prefix+randomBytes(16).toString("hex");
@@ -34,7 +34,9 @@ export class PreviewTransferService {
   private pending(r:TransferRow,code:string){return {state:"PENDING" as const,transfer_id:r.transfer_id,verification_url:this.config.origin+"/manage/preview-transfers/"+r.transfer_id,
     user_code:code,expires_at:new Date(r.expires_at).toISOString(),poll_interval_seconds:5 as const};}
   async create(value:unknown,key:string,secret:string|null,now:number):Promise<ReturnType<PreviewTransferService["pending"]>|TransferStatus> {
-    this.gate();checkContract(uuidSchema,key);const body=checkContract<TransferCreate>(transferCreateSchema,value),binding=transferBinding(this.config.origin,body);
+    this.gate();checkContract(uuidSchema,key);const body=checkContract<TransferCreate>(transferCreateSchema,value);
+    if(body.policy_version===ESTIMATE_POLICY)throw new Error("ESTIMATE_FLOW_RETIRED");
+    const binding=transferBinding(this.config.origin,body);
     let existing=await this.repository.byKey(key);
     if(!existing){
       if(secret!==null && !equal(transferSecretHash(secret),body.client_secret_hash))throw new Error("AUTH_REQUIRED");
@@ -61,6 +63,7 @@ export class PreviewTransferService {
   }
   async approve(id:string,owner:string,code:string,now:number){
     const row=await this.browserContext(id,owner,now);
+    if(row.policy_version===ESTIMATE_POLICY && row.state!=="READY")throw new Error("ESTIMATE_FLOW_RETIRED");
     if(row.state==="APPROVED" || row.state==="READY")return this.state(row,now);
     if(row.state!=="PENDING")throw new Error("APPROVAL_REQUIRED");
     const hmac=this.codeHash(id,code);
@@ -77,6 +80,7 @@ export class PreviewTransferService {
   }
   async status(id:string,secret:string,now:number){
     const row=await this.authorized(id,secret),result=this.state(row,now);
+    if(row.policy_version===ESTIMATE_POLICY && row.state!=="READY")throw new Error("ESTIMATE_FLOW_RETIRED");
     if(["PENDING","APPROVED"].includes(result.state)){
       try{await this.repository.poll(id,now);}catch(e){throw new Error(e instanceof Error && /CHECK constraint failed/.test(e.message)?"RATE_LIMITED":"STATUS_UNAVAILABLE");}
     }
@@ -87,15 +91,7 @@ export class PreviewTransferService {
     if(row.state!=="READY"){this.active(row,now);if(row.state!=="APPROVED" || !row.owner_id)throw new Error("APPROVAL_REQUIRED");}
     const rawBody=checkContract<TransferSubmission|EstimateSubmission>(transferSubmissionSchema,value);
     if(rawBody.policy_version!==row.policy_version)throw new Error("DRAFT_CHANGED");
-    if("estimate_input" in rawBody){
-      const commitment=estimateCommitment(rawBody.estimate_input,rawBody.nonce);
-      if(transferBinding(this.config.origin,{input_commitment:commitment,metadata_hash:ESTIMATE_METADATA_HASH,policy_version:ESTIMATE_POLICY})!==row.binding_hash)throw new Error("DRAFT_CHANGED");
-      if(row.state==="READY"){this.active(row,now);return this.state(row,now);}
-      const draft={...await recomputeEstimate(rawBody.estimate_input,{...this.config.catalog,now},this.config.fx),server_engine_ref:this.config.engine};
-      try{await this.repository.commit(row,opaque("pv_"),draft,jcsSha256(draft),now);}
-      catch{const won=await this.repository.get(id);if(won?.state!=="READY" || won.binding_hash!==row.binding_hash)throw new Error("STATUS_UNAVAILABLE");this.active(won,now);}
-      return this.state((await this.repository.get(id))!,now);
-    }
+    if("estimate_input" in rawBody)throw new Error("ESTIMATE_FLOW_RETIRED");
     const body=rawBody;
     let commitment;try{commitment=inputCommitment(body.frozen_input,body.nonce);}catch{throw new Error("RESULT_MISMATCH");}
     if(transferBinding(this.config.origin,{input_commitment:commitment,metadata_hash:jcsSha256(body.metadata),policy_version:body.policy_version})!==row.binding_hash)throw new Error("DRAFT_CHANGED");

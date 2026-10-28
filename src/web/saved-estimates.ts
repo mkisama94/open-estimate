@@ -5,6 +5,9 @@ import {checkContract} from "../core/certificate-contract.js";
 import {anyOwnerPreviewSchema,type OwnerPreview} from "../core/preview-transfer-contract.js";
 import type {PreviewTransferService} from "./preview-transfer.js";
 import type {BrowserApprovalSessions} from "./web-publication-approval.js";
+import {resultPreviewHtml} from "../local/estimate-ui.js";
+import {resultSnapshotSchema,type SavedEstimate} from "../core/estimate-publication.js";
+import type {CertificateDatabase} from "./certificate-repository.js";
 
 const retention=30*86400000;
 const esc=(s:unknown)=>String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
@@ -13,10 +16,11 @@ const headers={"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-sto
 const page=(body:string,status=200)=>new Response(`<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>保存した試算 — Open Estimate</title><style>body{font:16px/1.7 system-ui;max-width:760px;margin:24px auto;padding:16px;overflow-wrap:anywhere}button{font:inherit;padding:12px}form{margin:24px 0}</style><body>${body}</body></html>`,{status,headers});
 interface Row {estimate_id:string;owner_id:string;result_json:string;result_hash:string;saved_at:number;expires_at:number}
 export function isSavedEstimatePath(path:string){return path==="/manage/estimates" || /^\/manage\/estimates\/(?:save\/pv_[a-f0-9]{32}|se_[a-f0-9]{32}(?:\/(?:extend|delete))?)$/.test(path);}
-export async function savedEstimatePage(request:Request,service:PreviewTransferService,sessions:BrowserApprovalSessions,now:number){
+export interface SavedEstimateContext {repository:{db:CertificateDatabase};config:{origin:string};ownerPreview(id:string,owner:string,now:number):Promise<OwnerPreview>}
+export async function savedEstimatePage(request:Request,service:SavedEstimateContext,sessions:BrowserApprovalSessions,now:number){
   const db=service.repository.db,url=new URL(request.url),path=url.pathname;
   const s=await sessions.read(request);
-  if(request.headers.has("Authorization") || !s || s.expires_at<=now || s.principal.expires_at<=now)return page("<h1>ログインが必要です</h1><a href='/manage'>ログイン管理へ</a>",401);
+  if(request.headers.has("Authorization") || !s || s.expires_at<=now || s.principal.expires_at<=now)return page(`<h1>ログインが必要です</h1><a href="/manage/auth/login?return_to=${encodeURIComponent(path)}">ログインしてこの結果に戻る</a>`,401);
   const owner=s.principal.subject;
   const stmt=(sql:string,...args:unknown[])=>db.prepare(sql).bind(...args);
   const redirect=(target:string)=>new Response(null,{status:303,headers:{...headers,Location:service.config.origin+target}});
@@ -27,9 +31,9 @@ export async function savedEstimatePage(request:Request,service:PreviewTransferS
   }
   const save=path.match(/^\/manage\/estimates\/save\/(pv_[a-f0-9]{32})$/);
   const existing=path.match(/^\/manage\/estimates\/(se_[a-f0-9]{32})(?:\/(extend|delete))?$/);
-  let dto:OwnerPreview|undefined,row:Row|null=null;
+  let dto:OwnerPreview|undefined,row:Row|null=null,direct:SavedEstimate|null=null;
   if(save)dto=await service.ownerPreview(save[1],owner,now);
-  else if(existing){row=await stmt("SELECT * FROM saved_estimates WHERE estimate_id=? AND owner_id=?",existing[1],owner).first<Row>();if(!row)return page("<h1>結果が見つかりません</h1>",404);if(row.expires_at<=now)return page("<h1>保存期限が切れました</h1>",410);dto=checkContract<OwnerPreview>(anyOwnerPreviewSchema,JSON.parse(row.result_json));if(jcsSha256(dto)!==row.result_hash)throw new Error("STATUS_UNAVAILABLE");}
+  else if(existing){row=await stmt("SELECT * FROM saved_estimates WHERE estimate_id=? AND owner_id=?",existing[1],owner).first<Row>();if(!row)return page("<h1>結果が見つかりません</h1>",404);if(row.expires_at<=now)return page("<h1>保存期限が切れました</h1>",410);const raw=JSON.parse(row.result_json);if(jcsSha256(raw)!==row.result_hash)throw new Error("STATUS_UNAVAILABLE");if(raw.schema_version==="oes/saved-estimate/v2"){direct=raw;checkContract(resultSnapshotSchema,direct!.snapshot);if(jcsSha256(direct!.snapshot)!==direct!.snapshot_hash)throw new Error("STATUS_UNAVAILABLE");}else dto=checkContract<OwnerPreview>(anyOwnerPreviewSchema,raw);}
   else return page("<h1>ページが見つかりません</h1>",404);
   const target={preview_id:path,draft_hash:row?.result_hash??jcsSha256(dto)};
   if(request.method==="POST"){
@@ -52,6 +56,7 @@ export async function savedEstimatePage(request:Request,service:PreviewTransferS
   if(request.method!=="GET")return page("<h1>操作が不正です</h1>",405);
   const action=save?"この試算を30日間保存する":existing![2]==="delete"?"この保存結果を削除する":existing![2]==="extend"?"今日から30日間に延長する":null;
   if(action)return page(`<h1>${action}</h1><p>本人限定の試算結果と基準情報を保存します。ソースコードは保存しません。一般公開・証明書発行は行いません。</p>${existing?.[2]==="delete"?"<p>削除するとこのURLから閲覧できなくなります。</p>":`<p>保存期限：${esc(new Date(now+retention).toISOString())}</p>`}<form method="post"><input type="hidden" name="csrf" value="${esc(await sessions.csrfToken(s,target))}"><label><input type="checkbox" name="consent" value="yes" required>内容を確認しました</label><p><button>${action}</button></p></form><a href="/manage/estimates">保存した試算へ</a>`);
+  if(direct)return page(resultPreviewHtml(direct.snapshot,{result_url:service.config.origin+path,expires_at:new Date(row!.expires_at).toISOString()})+`<p><a href="${path}/extend">保存期限を延長</a>　<a href="${path}/delete">保存結果を削除</a></p>`);
   if(dto!.display_quote)return page(estimateResultHtml(dto!,new Date(row!.expires_at).toISOString(),true)+`<p><a href="${path}/extend">保存期限を延長</a>　<a href="${path}/delete">保存結果を削除</a></p>`);
   return page(`<h1>保存した試算</h1><p>本人限定・未署名・未公開</p><h2>${esc(dto!.result.measurement.cfp??"未算出")} CFP</h2><p>状態：${esc(dto!.result.measurement.status)} — TEST基準による参考値</p><p>参考工数（時間・中央値）：${esc(dto!.result.calculation.effort.person_hours?.median??"未算出")}</p><p>保存期限：${esc(new Date(row!.expires_at).toISOString())}</p><details><summary>基準と結果の詳細</summary><pre>${esc(JSON.stringify(dto!.result,null,2))}</pre></details><p><a href="${path}/extend">保存期限を延長</a>　<a href="${path}/delete">保存結果を削除</a></p><a href="/manage/estimates">保存した試算へ</a>`);
 }

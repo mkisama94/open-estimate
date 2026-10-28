@@ -39,7 +39,7 @@ async function main() {
     if(!cardResponse.ok || card.result?.isError || card.result?.structuredContent?.stage!=='scope')throw new Error('PRODUCTION_EXPERIENCE_CARD_FAILED');
     const response = await fetch('https://open-estimate.ai-orchestration.jp/mcp', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }), signal: AbortSignal.timeout(30000) });
     const result = await response.json();
-    for (const name of ['get_skill_policy', 'get_measurement_rules', 'evaluate_model', 'show_preview_confirmation', 'get_estimate_experience', 'show_estimate_step']) {
+    for (const name of ['get_skill_policy', 'get_measurement_rules', 'publish_estimate', 'get_estimate_experience', 'show_estimate_step']) {
       if (!response.ok || !result.result?.tools?.some(t => t.name === name)) throw new Error('PRODUCTION_TOOLS_MISSING');
     }
   }

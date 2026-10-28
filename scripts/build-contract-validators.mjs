@@ -5,6 +5,7 @@ import standalone from 'ajv/dist/standalone/index.js';
 import {build} from 'esbuild';
 import {getRegisteredContracts} from '../dist/core/certificate-contract.js';
 await import('../dist/core/preview-transfer-contract.js');
+await import('../dist/core/estimate-publication.js');
 await import('../dist/remote/experience.js');
 await import('../dist/web/public-result-runtime.js');
 const schemas=getRegisteredContracts();

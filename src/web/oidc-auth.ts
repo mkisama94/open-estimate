@@ -35,7 +35,7 @@ export function createOidcAuthAdapter(config:OidcAuthConfig,testing?:{keys:JWTVe
           || typeof payload.azp!=="string" || !config.client_ids.includes(payload.azp) || typeof payload.scope!=="string" || typeof payload.exp!=="number" || payload.exp*1000<=now)return null;
         const reported=payload.scope.split(" ");
         // Operator permissions require a separate adapter/authorization path.
-        const scopes=reported.includes("certificates:manage")?["certificates:manage"]:[];
+        const scopes=["certificates:manage","estimates:write"].filter(scope=>reported.includes(scope));
         if(!scopes.length)return null;
         return {subject:oidcOwnerId(config.issuer,payload.sub),scopes,expires_at:payload.exp*1000,authentication_strength:"OIDC_ACCESS_TOKEN_VERIFIED"};
       } catch {return null;}

@@ -1,29 +1,25 @@
-import { checkContract,obj,prepareContracts } from "../core/certificate-contract.js";
-import { experienceUiUri } from "./experience-ui.js";
-const capabilitySchema=obj({schema_version:{const:"oes/estimate-experience/v1"},web:obj({available:{type:"boolean"},reason:{enum:["AVAILABLE","OWNER_PREVIEW_DISABLED","CONFIGURATION_REQUIRED","MIGRATION_REQUIRED","STATUS_UNAVAILABLE"]},authentication:{const:"BROWSER_LOGIN_REQUIRED"},minutes:{const:15}}),save:obj({available:{type:"boolean"},days:{const:30}}),certificate:obj({available:{const:false},reason:{const:"NOT_PROVIDED"},issuer:{const:"AI Orchestration Inc."}}),standard_completion:{const:"WEB_READY"}});
+import {checkContract,obj,prepareContracts} from "../core/certificate-contract.js";
+import {experienceUiUri} from "./experience-ui.js";
+const capabilitySchema=obj({schema_version:{const:"oes/estimate-experience/v2"},web:obj({available:{type:"boolean"},reason:{enum:["AVAILABLE","ESTIMATE_PUBLICATION_DISABLED","CONFIGURATION_REQUIRED","MIGRATION_REQUIRED","STATUS_UNAVAILABLE"]},authentication:{const:"CONNECTED_OAUTH_REQUIRED"},retention_days:{const:30}}),local:obj({preview:{const:true},pdf:{const:true}}),certificate:obj({available:{const:false},reason:{const:"NOT_PROVIDED"},issuer:{const:"AI Orchestration Inc."}}),standard_completion:{const:"WEB_SAVED"}});
+let cached:{value:any;expires:number}|undefined;
 export async function getExperienceCapabilities(send:typeof fetch=fetch){
-  try{const response=await send("https://open-estimate.ai-orchestration.jp/api/v1/estimate-capabilities",{redirect:"error",signal:AbortSignal.timeout(8000)});
-    if(!response.ok)throw new Error();
-    const reader=response.body?.getReader();if(!reader)throw new Error();let text="",size=0;const decoder=new TextDecoder();
-    try{for(;;){const r=await reader.read();if(r.done)break;size+=r.value.length;if(size>8192){await reader.cancel();throw new Error();}text+=decoder.decode(r.value,{stream:true});}}finally{reader.releaseLock();}
-    return checkContract<any>(capabilitySchema,JSON.parse(text));
-  }catch{return {schema_version:"oes/estimate-experience/v1",web:{available:false,reason:"STATUS_UNAVAILABLE",authentication:"BROWSER_LOGIN_REQUIRED",minutes:15},save:{available:false,days:30},certificate:{available:false,reason:"NOT_PROVIDED",issuer:"AI Orchestration Inc."},standard_completion:"WEB_READY"};}
+ if(send===fetch&&cached&&cached.expires>Date.now())return cached.value;
+ try{const response=await send("https://open-estimate.ai-orchestration.jp/api/v1/estimate-capabilities",{redirect:"error",signal:AbortSignal.timeout(8000)});
+  if(!response.ok)throw new Error();const reader=response.body?.getReader();if(!reader)throw new Error();const chunks:Uint8Array[]=[];let bytes=0;
+  try{for(;;){const r=await reader.read();if(r.done)break;bytes+=r.value.length;if(bytes>8192){await reader.cancel();throw new Error();}chunks.push(r.value);}}finally{reader.releaseLock();}
+  const value=checkContract<any>(capabilitySchema,JSON.parse(Buffer.concat(chunks).toString("utf8")));if(send===fetch)cached={value,expires:Date.now()+60000};return value;
+ }catch{return {schema_version:"oes/estimate-experience/v2",web:{available:false,reason:"STATUS_UNAVAILABLE",authentication:"CONNECTED_OAUTH_REQUIRED",retention_days:30},local:{preview:true,pdf:true},certificate:{available:false,reason:"NOT_PROVIDED",issuer:"AI Orchestration Inc."},standard_completion:"WEB_SAVED"};}
 }
-export const experienceStepSchema={...obj({stage:{enum:["scope","analyzing","confirmation","result","error","local"]},transfer_id:{type:"string",pattern:"^pt_[a-f0-9]{32}$"},preview_url:{type:"string",pattern:"^https://open-estimate\\.ai-orchestration\\.jp/manage/estimate-previews/pv_[a-f0-9]{32}$"},expires_at:{type:"string",format:"date-time"},error_code:{type:"string",pattern:"^[A-Z][A-Z0-9_]{0,80}$"}}),required:["stage"]};
-export function experienceStep(value:unknown){
-  const a=checkContract<{stage:string;transfer_id?:string;preview_url?:string;expires_at?:string;error_code?:string}>(experienceStepSchema,value);
-  const keys=Object.keys(a).sort().join();
-  const allowed=a.stage==="result"?"expires_at,preview_url,stage":a.stage==="confirmation"?"stage,transfer_id":a.stage==="error"?"error_code,stage":"stage";
-  if(keys!==allowed)throw new Error("INVALID_INPUT");
-  if(a.stage==="result" && Date.parse(a.expires_at!)<=Date.now())throw new Error("PREVIEW_EXPIRED");
-  return a;
+export const experienceStepSchema={...obj({stage:{enum:["scope","analyzing","review","confirmation","publishing","authentication","result","error","local"]},result_url:{type:"string",pattern:"^https://open-estimate\\.ai-orchestration\\.jp/manage/estimates/se_[a-f0-9]{32}$"},expires_at:{type:"string",format:"date-time"},error_code:{type:"string",pattern:"^[A-Z][A-Z0-9_]{0,80}$"}}),required:["stage"]};
+export function experienceStep(value:unknown){const a=checkContract<{stage:string;result_url?:string;expires_at?:string;error_code?:string}>(experienceStepSchema,value);
+ const allowed=a.stage==="result"?"expires_at,result_url,stage":a.stage==="error"?"error_code,stage":"stage";
+ if(Object.keys(a).sort().join()!==allowed)throw new Error("INVALID_INPUT");return a;
 }
 prepareContracts([capabilitySchema,experienceStepSchema]);
 export function experienceResponse(data:Record<string,unknown>){
-  const stage=data.stage,notice=stage==="result"?"本人用Web結果: "+data.preview_url+" ／ 期限: "+data.expires_at
-    :stage==="confirmation"?"送信内容を確認してWeb表示へ: https://open-estimate.ai-orchestration.jp/manage/preview-transfers/"+data.transfer_id
-    :stage==="error"?"Web表示は未完了です。原因: "+data.error_code+"。保存済みの同じsubmissionからresume-estimateで再開してください。"
-    :stage==="local"?"利用者の選択によりローカル結果で終了。後で同じrunからWeb表示を再開できます。"
-    :"対象確認 → 解析 → 同意後に本人用Web結果（15分）。希望すれば30日保存。計算証明書は発行元の電子署名を確認する仕組みですが、この環境では未提供です。ソースをOpen Estimateへ送信しません。AI解析のモデル提供元（OpenAI、Anthropicなど）による処理とは別です。";
-  return {structuredContent:data,content:[{type:"text" as const,text:notice}],_meta:{ui:{resourceUri:experienceUiUri}}};
+ const notice=data.stage==="result"?"本人用Web結果（30日保存）："+data.result_url+" / 期限："+data.expires_at
+ :data.stage==="error"?"掲載は未完了です。結果とPDFを保持し、同じ掲載操作で再試行できます。原因："+data.error_code
+ :data.stage==="authentication"?"本人のログインが必要です。認証後は同じ掲載操作へ戻ります。掲載同意は繰り返しません。"
+ :"対象範囲の確認 → 解析 → チャット内プレビュー・PDF → 掲載同意 → 本人用Web結果（30日保存）。送信せず終了することもできます。ソースコード・対象パス・根拠本文・判断台帳はOpen Estimateへ送信しません。";
+ return {structuredContent:data,content:[{type:"text" as const,text:notice}],_meta:{ui:{resourceUri:experienceUiUri}}};
 }

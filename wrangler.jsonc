@@ -18,7 +18,7 @@
   // npm run deploy generates engine identity from the exact uploaded bundle.
   // Direct wrangler deployment deliberately leaves preview disabled.
   "vars": {"ISSUANCE_ENABLED": "false", "OWNER_PREVIEW_ENABLED": "false", "OWNER_PREVIEW_GENERATION": "sg_e1f197dcd0f4635e26af52042e3a7d72", "PUBLICATION_READ_ENABLED": "false", "WEB_LOGIN_ENABLED": "true", "AUTH0_ISSUER": "https://auth.ai-orchestration.jp/", "AUTH0_WEB_CLIENT_ID": "csqN2pYPrG6jnMz00qm44pFi1CjAvv2v"},
-  "ratelimits": [{"name":"OWNER_PREVIEW_LIMITER","namespace_id":"2026102101","simple":{"limit":10,"period":60}},{"name":"BROWSER_LOGIN_LIMITER","namespace_id":"2026102001","simple":{"limit":60,"period":60}}],
+  "ratelimits": [{"name":"OWNER_PREVIEW_LIMITER","namespace_id":"2026102101","simple":{"limit":10,"period":60}},{"name":"BROWSER_LOGIN_LIMITER","namespace_id":"2026102001","simple":{"limit":60,"period":60}},{"name":"ESTIMATE_PUBLICATION_LIMITER","namespace_id":"2026102801","simple":{"limit":10,"period":60}}],
   "triggers": {"crons":["*/15 * * * *"]},
   "d1_databases": [{"binding": "CERTIFICATES_DB", "database_name": "open-estimate-certificates", "database_id": "bdb25739-fcee-4fa8-8dd2-9453a75bbaca", "migrations_dir": "migrations"}]
 }

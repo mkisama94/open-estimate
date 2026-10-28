@@ -14,6 +14,8 @@ import { certificateHtml, statusHtml, publicErrorHtml, publicHtmlHeaders } from 
 import { publicResultService, isPublicResultPath, type PublicResultEnvironment } from "./public-result-runtime.js";
 import { publicDisplayQuote } from "../core/public-display-quote.js";
 import { frbProvider } from "../profiles/frb.js";
+import {publishAuthenticatedEstimate,publicationAuthChallenge,type EstimatePublicationEnvironment} from "../remote/estimate-publishing.js";
+import {isSavedEstimatePath,savedEstimatePage} from "./saved-estimates.js";
 
 interface Assets {fetch(request:Request):Promise<Response>}
 interface Env extends PublicResultEnvironment {OWNER_PREVIEW_ENABLED?:string;PREVIEW_TRANSFER_CODE_SECRET?:string;OWNER_PREVIEW_ENGINE_SHA256?:string;OWNER_PREVIEW_ENGINE_VERSION?:string;OWNER_PREVIEW_GENERATION?:string;OWNER_PREVIEW_LIMITER?:{limit(options:{key:string}):Promise<{success:boolean}>};ASSETS:Assets;ISSUANCE_ENABLED?:string;PUBLICATION_READ_ENABLED?:string;CERTIFICATES_DB?:import("./certificate-readiness.js").ReadinessDatabase;WEB_LOGIN_ENABLED?:string;AUTH0_ISSUER?:string;AUTH0_WEB_CLIENT_ID?:string;AUTH0_WEB_CLIENT_SECRET?:string;BROWSER_SESSION_SECRET?:string;BROWSER_LOGIN_LIMITER?:{limit(options:{key:string}):Promise<{success:boolean}>}}
@@ -80,6 +82,22 @@ export function createCertificateWorker(service:CertificateService,auth:AuthAdap
 export default {async fetch(request:Request,env:Env):Promise<Response> {
   if(request.method==="GET" && new URL(request.url).pathname==="/api/v1/certificate-readiness")return (await import("./certificate-readiness.js")).certificateReadiness(env.CERTIFICATES_DB);
   const path=new URL(request.url).pathname;
+  if(path==="/api/v1/estimates" && request.method==="POST"){
+    try {
+      if(request.headers.has("Cookie")||request.headers.has("Origin"))throw new Error("AUTH_REQUIRED");
+      return json(await publishAuthenticatedEstimate(request,await body(request),env as unknown as EstimatePublicationEnvironment,defaultRegistry,defaultRulesRegistry));
+    }catch(e){const code=e instanceof Error&&/^[A-Z][A-Z0-9_]+$/.test(e.message)?e.message:"STATUS_UNAVAILABLE";
+      const status=code==="AUTH_REQUIRED"?401:code==="RATE_LIMITED"?429:["IDEMPOTENCY_CONFLICT","CONSENT_CONTENT_CHANGED","RESULT_MISMATCH"].includes(code)?409:["INVALID_INPUT","INPUT_TOO_LARGE"].includes(code)?400:503;
+      const response=json({error:{code,retryable:status===429||status===503}},status);if(status===401)response.headers.set("WWW-Authenticate",publicationAuthChallenge);if(status===429)response.headers.set("Retry-After","60");return response;}
+  }
+  if(isSavedEstimatePath(path) && !path.includes("/save/")){
+    try {
+      const db=env.CERTIFICATES_DB as import("./browser-login.js").BrowserLoginDatabase|undefined;
+      if(env.WEB_LOGIN_ENABLED!=="true"||!db||!env.AUTH0_ISSUER||!env.AUTH0_WEB_CLIENT_ID||!env.AUTH0_WEB_CLIENT_SECRET||!env.BROWSER_SESSION_SECRET)throw new Error("AUTH_CONSENT_NOT_READY");
+      const origin="https://open-estimate.ai-orchestration.jp",login=(await import("./browser-login.js")).createBrowserLogin({origin,issuer:env.AUTH0_ISSUER,client_id:env.AUTH0_WEB_CLIENT_ID,client_secret:env.AUTH0_WEB_CLIENT_SECRET,session_secret:env.BROWSER_SESSION_SECRET},db);
+      return await savedEstimatePage(request,{repository:{db},config:{origin},ownerPreview:async()=>{throw new Error("NOT_FOUND");}},login.sessions,Date.now());
+    }catch{return json({error:{code:"STATUS_UNAVAILABLE",retryable:true}},503);}
+  }
   if(path==="/api/v1/estimate-capabilities" && request.method==="GET")return json(await estimateCapabilities(env));
   if(isPublicResultPath(path)){
     try {
@@ -121,5 +139,6 @@ export default {async fetch(request:Request,env:Env):Promise<Response> {
   if(!db || typeof db.batch!=="function")throw new Error("STATUS_UNAVAILABLE");
   await (await import("./browser-login.js")).purgeBrowserSessions(db,Date.now());
   if(await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='saved_estimates'").first())await db.batch([db.prepare("DELETE FROM saved_estimates WHERE expires_at<=?").bind(Date.now())]);
+  if(await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='estimate_publications'").first())await db.batch([db.prepare("DELETE FROM estimate_publications WHERE expires_at<=?").bind(Date.now())]);
   if(await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='preview_transfers'").first())await new PreviewTransferRepository(db).purge(Date.now());
 }};

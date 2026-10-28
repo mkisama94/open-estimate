@@ -65,20 +65,16 @@ describe("remote boundary", () => {
       expect(response.status).toBe(200); return response.json() as Promise<any>;
     };
     expect((await call("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "test", version: "1" } })).result.serverInfo.name).toBe("open-estimate-remote");
-    expect((await call("tools/list", {})).result.tools.map((t: any) => t.name)).toEqual(["get_estimate_experience", "show_estimate_step", "show_preview_confirmation", "get_skill_policy", "get_measurement_rules", "evaluate_model"]);
-    const transfer_id="pt_"+"1".repeat(32);
-    const ui=(await call("tools/call",{name:"show_preview_confirmation",arguments:{transfer_id}})).result;
-    expect(ui.structuredContent).toEqual({transfer_id});
-    const resource=(await call("resources/read",{uri:ui._meta.ui.resourceUri})).result.contents[0];
-    expect(resource.mimeType).toBe("text/html;profile=mcp-app");
-    expect(resource.text).toContain("送信内容を確認する");
-    expect((await call("tools/call",{name:"show_preview_confirmation",arguments:{transfer_id,source:"PRIVATE_CANARY"}})).result.isError).toBe(true);
-    const result = (await call("tools/call", { name: "evaluate_model", arguments: args() })).result;
-    expect(result.isError).not.toBe(true);
-    expect(result.structuredContent.report.measurement.cfp).toBe(6);
-    const bad = (await call("tools/call", { name: "evaluate_model", arguments: { ...args(), cfp: 900 } })).result;
-    expect(bad.isError).toBe(true);
-    expect(JSON.stringify(bad)).not.toContain("900");
+    const listed=(await call("tools/list",{})).result.tools;
+    expect(listed.map((t:any)=>t.name)).toEqual(["get_estimate_experience","show_estimate_step","get_skill_policy","get_measurement_rules","publish_estimate"]);
+    expect(listed.find((t:any)=>t.name==="publish_estimate").securitySchemes).toEqual([{type:"oauth2",scopes:["estimates:write"]}]);
+    const ui=(await call("tools/call",{name:"show_estimate_step",arguments:{stage:"confirmation"}})).result;
+    expect(ui.structuredContent).toEqual({stage:"confirmation"});
+    const resource=(await call("resources/read",{uri:ui._meta.ui.resourceUri})).result.contents[0];expect(resource.mimeType).toBe("text/html;profile=mcp-app");
+    expect(resource.text).not.toContain("照合コードを入力");
+    expect((await call("tools/call",{name:"evaluate_model",arguments:args()})).result.isError).toBe(true);
+    expect((await call("tools/call",{name:"show_preview_confirmation",arguments:{transfer_id:"pt_"+"1".repeat(32)}})).result.isError).toBe(true);
+
   });
   it("rejects oversized bodies and foreign browser origins", async () => {
     expect((await worker.fetch(new Request("https://example.test/mcp", { method: "POST", headers: { "content-type": "application/json" }, body: "x".repeat(1024 * 1024 + 1) }))).status).toBe(413);

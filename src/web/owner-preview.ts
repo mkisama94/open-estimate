@@ -21,7 +21,7 @@ export async function boundedPreviewBody(request:Request,max:number,form=false){
   const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
   return form?new URLSearchParams(new TextDecoder("utf-8",{fatal:true}).decode(bytes)):readCertificateJson(bytes);
 }
-const statusCodes:Record<string,number>={AUTH_REQUIRED:401,APPROVAL_REQUIRED:403,NOT_FOUND:404,INVALID_INPUT:400,INPUT_TOO_LARGE:413,IDEMPOTENCY_CONFLICT:409,DRAFT_CHANGED:409,RESULT_MISMATCH:409,BASIS_MISMATCH:409,PREVIEW_EXPIRED:410,RATE_LIMITED:429,OWNER_PREVIEW_DISABLED:503,STATUS_UNAVAILABLE:503,MODEL_UNSUPPORTED:422,BASIS_UNSUPPORTED:422,RULESET_NOT_ISSUABLE:422,SKILL_NOT_ISSUABLE:422};
+const statusCodes:Record<string,number>={ESTIMATE_FLOW_RETIRED:409,AUTH_REQUIRED:401,APPROVAL_REQUIRED:403,NOT_FOUND:404,INVALID_INPUT:400,INPUT_TOO_LARGE:413,IDEMPOTENCY_CONFLICT:409,DRAFT_CHANGED:409,RESULT_MISMATCH:409,BASIS_MISMATCH:409,PREVIEW_EXPIRED:410,RATE_LIMITED:429,OWNER_PREVIEW_DISABLED:503,STATUS_UNAVAILABLE:503,MODEL_UNSUPPORTED:422,BASIS_UNSUPPORTED:422,RULESET_NOT_ISSUABLE:422,SKILL_NOT_ISSUABLE:422};
 export function isOwnerPreviewPath(path:string){return isSavedEstimatePath(path) || path==="/api/v1/preview-transfers" || /^\/api\/v1\/preview-transfers\/pt_[a-f0-9]{32}\/(status|preview|result)$/.test(path)
   || /^\/manage\/preview-transfers\/pt_[a-f0-9]{32}(\/approve)?$/.test(path) || /^\/api\/v1\/owner-certificate-previews\/pv_[a-f0-9]{32}$/.test(path)
   || /^\/manage\/(?:certificate|estimate)-previews\/pv_[a-f0-9]{32}$/.test(path);}
@@ -53,6 +53,7 @@ export function createOwnerPreviewController(service:PreviewTransferService,sess
         const row=await service.browserContext(transfer[1],s.principal.subject,now),target={preview_id:row.transfer_id,draft_hash:row.binding_hash};
         if(request.method==="GET" && !transfer[2]){
           if(row.state==="READY" && row.preview_id)return new Response(null,{status:303,headers:{...ownerHeaders,Location:service.config.origin+(row.policy_version===ESTIMATE_POLICY?"/manage/estimate-previews/":"/manage/certificate-previews/")+row.preview_id}});
+          if(row.policy_version===ESTIMATE_POLICY)return page("<h1>見積の掲載方法が変更されました</h1><p>この旧受付からは送信しません。元のチャットで保存済み結果から新しいプレビューとPDFを作り、掲載内容を確認してください。</p>");
           if(row.state==="APPROVED"){
             const response=page('<h1>試算結果を準備しています</h1><p>送信を許可しました。ローカル処理が送信・再計算を進めています。この画面でお待ちください。</p><p>5秒ごとに状態を確認し、完成した本人限定の結果ページへ移動します。</p><p>処理を中断した場合は、元のチャットで再開してください。同じ内容への同意を繰り返す必要はありません。</p>');
             response.headers.set("Refresh","5");return response;
