@@ -20,6 +20,12 @@ resume-estimate-workflowは未完工程だけを元の操作ID・要求・確定
 
 cancel-estimate-workflowは未送信工程を止める。取消後は登録POSTを再送しない。公開応答消失時は秘密付きの読取専用照会で確認し、完了分を正確に報告する。通信結果不明を公開なしと断定しない。
 
+取消後の照会が404/NOT_FOUNDでも、送信済みの登録がまだ処理中の可能性がある。`CANCELLED_PUBLICATION_UNCONFIRMED`と`publish_inflight:true`を保持し、後のresumeで同じ操作IDと管理秘密による読取専用照会を行う。自動的に登録POSTを再送せず、一度の404や時間経過で「公開されなかった」と確定しない。PUBLISHEDを確認したらURLを案内し、停止を希望する場合だけwithdrawを使う。WITHDRAWN/EXPIREDの確定応答では照会待ちを解除する。
+
+同一workflowへの書込は所有プロセス付きの`workflow.lock/owner-<token>.json`で排他する。実行中なら`WORKFLOW_BUSY_RETRY`。終了をOSへ照会して確認できた所有者だけを回収するので、クラッシュ後も同じworkflowをresumeできる。時刻が古いことを根拠に回収しない。所有者不明・権限不足・別ホストのロックは自動削除しない。PIDが再利用されて稼働中なら安全側で待機する。
+
+0.12.0以前の空の`workflow.lock`ファイルには所有者情報がなく、自動回収できない。`WORKFLOW_LEGACY_LOCK_REQUIRES_CHECK`の場合、運用者がその保存先を使用する旧版プロセスをすべて終了したと確認した後に限り、空ファイルを別名で保管して再開する。新旧版を同じworkflow保存先で同時実行しない。状態・証明・管理秘密を消去して作り直す復旧は行わない。
+
 withdraw-estimate-workflowは利用者の明示希望で公開を停止する。管理秘密は32バイト以上の乱数をローカル非公開ファイルへ送信前に保存し、モデル向け出力・URL・本文・PDF・通常ログへ含めない。Webはハッシュだけを保持する。
 
 後から未選択の検証・公開を希望した場合はextend-estimate-workflowへ同じterms_hash・追加選択・実回答を渡す。解析はやり直さず、旧承認履歴も保持する。対象・送信先・項目等の変更には承認を流用しない。機密混入や不正署名を同意で迂回しない。ホストの確認と製品側の同意を別に記録する。

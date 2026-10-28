@@ -85,12 +85,13 @@ try {
   const preview=run('create-document',{run_id:exported.local.run_id,display_currency:'USD'});
   assert.equal(preview.status,'DOCUMENT_READY');assert.equal((await fs.readFile(preview.pdf)).subarray(0,5).toString(),'%PDF-');
   const client=new Client({name:'relocated-local-result',version:'1'},{capabilities:{}});
-  await client.connect(new StdioClientTransport({command:process.execPath,args:[path.join(plugin,'server/dist/index.js')],cwd:temp,env:{...process.env,OES_RUNS_ROOT:path.join(temp,'runs'),OES_WORKFLOWS_ROOT:path.join(temp,'workflows')}}));
+  const configuredLaunch={command:localMcp.command,args:localMcp.args,cwd:path.resolve(plugin,localMcp.cwd??'.')};
+  await client.connect(new StdioClientTransport({...configuredLaunch,env:{...process.env,OES_RUNS_ROOT:path.join(temp,'runs'),OES_WORKFLOWS_ROOT:path.join(temp,'workflows')}}));
   try{const card=await client.callTool({name:'show_document',arguments:{document_dir:preview.dir}});assert.notEqual(card.isError,true);assert.equal(card.structuredContent.document_sha256,preview.document_sha256);
     const resource=await client.readResource({uri:card._meta.ui.resourceUri});assert.equal(resource.contents[0].mimeType,'text/html;profile=mcp-app');
     const pdf=await client.callTool({name:'get_document_pdf',arguments:{document_dir:preview.dir}});assert.equal(Buffer.from(pdf._meta.file_base64,'base64').subarray(0,5).toString(),'%PDF-');
     const result=await client.callTool({name:'show_estimate_workflow',arguments:{workflow_id:start.workflow_id}});assert.notEqual(result.isError,true);assert.equal(result.structuredContent.presentation.median,'18');
     const newPdf=await client.callTool({name:'get_estimate_workflow_pdf',arguments:{workflow_id:start.workflow_id}});assert.equal(Buffer.from(newPdf._meta.file_base64,'base64').subarray(0,5).toString(),'%PDF-');
   }finally{await client.close();}
-  console.log(JSON.stringify({ status: 'PASS', relocated_package: true, immutable_run_after_purge:true,local_result_card:true,local_pdf:true,workflow_start_and_completion:true,unselected_remote_sends:0, version: manifest.version }));
+  console.log(JSON.stringify({ status: 'PASS', configured_launch:configuredLaunch, declared_cwd:localMcp.cwd, actual_host_tool_exposure:false, relocated_package: true, immutable_run_after_purge:true,local_result_card:true,local_pdf:true,workflow_start_and_completion:true,unselected_remote_sends:0, version: manifest.version }));
 } finally { await fs.rm(temp, { recursive: true, force: true }); }

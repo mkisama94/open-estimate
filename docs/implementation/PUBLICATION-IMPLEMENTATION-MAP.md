@@ -11,7 +11,7 @@
 | 開始承認と適用 | src/local/workflow-consent.ts、estimate-workflow.ts、workflow-store.ts。開始条件と算定後要求を分離し、実回答のホスト申告を本人性証明と扱わない |
 | 取得との接続 | CLI、MCP server、workspace-session。範囲内の分割・再取得・宣言済み部分試算を承認へ接続 |
 | 固定結果・run接続 | create-document.tsのfixedDocumentFromRun、complete-workflow.ts。取得前後・対象・承認を確認。純粋な公開エンジンはファイル未作成の構造化入力でも動作 |
-| 通信・復旧 | publication-client.ts。MCP SDKとWeb JSON、固定操作ID、有限再試行、取消後は読取専用復旧。秘密はローカルのみ |
+| 通信・復旧 | publication-client.ts、estimate-workflow.ts、workflow-lock.ts。固定操作ID、有限再試行、取消後404でも読取専用復旧を継続。所有プロセス終了時のみロック回収。秘密はローカルのみ |
 | 開始・結果UI | workflow-widget.ts。未選択3項目、依存検査、中央値/部分値、品質・条件、PDF・URL・コピー・取消・停止 |
 | 共通描画 | src/document/estimate-view.ts、estimate-pdf.ts。固定データのみでMarkdown/PDF/Web、日本語フォント埋込 |
 | 公開保存・期限・停止 | public-results-repository.ts、public-results.ts、0010。新テーブルだけで原子的登録、ランダムID、365日、墓標を保持 |

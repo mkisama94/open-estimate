@@ -1,0 +1,338 @@
+{
+  "schema_version": "oes/workflow-recovery-verification/v1",
+  "generated_at": "2026-10-28T16:07:36.586Z",
+  "base_commit": "9285a12c6c6c901667ef4ffdb59ffaa3ec1afa76",
+  "verification_revision_status": "PRE_COMMIT_WORKTREE_SNAPSHOT",
+  "accepted_execution": "accepted-recovery-full",
+  "actual_host_tool_exposure": false,
+  "actual_chatgpt_full_journey": false,
+  "production_deployment": false,
+  "historical_commit_report": {
+    "passed": 451,
+    "failed": 6,
+    "total": 457,
+    "source_chat": "01a182ba-2247-7c72-b76f-730d85aee144",
+    "source_turn": "01a182fa-4d93-75e0-9914-9f1c9356ab75",
+    "limitations": "Four HELPER_EXECUTION_FAILED historical inner causes were not logged; current restricted diagnostic reproduced mkdir EPERM in home runs for all four."
+  },
+  "executions": [
+    {
+      "label": "baseline-9285a12",
+      "commit": "9285a12c6c6c901667ef4ffdb59ffaa3ec1afa76",
+      "tracked_changes": "",
+      "started_at": "2026-10-28T15:40:38.401Z",
+      "node": "v24.18.1",
+      "exec_path": "C:\\Program Files\\nodejs\\node.exe",
+      "platform": "win32",
+      "arch": "x64",
+      "package_lock_sha256": "90e66e035cb3cd4b9cdf898385b535e543692a98a1a1bb82046b50f8bfbc053a",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=2"
+      ],
+      "permission_context": "approved local execution; fixture temp files, Wrangler and child processes allowed",
+      "ended_at": "2026-10-28T15:42:52.866Z",
+      "exit_code": 0,
+      "passed": 457,
+      "failed": 0,
+      "total": 457,
+      "files": 58,
+      "artifacts": {
+        "execution_sha256": "1e205f6d05e1e6a52a43738df51fca43ad962b3ca0e81396342128786d6c79b4",
+        "vitest_sha256": "4cfa42d3a4523862b95cde166b9e39327f4643cd0fb933e792be0812f79882f6",
+        "output_sha256": "b72643c49ca01d9e450b3e37c9efd14d5243aaeb69c572b4382ccbc099c31b2c"
+      }
+    },
+    {
+      "label": "recovery-focused",
+      "commit": "9285a12c6c6c901667ef4ffdb59ffaa3ec1afa76",
+      "tracked_changes": "scripts/smoke-desktop.mjs\nsrc/local/estimate-workflow.ts\nsrc/local/workflow-store.ts\ntests/integration/estimate-workflow.test.ts",
+      "started_at": "2026-10-28T15:47:44.402Z",
+      "node": "v24.18.1",
+      "exec_path": "C:\\Program Files\\nodejs\\node.exe",
+      "platform": "win32",
+      "arch": "x64",
+      "package_lock_sha256": "90e66e035cb3cd4b9cdf898385b535e543692a98a1a1bb82046b50f8bfbc053a",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=2",
+        "tests/unit/workflow-lock.test.ts",
+        "tests/integration/estimate-workflow.test.ts"
+      ],
+      "permission_context": "approved local execution; child-process kill and temporary workflow fixtures allowed",
+      "ended_at": "2026-10-28T15:47:56.410Z",
+      "exit_code": 1,
+      "passed": 6,
+      "failed": 2,
+      "total": 8,
+      "files": 2,
+      "artifacts": {
+        "execution_sha256": "40a954bd0cf7be88f326eb175e6fe0ef372cfe84e3d4ff5cb43c06b5dbf733ce",
+        "vitest_sha256": "448eef5d931c16aa745e9b19c310b2e12f7371e341d966287806b37f7e3bc9ea",
+        "output_sha256": "e1e82ec1f7ead316050634d8b409cb8c2363089d1ddfa7b13f9e429ab4d90289"
+      }
+    },
+    {
+      "label": "recovery-focused-r2",
+      "commit": "9285a12c6c6c901667ef4ffdb59ffaa3ec1afa76",
+      "tracked_changes": "scripts/smoke-desktop.mjs\nsrc/local/estimate-workflow.ts\nsrc/local/workflow-store.ts\ntests/integration/estimate-workflow.test.ts",
+      "started_at": "2026-10-28T15:50:17.416Z",
+      "node": "v24.18.1",
+      "exec_path": "C:\\Program Files\\nodejs\\node.exe",
+      "platform": "win32",
+      "arch": "x64",
+      "package_lock_sha256": "90e66e035cb3cd4b9cdf898385b535e543692a98a1a1bb82046b50f8bfbc053a",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=2",
+        "tests/unit/workflow-lock.test.ts",
+        "tests/integration/estimate-workflow.test.ts"
+      ],
+      "permission_context": "approved local execution; child-process kill and temporary workflow fixtures allowed",
+      "ended_at": "2026-10-28T15:50:29.974Z",
+      "exit_code": 0,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "files": 2,
+      "artifacts": {
+        "execution_sha256": "f2299b7a9bd1a5c54d219e4d1e840b0e70bb9c46af419817a3479aae00763148",
+        "vitest_sha256": "deabb9f9a9fdc5688a9198b4523718b4c96bd8e35adfabf6fe48c9c8f230a2b3",
+        "output_sha256": "9a66b53795c1c3835640d90de2a27cce39a8043fe3cbf534a303f6854969454c"
+      }
+    },
+    {
+      "label": "fixed-recovery-full",
+      "commit": "9285a12c6c6c901667ef4ffdb59ffaa3ec1afa76",
+      "tracked_changes": "docs/implementation/PUBLICATION-IMPLEMENTATION-MAP.md\ndocs/implementation/PUBLICATION-OPERATIONS.md\ndocs/implementation/PUBLICATION-STAGING-ACCEPTANCE.md\ndocs/implementation/SYSTEM-IMPLEMENTATION-ACCEPTANCE.md\nscripts/smoke-desktop.mjs\nsrc/local/estimate-workflow.ts\nsrc/local/workflow-store.ts\ntests/integration/estimate-workflow.test.ts",
+      "started_at": "2026-10-28T15:51:45.116Z",
+      "node": "v24.18.1",
+      "exec_path": "C:\\Program Files\\nodejs\\node.exe",
+      "platform": "win32",
+      "arch": "x64",
+      "package_lock_sha256": "90e66e035cb3cd4b9cdf898385b535e543692a98a1a1bb82046b50f8bfbc053a",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=2"
+      ],
+      "permission_context": "approved local execution; fixture temp files, Wrangler and child processes allowed",
+      "ended_at": "2026-10-28T15:54:06.725Z",
+      "exit_code": 0,
+      "passed": 461,
+      "failed": 0,
+      "total": 461,
+      "files": 59,
+      "artifacts": {
+        "execution_sha256": "a6e64205d3e255cedaa746b3b1ecee098f67fe6a5b39bea24757e83c449ff19b",
+        "vitest_sha256": "6a2272e79e87f48a11edcfc636b4aa1419fe33acc9e40e14222d978d1bb5546c",
+        "output_sha256": "2d6e6eb46f3a57ffb3aa3aa32073ca6dcb26d223e5722b7cd529c51f0b06dccc"
+      }
+    },
+    {
+      "label": "final-recovery-full",
+      "commit": "9285a12c6c6c901667ef4ffdb59ffaa3ec1afa76",
+      "tracked_changes": "docs/implementation/PUBLICATION-IMPLEMENTATION-MAP.md\ndocs/implementation/PUBLICATION-OPERATIONS.md\ndocs/implementation/PUBLICATION-STAGING-ACCEPTANCE.md\ndocs/implementation/SYSTEM-IMPLEMENTATION-ACCEPTANCE.md\nscripts/smoke-desktop.mjs\nsrc/local/estimate-workflow.ts\nsrc/local/workflow-store.ts\ntests/integration/estimate-workflow.test.ts",
+      "started_at": "2026-10-28T15:56:33.590Z",
+      "node": "v24.18.1",
+      "exec_path": "C:\\Program Files\\nodejs\\node.exe",
+      "platform": "win32",
+      "arch": "x64",
+      "package_lock_sha256": "90e66e035cb3cd4b9cdf898385b535e543692a98a1a1bb82046b50f8bfbc053a",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=2"
+      ],
+      "permission_context": "approved local execution; fixture temp files, Wrangler and child processes allowed",
+      "ended_at": "2026-10-28T15:59:11.429Z",
+      "exit_code": 0,
+      "passed": 461,
+      "failed": 0,
+      "total": 461,
+      "files": 59,
+      "artifacts": {
+        "execution_sha256": "5eaa147ce003e99154e43bf97b5f495993b6fc657629b13f42e2e315f54cddff",
+        "vitest_sha256": "2998272fc2498c05d8e92e0d20b7d4d328356c543f7898ae61acbb242997dc87",
+        "output_sha256": "240f2a5f527823ab57f6ed30c77490bff3a4a603641d74552b07ae95ed20b358"
+      }
+    },
+    {
+      "label": "verified-recovery-full",
+      "commit": "9285a12c6c6c901667ef4ffdb59ffaa3ec1afa76",
+      "tracked_changes": "docs/implementation/PUBLICATION-IMPLEMENTATION-MAP.md\ndocs/implementation/PUBLICATION-OPERATIONS.md\ndocs/implementation/PUBLICATION-STAGING-ACCEPTANCE.md\ndocs/implementation/SYSTEM-IMPLEMENTATION-ACCEPTANCE.md\nscripts/package-plugin.mjs\nscripts/smoke-desktop.mjs\nsrc/local/estimate-workflow.ts\nsrc/local/workflow-store.ts\ntests/integration/desktop-migration.test.ts\ntests/integration/estimate-workflow.test.ts\ntests/integration/measurement-context.test.ts\ntests/integration/recorded-helper.test.ts",
+      "started_at": "2026-10-28T16:01:09.142Z",
+      "node": "v24.18.1",
+      "exec_path": "C:\\Program Files\\nodejs\\node.exe",
+      "platform": "win32",
+      "arch": "x64",
+      "package_lock_sha256": "90e66e035cb3cd4b9cdf898385b535e543692a98a1a1bb82046b50f8bfbc053a",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=2"
+      ],
+      "permission_context": "approved local execution; fixture temp files, Wrangler and child processes allowed",
+      "source_sha256": {
+        "src/local/workflow-lock.ts": "2ad71342af93f3d739bc145feaf321079489933c9779c9d0ee83989961f5fbc8",
+        "src/local/workflow-store.ts": "78ac3ec2ffaef4a86a75ff417254f3d46b759b4c9b47c48c3347f275222a56cd",
+        "src/local/estimate-workflow.ts": "b9af7f3c769cda728afbb5d1b143ded732c54e4d50665a13cb98b5ead7e5b433",
+        "scripts/smoke-desktop.mjs": "1c875f49dec045ffb17fdbd0250a5bb5eda1bc2d6680b0dc358b5fecc3f3fb58",
+        "scripts/package-plugin.mjs": "799a95dc182556d276df9453c93dd134eac2d19776d49fd6d135495b889ed3a9",
+        "tests/fixtures/workflow-crash-child.mjs": "9255168bbb3b89d94eabb8c6c2ae7bedd3a31544d302acaaa84693afca250ce8",
+        "tests/unit/workflow-lock.test.ts": "aae86019a2f09ad9a1acb5d92231346870087849b9ad572d8a4a8ccbec44fcdd",
+        "tests/integration/estimate-workflow.test.ts": "74f9636ee1a0bdc160a6722be0ec6b15fa9e6ca80765c8697627383cb8ba3e9b",
+        "tests/integration/desktop-migration.test.ts": "45832c3ed8c28583c02339a6b8dd1bca438a6837d13b168fc38378b7a9ae2bff",
+        "tests/integration/measurement-context.test.ts": "8adb6f877207c369e31d3bf42f72c4b364dc396ff62b61f382de888f0638b262",
+        "tests/integration/recorded-helper.test.ts": "44b0923d2f31482f189fc2ddb272b839a4f5ceeff685915ebc5132301acea686"
+      },
+      "git_status": "M docs/implementation/PUBLICATION-IMPLEMENTATION-MAP.md\n M docs/implementation/PUBLICATION-OPERATIONS.md\n M docs/implementation/PUBLICATION-STAGING-ACCEPTANCE.md\n M docs/implementation/SYSTEM-IMPLEMENTATION-ACCEPTANCE.md\n M scripts/package-plugin.mjs\n M scripts/smoke-desktop.mjs\n M src/local/estimate-workflow.ts\n M src/local/workflow-store.ts\n M tests/integration/desktop-migration.test.ts\n M tests/integration/estimate-workflow.test.ts\n M tests/integration/measurement-context.test.ts\n M tests/integration/recorded-helper.test.ts\n?? docs/implementation/WORKFLOW-RECOVERY-REVIEW.md\n?? docs/implementation/evidence/\n?? src/local/workflow-lock.ts\n?? tests/fixtures/workflow-crash-child.mjs\n?? tests/unit/workflow-lock.test.ts",
+      "ended_at": "2026-10-28T16:03:43.619Z",
+      "exit_code": 1,
+      "source_unchanged": false,
+      "passed": 459,
+      "failed": 2,
+      "total": 461,
+      "files": 59,
+      "artifacts": {
+        "execution_sha256": "c5f4b29db2d9603d925e1a20f07104565b6c2d72739b18e5a0515bd79e44ed06",
+        "vitest_sha256": "3ed8ba3cac2a7c9761809a0590d9a311008c90d06bd1e7b6e6c5f3f38e2daaf9",
+        "output_sha256": "796cc4ecd00f6ad5a127c9b24de4ef8433502e665edefa792659cf3781d8d320"
+      }
+    },
+    {
+      "label": "accepted-recovery-full",
+      "commit": "9285a12c6c6c901667ef4ffdb59ffaa3ec1afa76",
+      "tracked_changes": "docs/implementation/PUBLICATION-IMPLEMENTATION-MAP.md\ndocs/implementation/PUBLICATION-OPERATIONS.md\ndocs/implementation/PUBLICATION-STAGING-ACCEPTANCE.md\ndocs/implementation/SYSTEM-IMPLEMENTATION-ACCEPTANCE.md\nscripts/package-plugin.mjs\nscripts/smoke-desktop.mjs\nsrc/local/estimate-workflow.ts\nsrc/local/workflow-store.ts\ntests/integration/desktop-migration.test.ts\ntests/integration/estimate-workflow.test.ts\ntests/integration/measurement-context.test.ts\ntests/integration/recorded-helper.test.ts",
+      "started_at": "2026-10-28T16:04:11.510Z",
+      "node": "v24.18.1",
+      "exec_path": "C:\\Program Files\\nodejs\\node.exe",
+      "platform": "win32",
+      "arch": "x64",
+      "package_lock_sha256": "90e66e035cb3cd4b9cdf898385b535e543692a98a1a1bb82046b50f8bfbc053a",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=2"
+      ],
+      "permission_context": "approved local execution; fixture temp files, Wrangler and child processes allowed",
+      "source_sha256": {
+        "src/local/workflow-lock.ts": "2ad71342af93f3d739bc145feaf321079489933c9779c9d0ee83989961f5fbc8",
+        "src/local/workflow-store.ts": "78ac3ec2ffaef4a86a75ff417254f3d46b759b4c9b47c48c3347f275222a56cd",
+        "src/local/estimate-workflow.ts": "b9af7f3c769cda728afbb5d1b143ded732c54e4d50665a13cb98b5ead7e5b433",
+        "scripts/smoke-desktop.mjs": "1c875f49dec045ffb17fdbd0250a5bb5eda1bc2d6680b0dc358b5fecc3f3fb58",
+        "scripts/package-plugin.mjs": "799a95dc182556d276df9453c93dd134eac2d19776d49fd6d135495b889ed3a9",
+        "tests/fixtures/workflow-crash-child.mjs": "9255168bbb3b89d94eabb8c6c2ae7bedd3a31544d302acaaa84693afca250ce8",
+        "tests/unit/workflow-lock.test.ts": "aae86019a2f09ad9a1acb5d92231346870087849b9ad572d8a4a8ccbec44fcdd",
+        "tests/integration/estimate-workflow.test.ts": "74f9636ee1a0bdc160a6722be0ec6b15fa9e6ca80765c8697627383cb8ba3e9b",
+        "tests/integration/desktop-migration.test.ts": "4ba8fbf5324d22962b689b6e2915f38a619f1a4147d5cbe711a4efe6ecbae87d",
+        "tests/integration/measurement-context.test.ts": "33b2ecd8af16ebdf5c8191cbb9c97725f17504ee41e77797acf6ce73dca769cf",
+        "tests/integration/recorded-helper.test.ts": "e8573c1f322f7a2a213dac5939e965d6d0e06a98e2563a2bd09644623848583f"
+      },
+      "git_status": "M docs/implementation/PUBLICATION-IMPLEMENTATION-MAP.md\n M docs/implementation/PUBLICATION-OPERATIONS.md\n M docs/implementation/PUBLICATION-STAGING-ACCEPTANCE.md\n M docs/implementation/SYSTEM-IMPLEMENTATION-ACCEPTANCE.md\n M scripts/package-plugin.mjs\n M scripts/smoke-desktop.mjs\n M src/local/estimate-workflow.ts\n M src/local/workflow-store.ts\n M tests/integration/desktop-migration.test.ts\n M tests/integration/estimate-workflow.test.ts\n M tests/integration/measurement-context.test.ts\n M tests/integration/recorded-helper.test.ts\n?? docs/implementation/WORKFLOW-RECOVERY-REVIEW.md\n?? docs/implementation/evidence/\n?? src/local/workflow-lock.ts\n?? tests/fixtures/workflow-crash-child.mjs\n?? tests/unit/workflow-lock.test.ts",
+      "ended_at": "2026-10-28T16:06:40.990Z",
+      "exit_code": 0,
+      "source_unchanged": true,
+      "passed": 461,
+      "failed": 0,
+      "total": 461,
+      "files": 59,
+      "artifacts": {
+        "execution_sha256": "f51fa5a7cb814b7a1aca34808f0fafb3b808e682350e820ad0182275254e5c7f",
+        "vitest_sha256": "34f28b51358d4e92ceba0fcf9532ab959ca079a5918dcafa8f82592664de0883",
+        "output_sha256": "3121bd9a855068a71c1268f722d7c664fb800f18b7a8e2e1524e251a2a04b710"
+      }
+    }
+  ],
+  "commands": [
+    {
+      "command": "npm run typecheck",
+      "started_at": "2026-10-28T15:57:42.832Z",
+      "ended_at": "2026-10-28T15:57:48.297Z",
+      "node": "v24.18.1",
+      "platform": "win32",
+      "permission_context": "approved local execution; TypeScript validation",
+      "exit_code": 0,
+      "output_file": ".cache/review-recovery/typecheck.log",
+      "result": []
+    },
+    {
+      "command": "npm run plugin:pack",
+      "started_at": "2026-10-28T15:57:13.276Z",
+      "ended_at": "2026-10-28T15:57:40.410Z",
+      "node": "v24.18.1",
+      "platform": "win32",
+      "permission_context": "approved local execution; generated distribution and local SDK launch allowed",
+      "exit_code": 0,
+      "output_file": ".cache/review-recovery/plugin-pack.log",
+      "result": [
+        "{"
+      ]
+    },
+    {
+      "command": "npm run plugin:smoke",
+      "started_at": "2026-10-28T15:58:02.152Z",
+      "ended_at": "2026-10-28T15:59:05.764Z",
+      "node": "v24.18.1",
+      "platform": "win32",
+      "permission_context": "approved local execution; relocated packaged configuration SDK launch",
+      "exit_code": 0,
+      "output_file": ".cache/review-recovery/plugin-smoke.log",
+      "result": [
+        {
+          "status": "PASS",
+          "configured_launch": {
+            "command": "node",
+            "args": [
+              "./server/dist/index.js"
+            ],
+            "cwd": "C:\\Users\\YAMAMO~1\\AppData\\Local\\Temp\\oes-desktop-smoke-LcvVQz\\relocated plugin"
+          },
+          "declared_cwd": ".",
+          "actual_host_tool_exposure": false,
+          "relocated_package": true,
+          "immutable_run_after_purge": true,
+          "local_result_card": true,
+          "local_pdf": true,
+          "workflow_start_and_completion": true,
+          "unselected_remote_sends": 0,
+          "version": "0.12.0"
+        }
+      ]
+    }
+  ],
+  "restricted_diagnostic": {
+    "started_at": "2026-10-28T15:51:23+00:00",
+    "passed": 16,
+    "failed": 4,
+    "total": 20,
+    "captured_error": {
+      "operation": "mkdir",
+      "code": "EPERM",
+      "path_pattern": "<home>/.open-estimate/runs/<id>"
+    },
+    "source_body_or_management_secret_logged": false
+  },
+  "restricted_recheck": {
+    "started_at": "2026-10-28T16:03:38Z",
+    "duration_seconds": 92.15,
+    "passed": 20,
+    "failed": 0,
+    "total": 20,
+    "files": 3,
+    "max_workers": 2,
+    "diagnostic_hook_enabled": true,
+    "fs_denials_reported": false,
+    "permission_context": "restricted execution; run storage isolated in per-test temporary directory"
+  }
+}

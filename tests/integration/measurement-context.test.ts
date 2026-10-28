@@ -12,16 +12,17 @@ import { getLocalProfile } from "../../src/profiles/local-profile.js";
 vi.setConfig({ testTimeout: 30000 });
 
 async function session(test: (c: any) => Promise<void>) {
-  const state = await fs.mkdtemp(path.join(os.tmpdir(), "oes-measurement-context-"));
+  const temp = await fs.mkdtemp(path.join(os.tmpdir(), "oes-measurement-context-"));
+  const state=path.join(temp,'state');await fs.mkdir(state);
   const root = path.resolve("examples/quality-check");
   const run = (command: string, input: any, ok = true) => {
-    const child = spawnSync(process.execPath, ["dist/local/cli.js", command], { input: JSON.stringify(input), encoding: "utf8", windowsHide: true, env: { ...process.env, OES_HELPER_STATE: state } });
+    const child = spawnSync(process.execPath, ["dist/local/cli.js", command], { input: JSON.stringify(input), encoding: "utf8", windowsHide: true, env: { ...process.env, OES_HELPER_STATE: state, OES_RUNS_ROOT:path.join(temp,'runs') } });
     expect(child.status, child.stdout + child.stderr).toBe(ok ? 0 : 1); return JSON.parse(child.stdout);
   };
   try {
     const scan = run("scan", { root }), common = { root, session_id: scan.session_id };
     await test({ state, root, run, common, stateFile: path.join(state, scan.session_id + ".json") });
-  } finally { await fs.rm(state, { recursive: true, force: true }); }
+  } finally { await fs.rm(temp, { recursive: true, force: true }); }
 }
 function prepared(c: any) {
   bindRules(c.run, c.common); c.run("confirm", { ...c.common, user_confirmed: true });

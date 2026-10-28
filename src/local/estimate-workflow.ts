@@ -66,7 +66,20 @@ export async function resumeEstimateWorkflow(id:string,options:{adapters?:Workfl
  };
  try{
   if(await cancelled()){
-   if(s.publish_inflight&&!s.publication){const m=await secret(),v=await adapters.lookup(m.publish_operation_id,m.token);if('status'in v&&v.status!=='PUBLISHED')s.publication_status=v.status==='NOT_FOUND'?'CANCELLED':v.status;else{s.publication=validatePublishedResponse(v,s.publish_request!,services);s.publication_status='PUBLISHED';}s.publish_inflight=false;await save();}
+   if(s.publish_inflight&&!s.publication){
+    const m=await secret(),v=await adapters.lookup(m.publish_operation_id,m.token);
+    if('status'in v&&v.status==='NOT_FOUND'){
+     // A still-running POST may commit after this lookup. Keep its operation and
+     // secret so later resumes can reconcile it without issuing another POST.
+     s.publication_status='CANCELLED_PUBLICATION_UNCONFIRMED';
+    }else if('status'in v&&['WITHDRAWN','EXPIRED'].includes(v.status)){
+     s.publication_status=v.status;s.publish_inflight=false;
+    }else{
+     s.publication=validatePublishedResponse(v,s.publish_request!,services);
+     s.publication_status='PUBLISHED';s.publish_inflight=false;
+    }
+    delete s.last_error;await save();
+   }
    return showEstimateWorkflow(id);
   }
   assertWorkflowContext(c,origin.target_hash,origin.plan_hash);assertResultTerms(c,s.result,s.validation_input!);

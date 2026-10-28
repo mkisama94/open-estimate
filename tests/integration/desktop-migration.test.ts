@@ -81,11 +81,12 @@ describe("remote boundary", () => {
 
 describe("one-shot helper", () => {
   it("keeps confirmed scope and ledger across processes, rejects unread/tampered evidence, and purges", async () => {
-    const state = await fs.mkdtemp(path.join(os.tmpdir(), "oes-helper-test-"));
+    const temp = await fs.mkdtemp(path.join(os.tmpdir(), "oes-helper-test-"));
+    const state=path.join(temp,'state');await fs.mkdir(state);
     const root = path.resolve("examples/quality-check");
     const run = (command: string, input: any, ok = true) => {
       const child = spawnSync(process.execPath, ["dist/local/cli.js", command], {
-        input: JSON.stringify(input), encoding: "utf8", env: { ...process.env, OES_HELPER_STATE: state }, windowsHide: true
+        input: JSON.stringify(input), encoding: "utf8", env: { ...process.env, OES_HELPER_STATE: state, OES_RUNS_ROOT: path.join(temp,'runs') }, windowsHide: true
       });
       expect(child.status, child.stdout + child.stderr).toBe(ok ? 0 : 1);
       return JSON.parse(child.stdout);
@@ -124,6 +125,6 @@ describe("one-shot helper", () => {
       expect(run("prepare", common, false).error.code).toBe("SESSION_EXPIRED_PURGE_REQUIRED");
       run("purge", common);
       expect(await fs.readdir(state)).toEqual([]);
-    } finally { await fs.rm(state, { recursive: true, force: true }); }
+    } finally { await fs.rm(temp, { recursive: true, force: true }); }
   }, 30000);
 });

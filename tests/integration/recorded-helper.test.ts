@@ -9,10 +9,11 @@ import { getLocalProfile } from "../../src/profiles/local-profile.js";
 import { bindRules, setRuleReferences } from "../fixtures/measurement.js";
 
 it("saves invalid drafts and recorded exports across helper processes; only model crosses remote boundary", async()=>{
-  const state=await fs.mkdtemp(path.join(os.tmpdir(),"oes-recorded-test-"));
+  const temp=await fs.mkdtemp(path.join(os.tmpdir(),"oes-recorded-test-"));
+  const state=path.join(temp,'state');await fs.mkdir(state);
   const root=path.resolve("examples/quality-check");
   const run=(command:string,input:unknown,ok=true)=>{
-    const child=spawnSync(process.execPath,["dist/local/cli.js",command],{input:JSON.stringify(input),encoding:"utf8",env:{...process.env,OES_HELPER_STATE:state},windowsHide:true});
+    const child=spawnSync(process.execPath,["dist/local/cli.js",command],{input:JSON.stringify(input),encoding:"utf8",env:{...process.env,OES_HELPER_STATE:state,OES_RUNS_ROOT:path.join(temp,'runs')},windowsHide:true});
     expect(child.status,child.stdout+child.stderr).toBe(ok?0:1); return JSON.parse(child.stdout);
   };
   try {
@@ -52,5 +53,5 @@ it("saves invalid drafts and recorded exports across helper processes; only mode
     const failed=run("export",{...args,assessment:JSON.stringify(invalid)},false);
     expect(failed.error.details.some((e:any)=>e.code==="UNADOPTED_OR_UNSUPPORTED_JUDGMENT")).toBe(true);
     expect(failed).not.toHaveProperty("model");run("purge",common);expect(await fs.readdir(state)).toEqual([]);
-  } finally {await fs.rm(state,{recursive:true,force:true});}
+  } finally {await fs.rm(temp,{recursive:true,force:true});}
 },30000);
