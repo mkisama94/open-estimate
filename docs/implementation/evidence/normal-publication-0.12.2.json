@@ -1,0 +1,296 @@
+{
+  "schema_version": "oes/normal-publication-acceptance/v1",
+  "version": "0.12.2",
+  "recorded_at": "2026-10-29T14:48:29.076Z",
+  "user_authorized_production_deployment": true,
+  "base_commit": "db35dc2105974e0ca358b7fdd8fc69f676bfe819",
+  "verification_revision_status": "PRE_COMMIT_WORKTREE_SNAPSHOT",
+  "mcp_worker_version": "5b1f067c-ff49-42a8-ad01-e7367a49e2dc",
+  "web_worker_version": "a402041b-a59f-4f66-8cdb-a12ac2cf376b",
+  "web_database_id": "ada73121-b4c5-4a99-a5fd-7d32db9a04eb",
+  "trusted_public_keys": [
+    {
+      "key_id": "doc_prod_cb011042438a119b00ddce271c20f8bd",
+      "algorithm": "Ed25519",
+      "public_key": "UNuoD8n7oJTHraNdYmNwPvRLSjE5iRheBa0v-LyI2CM",
+      "issuer": "https://open-estimate.ai-orchestration.jp",
+      "environment": "production"
+    }
+  ],
+  "private_key_file_removed": true,
+  "live_api": {
+    "status": "PASS_NORMAL_API_AND_LOCAL_PROTOCOL",
+    "version": "0.12.2",
+    "run": "C:\\git\\open-estimate\\release\\normal-acceptance\\0.12.2\\81a85b30-d89a-4802-a6c6-493fdc415f8a",
+    "created_at": "2026-10-29T14:31:00.206Z",
+    "input": "SYNTHETIC_ONLY",
+    "actual_user_consent": false,
+    "actual_chatgpt_full_journey": false,
+    "production_modified": true,
+    "reports": [
+      {
+        "sample": "complete",
+        "workflow_id": "5779472b-a816-454f-909f-a0de970b1cb6",
+        "proof_id": "estp_7884ab61fedce2230dfdbcd425398da7",
+        "publication": {
+          "schema_version": "oes/published-estimate/v1",
+          "status": "PUBLISHED",
+          "public_result_id": "res_162ee1f3e6f83f6f3b0c6b67bbcfb770",
+          "canonical_url": "https://open-estimate.ai-orchestration.jp/results/res_162ee1f3e6f83f6f3b0c6b67bbcfb770",
+          "result_hash": "29d4a72e90bd200b83d682bc19217978047f02863943addbade8bdadb0b35765",
+          "published_at": "2026-10-29T14:30:49.339Z",
+          "expires_at": "2027-10-29T14:30:49.339Z"
+        },
+        "remote_issue": true,
+        "remote_register": true,
+        "identical_retry": true,
+        "pdf": true,
+        "local_mcp_card_protocol": true,
+        "actual_chatgpt_card": false,
+        "browser_display": false
+      },
+      {
+        "sample": "partial",
+        "workflow_id": "22026d1d-e5eb-4df8-9c77-5a71de57f580",
+        "proof_id": "estp_276db802538e0a3429f5a58746f9e3c5",
+        "publication": {
+          "schema_version": "oes/published-estimate/v1",
+          "status": "PUBLISHED",
+          "public_result_id": "res_ec3b0d2f41cdcb3d9f5ebbf2e0c48d6d",
+          "canonical_url": "https://open-estimate.ai-orchestration.jp/results/res_ec3b0d2f41cdcb3d9f5ebbf2e0c48d6d",
+          "result_hash": "754d06f9ecf75f268b3bfd754a581c8ac4766b1a858c76342647df54a41a35d0",
+          "published_at": "2026-10-29T14:30:55.908Z",
+          "expires_at": "2027-10-29T14:30:55.908Z"
+        },
+        "remote_issue": true,
+        "remote_register": true,
+        "identical_retry": true,
+        "pdf": true,
+        "local_mcp_card_protocol": true,
+        "actual_chatgpt_card": false,
+        "browser_display": false
+      }
+    ],
+    "withdrawal_html_pdf_410": true
+  },
+  "installed_protocol": {
+    "status": "PASS_INSTALLED_NORMAL_PROTOCOL",
+    "version": "0.12.2",
+    "created_at": "2026-10-29T14:46:17.420Z",
+    "plugin": "open-estimate@open-estimate-desktop",
+    "transport": {
+      "command": "node",
+      "args": [
+        "./server/dist/index.js"
+      ],
+      "cwd": "C:\\Users\\yamamotoma\\.codex\\plugins\\cache\\open-estimate-desktop\\open-estimate\\0.12.2\\."
+    },
+    "tool_count": 24,
+    "tools": [
+      "show_estimate_start",
+      "start_estimate_workflow",
+      "extend_estimate_workflow",
+      "complete_estimate_workflow",
+      "show_estimate_workflow",
+      "resume_estimate_workflow",
+      "cancel_estimate_workflow",
+      "withdraw_estimate_workflow",
+      "get_estimate_workflow_pdf",
+      "show_document",
+      "get_document_pdf",
+      "get_document_markdown",
+      "get_document_proof",
+      "preview_saved_estimate",
+      "get_result_pdf",
+      "discover_workspace",
+      "confirm_workspace",
+      "get_assessor_contract",
+      "prepare_repository",
+      "authorize_partial",
+      "read_repository_file",
+      "evaluate_assessment",
+      "get_evaluation",
+      "render_report"
+    ],
+    "contract_read": true,
+    "source_content_read": false,
+    "actual_host_ui": false,
+    "production_public_key_matches": true
+  },
+  "browser": {
+    "platform": "ChatGPT in-app browser",
+    "canonical_url": "https://open-estimate.ai-orchestration.jp/results/res_162ee1f3e6f83f6f3b0c6b67bbcfb770",
+    "page_display": true,
+    "production_issuer_and_365_day_expiry_display": true,
+    "pdf_download": true,
+    "pdf_bytes": 120402
+  },
+  "actual_chatgpt_full_journey": false,
+  "ci_mcp_verify": "PASS_AFTER_INITIAL_POLICY_MISMATCH",
+  "regressions": [
+    {
+      "label": "normal-0122-full",
+      "commit": "db35dc2105974e0ca358b7fdd8fc69f676bfe819",
+      "tracked_changes": "docs/DESKTOP-PLUGIN.md\ndocs/implementation/SYSTEM-IMPLEMENTATION-ACCEPTANCE.md\npackage-lock.json\npackage.json\nplugin/plugin.json\nprofiles/document-signing-keys.json\nprofiles/skill-releases.json\nscripts/package-plugin.mjs\nskills/open-estimate-assessor/skill.manifest.json\nwrangler.mcp.jsonc\nwrangler.public-results.jsonc",
+      "started_at": "2026-10-29T14:29:24.797Z",
+      "node": "v24.18.1",
+      "exec_path": "C:\\Program Files\\nodejs\\node.exe",
+      "platform": "win32",
+      "arch": "x64",
+      "package_lock_sha256": "0affec011ea1ada897fc586f81b5b84f87e02c1bedbd2ae0aef0433bb15b534f",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=2"
+      ],
+      "permission_context": "approved local full regression after normal production configuration",
+      "source_sha256": {
+        "src/local/workflow-lock.ts": "2ad71342af93f3d739bc145feaf321079489933c9779c9d0ee83989961f5fbc8",
+        "src/local/workflow-store.ts": "78ac3ec2ffaef4a86a75ff417254f3d46b759b4c9b47c48c3347f275222a56cd",
+        "src/local/estimate-workflow.ts": "b9af7f3c769cda728afbb5d1b143ded732c54e4d50665a13cb98b5ead7e5b433",
+        "scripts/smoke-desktop.mjs": "1c875f49dec045ffb17fdbd0250a5bb5eda1bc2d6680b0dc358b5fecc3f3fb58",
+        "scripts/package-plugin.mjs": "f2b5833560b11d4c3cbcbd102e625eb2fdca5d8bd076e0458b0725a0df09a3d2",
+        "tests/fixtures/workflow-crash-child.mjs": "9255168bbb3b89d94eabb8c6c2ae7bedd3a31544d302acaaa84693afca250ce8",
+        "tests/unit/workflow-lock.test.ts": "aae86019a2f09ad9a1acb5d92231346870087849b9ad572d8a4a8ccbec44fcdd",
+        "tests/integration/estimate-workflow.test.ts": "74f9636ee1a0bdc160a6722be0ec6b15fa9e6ca80765c8697627383cb8ba3e9b",
+        "tests/integration/desktop-migration.test.ts": "4ba8fbf5324d22962b689b6e2915f38a619f1a4147d5cbe711a4efe6ecbae87d",
+        "tests/integration/measurement-context.test.ts": "33b2ecd8af16ebdf5c8191cbb9c97725f17504ee41e77797acf6ce73dca769cf",
+        "tests/integration/recorded-helper.test.ts": "e8573c1f322f7a2a213dac5939e965d6d0e06a98e2563a2bd09644623848583f"
+      },
+      "git_status": "M docs/DESKTOP-PLUGIN.md\n M docs/implementation/SYSTEM-IMPLEMENTATION-ACCEPTANCE.md\n M package-lock.json\n M package.json\n M plugin/plugin.json\n M profiles/document-signing-keys.json\n M profiles/skill-releases.json\n M scripts/package-plugin.mjs\n M skills/open-estimate-assessor/skill.manifest.json\n M wrangler.mcp.jsonc\n M wrangler.public-results.jsonc\n?? scripts/smoke-publication-normal.mjs",
+      "ended_at": "2026-10-29T14:32:23.130Z",
+      "exit_code": 1,
+      "source_unchanged": true,
+      "passed": 459,
+      "failed": 2,
+      "total": 461,
+      "files": 59,
+      "failures": [
+        {
+          "file": "C:/git/open-estimate/tests/integration/desktop-migration.test.ts",
+          "test": "one-shot helper keeps confirmed scope and ledger across processes, rejects unread/tampered evidence, and purges",
+          "observed_failure": "TEST_TIMEOUT",
+          "limit_ms": 30000
+        },
+        {
+          "file": "C:/git/open-estimate/tests/integration/measurement-context.test.ts",
+          "test": "rejects alternate binding and corrupted stored bundles for prepare/read/export while preserving rescue/purge",
+          "observed_failure": "TEST_TIMEOUT",
+          "limit_ms": 30000
+        }
+      ],
+      "log_sha256": "5478e6c27e409b624302d43838ff971ce0958ac99d15dd2efb04712e111f09ac"
+    },
+    {
+      "label": "normal-0122-full-r2",
+      "commit": "db35dc2105974e0ca358b7fdd8fc69f676bfe819",
+      "tracked_changes": "docs/DESKTOP-PLUGIN.md\ndocs/implementation/SYSTEM-IMPLEMENTATION-ACCEPTANCE.md\npackage-lock.json\npackage.json\nplugin/plugin.json\nprofiles/document-signing-keys.json\nprofiles/skill-releases.json\nscripts/package-plugin.mjs\nskills/open-estimate-assessor/skill.manifest.json\nwrangler.mcp.jsonc\nwrangler.public-results.jsonc",
+      "started_at": "2026-10-29T14:33:29.251Z",
+      "node": "v24.18.1",
+      "exec_path": "C:\\Program Files\\nodejs\\node.exe",
+      "platform": "win32",
+      "arch": "x64",
+      "package_lock_sha256": "0affec011ea1ada897fc586f81b5b84f87e02c1bedbd2ae0aef0433bb15b534f",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1"
+      ],
+      "permission_context": "approved isolated full regression; production configuration included",
+      "source_sha256": {
+        "src/local/workflow-lock.ts": "2ad71342af93f3d739bc145feaf321079489933c9779c9d0ee83989961f5fbc8",
+        "src/local/workflow-store.ts": "78ac3ec2ffaef4a86a75ff417254f3d46b759b4c9b47c48c3347f275222a56cd",
+        "src/local/estimate-workflow.ts": "b9af7f3c769cda728afbb5d1b143ded732c54e4d50665a13cb98b5ead7e5b433",
+        "scripts/smoke-desktop.mjs": "1c875f49dec045ffb17fdbd0250a5bb5eda1bc2d6680b0dc358b5fecc3f3fb58",
+        "scripts/package-plugin.mjs": "f2b5833560b11d4c3cbcbd102e625eb2fdca5d8bd076e0458b0725a0df09a3d2",
+        "tests/fixtures/workflow-crash-child.mjs": "9255168bbb3b89d94eabb8c6c2ae7bedd3a31544d302acaaa84693afca250ce8",
+        "tests/unit/workflow-lock.test.ts": "aae86019a2f09ad9a1acb5d92231346870087849b9ad572d8a4a8ccbec44fcdd",
+        "tests/integration/estimate-workflow.test.ts": "74f9636ee1a0bdc160a6722be0ec6b15fa9e6ca80765c8697627383cb8ba3e9b",
+        "tests/integration/desktop-migration.test.ts": "4ba8fbf5324d22962b689b6e2915f38a619f1a4147d5cbe711a4efe6ecbae87d",
+        "tests/integration/measurement-context.test.ts": "33b2ecd8af16ebdf5c8191cbb9c97725f17504ee41e77797acf6ce73dca769cf",
+        "tests/integration/recorded-helper.test.ts": "e8573c1f322f7a2a213dac5939e965d6d0e06a98e2563a2bd09644623848583f",
+        "package.json": "d7d34d6852d2ea9912a38680ac19a257ae2ede4f94e72e69d52432c06be2f4c8",
+        "package-lock.json": "0affec011ea1ada897fc586f81b5b84f87e02c1bedbd2ae0aef0433bb15b534f",
+        "plugin/plugin.json": "0b2954526074ce7aa7a590aa89f3e870f77694a8424906a3b1186d35484bca9a",
+        "skills/open-estimate-assessor/skill.manifest.json": "6cc5af48418ccb75b2435ba4e558d46d39c112dc8eb378ff5284c909e9e35e54",
+        "profiles/document-signing-keys.json": "e5a3f65a72be3529d00ed1e21437a415b413a8d5ed21c481f7c01f2ab35cb741",
+        "profiles/skill-releases.json": "b1483a91b736428845d8c468ffde6f9e763143f15a74e309ee20e018a36cb01f",
+        "wrangler.mcp.jsonc": "e783a5302bae6741efd44946804e7f7eaf9abfab84dad5116b97692c20ebe9af",
+        "wrangler.public-results.jsonc": "ceb73158cc8af94040617d9ea3d374261e3da166a2b8a81a05ac4c56748f0143",
+        "scripts/smoke-publication-normal.mjs": "1802513524ca3dd21fa1385b7adafbcd84e32db408c76b655dfe35b3e976adb0"
+      },
+      "git_status": "M docs/DESKTOP-PLUGIN.md\n M docs/implementation/SYSTEM-IMPLEMENTATION-ACCEPTANCE.md\n M package-lock.json\n M package.json\n M plugin/plugin.json\n M profiles/document-signing-keys.json\n M profiles/skill-releases.json\n M scripts/package-plugin.mjs\n M skills/open-estimate-assessor/skill.manifest.json\n M wrangler.mcp.jsonc\n M wrangler.public-results.jsonc\n?? scripts/smoke-publication-normal.mjs",
+      "ended_at": "2026-10-29T14:38:59.257Z",
+      "exit_code": 1,
+      "source_unchanged": true,
+      "passed": 460,
+      "failed": 1,
+      "total": 461,
+      "files": 59,
+      "failures": [
+        {
+          "file": "C:/git/open-estimate/tests/integration/mcp-server.test.ts",
+          "test": "Local preview end-to-end validates actual MCP arguments and structured output through a client",
+          "observed_failure": "TEST_TIMEOUT",
+          "limit_ms": 5000
+        }
+      ],
+      "log_sha256": "3e408c647d3106429cfc41fcbe09ab92d8082b3a75a68b2adb01313b74c39f6a"
+    },
+    {
+      "label": "normal-0122-timeout-recheck",
+      "commit": "db35dc2105974e0ca358b7fdd8fc69f676bfe819",
+      "tracked_changes": "docs/DESKTOP-PLUGIN.md\ndocs/implementation/SYSTEM-IMPLEMENTATION-ACCEPTANCE.md\npackage-lock.json\npackage.json\nplugin/plugin.json\nprofiles/document-signing-keys.json\nprofiles/skill-releases.json\nscripts/package-plugin.mjs\nskills/open-estimate-assessor/skill.manifest.json\nwrangler.mcp.jsonc\nwrangler.public-results.jsonc",
+      "started_at": "2026-10-29T14:40:43.502Z",
+      "node": "v24.18.1",
+      "exec_path": "C:\\Program Files\\nodejs\\node.exe",
+      "platform": "win32",
+      "arch": "x64",
+      "package_lock_sha256": "0affec011ea1ada897fc586f81b5b84f87e02c1bedbd2ae0aef0433bb15b534f",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "tests/integration/mcp-server.test.ts",
+        "tests/integration/desktop-migration.test.ts",
+        "tests/integration/measurement-context.test.ts"
+      ],
+      "permission_context": "approved isolated rerun of timeout-affected integration files",
+      "source_sha256": {
+        "src/local/workflow-lock.ts": "2ad71342af93f3d739bc145feaf321079489933c9779c9d0ee83989961f5fbc8",
+        "src/local/workflow-store.ts": "78ac3ec2ffaef4a86a75ff417254f3d46b759b4c9b47c48c3347f275222a56cd",
+        "src/local/estimate-workflow.ts": "b9af7f3c769cda728afbb5d1b143ded732c54e4d50665a13cb98b5ead7e5b433",
+        "scripts/smoke-desktop.mjs": "1c875f49dec045ffb17fdbd0250a5bb5eda1bc2d6680b0dc358b5fecc3f3fb58",
+        "scripts/package-plugin.mjs": "f2b5833560b11d4c3cbcbd102e625eb2fdca5d8bd076e0458b0725a0df09a3d2",
+        "tests/fixtures/workflow-crash-child.mjs": "9255168bbb3b89d94eabb8c6c2ae7bedd3a31544d302acaaa84693afca250ce8",
+        "tests/unit/workflow-lock.test.ts": "aae86019a2f09ad9a1acb5d92231346870087849b9ad572d8a4a8ccbec44fcdd",
+        "tests/integration/estimate-workflow.test.ts": "74f9636ee1a0bdc160a6722be0ec6b15fa9e6ca80765c8697627383cb8ba3e9b",
+        "tests/integration/desktop-migration.test.ts": "4ba8fbf5324d22962b689b6e2915f38a619f1a4147d5cbe711a4efe6ecbae87d",
+        "tests/integration/measurement-context.test.ts": "33b2ecd8af16ebdf5c8191cbb9c97725f17504ee41e77797acf6ce73dca769cf",
+        "tests/integration/recorded-helper.test.ts": "e8573c1f322f7a2a213dac5939e965d6d0e06a98e2563a2bd09644623848583f",
+        "package.json": "d7d34d6852d2ea9912a38680ac19a257ae2ede4f94e72e69d52432c06be2f4c8",
+        "package-lock.json": "0affec011ea1ada897fc586f81b5b84f87e02c1bedbd2ae0aef0433bb15b534f",
+        "plugin/plugin.json": "0b2954526074ce7aa7a590aa89f3e870f77694a8424906a3b1186d35484bca9a",
+        "skills/open-estimate-assessor/skill.manifest.json": "6cc5af48418ccb75b2435ba4e558d46d39c112dc8eb378ff5284c909e9e35e54",
+        "profiles/document-signing-keys.json": "e5a3f65a72be3529d00ed1e21437a415b413a8d5ed21c481f7c01f2ab35cb741",
+        "profiles/skill-releases.json": "b1483a91b736428845d8c468ffde6f9e763143f15a74e309ee20e018a36cb01f",
+        "wrangler.mcp.jsonc": "e783a5302bae6741efd44946804e7f7eaf9abfab84dad5116b97692c20ebe9af",
+        "wrangler.public-results.jsonc": "ceb73158cc8af94040617d9ea3d374261e3da166a2b8a81a05ac4c56748f0143",
+        "scripts/smoke-publication-normal.mjs": "1802513524ca3dd21fa1385b7adafbcd84e32db408c76b655dfe35b3e976adb0"
+      },
+      "git_status": "M docs/DESKTOP-PLUGIN.md\n M docs/implementation/SYSTEM-IMPLEMENTATION-ACCEPTANCE.md\n M package-lock.json\n M package.json\n M plugin/plugin.json\n M profiles/document-signing-keys.json\n M profiles/skill-releases.json\n M scripts/package-plugin.mjs\n M skills/open-estimate-assessor/skill.manifest.json\n M wrangler.mcp.jsonc\n M wrangler.public-results.jsonc\n?? scripts/smoke-publication-normal.mjs",
+      "ended_at": "2026-10-29T14:42:29.478Z",
+      "exit_code": 0,
+      "source_unchanged": true,
+      "passed": 26,
+      "failed": 0,
+      "total": 26,
+      "files": 3,
+      "failures": [],
+      "log_sha256": "316438b8482b9a5336be92ef54794dc7839ae56c860f3245ecdcd4b4ba7dfe4d"
+    }
+  ]
+}

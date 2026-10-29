@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "key_id": "doc_prod_cb011042438a119b00ddce271c20f8bd",
+    "algorithm": "Ed25519",
+    "public_key": "UNuoD8n7oJTHraNdYmNwPvRLSjE5iRheBa0v-LyI2CM",
+    "issuer": "https://open-estimate.ai-orchestration.jp",
+    "environment": "production"
+  }
+]

@@ -3,11 +3,49 @@
   "name": "open-estimate-mcp",
   "main": "src/remote/worker.ts",
   "compatibility_date": "2026-09-25",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "workers_dev": false,
-  "routes": [{ "pattern": "open-estimate.ai-orchestration.jp/mcp*", "zone_name": "ai-orchestration.jp" }],
-  "vars": {"DOCUMENT_ISSUANCE_ENABLED":"false","ESTIMATE_ISSUANCE_ENABLED":"false","DOCUMENT_ISSUER_ORIGIN":"https://open-estimate.ai-orchestration.jp","DOCUMENT_ENVIRONMENT":"production"},
-  "ratelimits": [{"name":"DOCUMENT_ISSUANCE_LIMITER","namespace_id":"2026102802","simple":{"limit":100,"period":60}}],
-  "d1_databases": [{"binding":"DOCUMENT_PROOF_DB","database_name":"open-estimate-certificates","database_id":"bdb25739-fcee-4fa8-8dd2-9453a75bbaca","migrations_dir":"migrations"}],
-  "observability": { "enabled": false }
+  "routes": [
+    {
+      "pattern": "open-estimate.ai-orchestration.jp/mcp*",
+      "zone_name": "ai-orchestration.jp"
+    }
+  ],
+  "vars": {
+    "DOCUMENT_ISSUANCE_ENABLED": "false",
+    "ESTIMATE_ISSUANCE_ENABLED": "true",
+    "DOCUMENT_ISSUER_ORIGIN": "https://open-estimate.ai-orchestration.jp",
+    "DOCUMENT_ENVIRONMENT": "production",
+    "DOCUMENT_SIGNING_KEY_ID": "doc_prod_cb011042438a119b00ddce271c20f8bd",
+    "DOCUMENT_SIGNING_PUBLIC_KEY": "UNuoD8n7oJTHraNdYmNwPvRLSjE5iRheBa0v-LyI2CM"
+  },
+  "ratelimits": [
+    {
+      "name": "DOCUMENT_ISSUANCE_LIMITER",
+      "namespace_id": "2026102802",
+      "simple": {
+        "limit": 100,
+        "period": 60
+      }
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DOCUMENT_PROOF_DB",
+      "database_name": "open-estimate-certificates",
+      "database_id": "bdb25739-fcee-4fa8-8dd2-9453a75bbaca",
+      "migrations_dir": "migrations"
+    },
+    {
+      "binding": "ESTIMATE_PROOF_DB",
+      "database_name": "open-estimate-certificates",
+      "database_id": "bdb25739-fcee-4fa8-8dd2-9453a75bbaca",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "observability": {
+    "enabled": false
+  }
 }

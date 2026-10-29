@@ -1,6 +1,6 @@
 {
   "name": "open-estimate",
-  "version": "0.12.0",
+  "version": "0.12.2",
   "description": "開始時に読取・検証・365日のWeb公開を選択し、固定した結果・PDF・希望した公開URLを取得します。",
   "author": {
     "name": "Open Estimate"
@@ -10,7 +10,7 @@
   "mcpServers": "./.mcp.json",
   "requires_local_executor": true,
   "interface": {
-    "displayName": "オープン工数見積（Work／Codex向け）",
+    "displayName": "オープン工数見積",
     "shortDescription": "一括同意で見積・PDF・任意の証明付きWeb結果",
     "longDescription": "Node.js 24以上のローカル環境で、本文を読まない対象確認後に読取・検証・365日のWeb公開を一度に選びます。読取は必須、検証と公開は任意、公開には検証が必要です。選択済み工程は追加の製品側同意なく進み、障害時は固定結果と同じ操作IDで未完工程だけ再開します。MCPは匿名数値の検証と構造化結果の証明、Webは結果保存と表示を独立して担当します。ソース・パス・名称・根拠・判断台帳はOpen Estimateへ送りません。ログイン不要のURLは知る人が閲覧でき、365日で終了します。証明はソース網羅性・AI意味判断・実工数等を保証しません。実ホスト・本番の受入状態は配布資料を確認してください。",
     "category": "Productivity",

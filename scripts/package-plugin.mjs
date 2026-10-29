@@ -71,7 +71,7 @@ const first = inspectSkillPackage(path.join(plugin, 'skills/open-estimate-assess
 const second = inspectSkillPackage(path.join(plugin, 'server/skills/open-estimate-assessor'));
 if (JSON.stringify(first) !== JSON.stringify(second) || manifest.version !== first.skill_version) throw new Error('SKILL_INTEGRITY_MISMATCH');
 await json(path.join(marketplace, '.agents/plugins/marketplace.json'), {
-  name: 'open-estimate-desktop', interface: { displayName: 'Open Estimate（Work／Codex・ローカル実行向け）' },
+  name: 'open-estimate-desktop', interface: { displayName: 'Open Estimate' },
   plugins: [{ name: 'open-estimate', source: { source: 'local', path: './plugins/open-estimate' },
     policy: { installation: 'AVAILABLE', authentication: 'ON_INSTALL' }, category: 'Productivity' }]
 });

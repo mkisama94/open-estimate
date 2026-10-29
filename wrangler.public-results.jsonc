@@ -3,8 +3,11 @@
  "name":"open-estimate-public-results",
  "main":"src/web/public-results-worker.ts",
  "compatibility_date":"2026-09-25",
- "workers_dev":true,
+ "workers_dev":false,
+ "routes":[{"pattern":"open-estimate.ai-orchestration.jp/api/results*","zone_name":"ai-orchestration.jp"},{"pattern":"open-estimate.ai-orchestration.jp/api/result-operations/*","zone_name":"ai-orchestration.jp"},{"pattern":"open-estimate.ai-orchestration.jp/results/*","zone_name":"ai-orchestration.jp"}],
  "observability":{"enabled":false},
- "vars":{"PUBLIC_RESULTS_ENABLED":"false","PUBLIC_RESULTS_ORIGIN":"https://open-estimate.ai-orchestration.jp","PUBLIC_RESULTS_ENVIRONMENT":"production"},
+ "vars":{"PUBLIC_RESULTS_ENABLED":"true","PUBLIC_RESULTS_ORIGIN":"https://open-estimate.ai-orchestration.jp","PUBLIC_RESULTS_ENVIRONMENT":"production"},
+ "d1_databases":[{"binding":"PUBLIC_RESULTS_DB","database_name":"open-estimate-public-results","database_id":"ada73121-b4c5-4a99-a5fd-7d32db9a04eb"}],
+ "ratelimits":[{"name":"PUBLIC_RESULTS_LIMITER","namespace_id":"2026102901","simple":{"limit":100,"period":60}}],
  "triggers":{"crons":["17 * * * *"]}
 }
