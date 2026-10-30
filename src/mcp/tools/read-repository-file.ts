@@ -3,6 +3,7 @@ import path from "node:path";
 import { mcpState } from "../state.js";
 import { sha256Hex } from "../../core/canonical.js";
 import { resolveSafePath } from "../../collector/safe-paths.js";
+import {getWorkspaceRoot} from '../../collector/safe-paths.js';
 
 const MAX_LINES_LIMIT = 400;
 const MAX_BYTES_LIMIT = 64 * 1024; // 64 KiB
@@ -29,6 +30,7 @@ export async function handleReadRepositoryFile(args: ReadRepositoryFileArgs): Pr
   }
 
   const { snapshot, tracker } = snapshotEntry;
+  if(snapshotEntry.workspace_root&&snapshotEntry.workspace_root!==getWorkspaceRoot())throw Error('SNAPSHOT_WORKSPACE_MISMATCH');
   if (snapshot.analysis_ready === false) throw new Error("ACQUISITION_INCOMPLETE_ADJUST_OR_AUTHORIZE_PARTIAL");
   const fileManifest = snapshot.manifest.files.find(f => f.path === file_id);
   if (!fileManifest) {

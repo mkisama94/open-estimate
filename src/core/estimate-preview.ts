@@ -12,7 +12,7 @@ const nullable=(v:unknown)=>({anyOf:[v,{type:"null"}]});
 const quartiles=nullable(obj({p25:nullable(decimal),median:nullable(decimal),p75:nullable(decimal)}));
 const timestamp={type:"string",format:"date-time"};
 export const displayQuoteSchema=obj({domain:{const:"open-estimate/display-quote/v1"},source_report_hash:hashSchema,conversion_policy_version:{const:"frb-display-time-v1"},displayed_at:timestamp,locale:{type:"string",maxLength:32},display_currency:{enum:[...CURRENCIES]},
-  fx_snapshot:nullable(obj({currency:{enum:[...CURRENCIES]},source_url:{const:"https://www.federalreserve.gov/releases/h10/current/"},source_sha256:hashSchema,observed_on:{type:"string",format:"date"},published_on:{type:"string",format:"date"},fetched_at:timestamp,checked_at:timestamp,raw_value:decimal,quote_direction:{enum:["currency_per_usd","usd_per_currency"]},currency_per_usd:decimal})),
+  fx_snapshot:nullable(obj({currency:{enum:[...CURRENCIES]},source_url:{const:"https://www.federalreserve.gov/releases/h10/current/"},source_sha256:hashSchema,observed_on:{type:"string",format:"date"},published_on:{type:"string",format:"date"},fetched_at:timestamp,checked_at:timestamp,raw_value:{type:'string',maxLength:31,pattern:'^(?=.*[1-9])(0|[1-9][0-9]{0,17})(\\.[0-9]{1,12})?$'},quote_direction:{enum:["currency_per_usd","usd_per_currency"]},currency_per_usd:decimal})),
   localized_reference:obj({status:{enum:["AVAILABLE","FX_UNAVAILABLE","FX_STALE","UPSTREAM_UNAVAILABLE"]},currency:{enum:[...CURRENCIES]},currency_per_usd:nullable(decimal),amount:quartiles}),person_days:quartiles,limitation_codes:{type:"array",items:{type:"string",pattern:"^[A-Z_]+$"},maxItems:40}});
 
 export const ESTIMATE_POLICY = "oes/owner-estimate-policy/v1";

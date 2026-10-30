@@ -107,7 +107,7 @@ describe("Local preview end-to-end", () => {
     const client = new Client({ name: "test", version: "1.0.0" });
     await server.connect(serverTransport); await client.connect(clientTransport);
     try {
-      expect((await client.listTools()).tools.map(t => t.name)).toEqual(["show_estimate_start","start_estimate_workflow","extend_estimate_workflow","complete_estimate_workflow","show_estimate_workflow","resume_estimate_workflow","cancel_estimate_workflow","withdraw_estimate_workflow","get_estimate_workflow_pdf","show_document", "get_document_pdf", "get_document_markdown", "get_document_proof", "preview_saved_estimate", "get_result_pdf", "discover_workspace", "confirm_workspace", "get_assessor_contract", "prepare_repository", "authorize_partial", "read_repository_file", "evaluate_assessment", "get_evaluation", "render_report"]);
+      expect((await client.listTools()).tools.map(t => t.name)).toEqual(["show_estimate_start","start_estimate_workflow","extend_estimate_workflow","complete_estimate_workflow","show_estimate_workflow","resume_estimate_workflow","cancel_estimate_workflow","withdraw_estimate_workflow","get_estimate_workflow_pdf","show_document", "get_document_pdf", "get_document_markdown", "get_document_proof", "preview_saved_estimate", "get_result_pdf", "discover_workspace", "confirm_workspace", "get_assessor_contract", "prepare_repository", "get_repository_snapshot", "authorize_partial", "read_repository_file", "evaluate_assessment", "get_evaluation", "render_report"]);
       const blocked = await client.callTool({ name: "prepare_repository", arguments: {} });
       expect(blocked.isError).toBe(true);
       const discovery = await client.callTool({ name: "discover_workspace", arguments: { context_path: process.cwd() } });

@@ -3,6 +3,7 @@ import { mcpState } from "../state.js";
 import { randomUUID } from "node:crypto";
 import { handleGetAssessorContract } from "./get-assessor-contract.js";
 import type { AcquisitionOptions } from "../../collector/acquire.js";
+import {getWorkspaceRoot} from '../../collector/safe-paths.js';
 
 export interface PrepareRepositoryArgs extends AcquisitionOptions {
   relative_path?: string;
@@ -13,8 +14,21 @@ export async function handlePrepareRepository(args: PrepareRepositoryArgs): Prom
   const snapshot = await createRepositorySnapshot(relPath, args);
   const contract = await handleGetAssessorContract();
 
-  // Register in local MCP state
-  mcpState.registerSnapshot(snapshot);
+  const defaults={assessment_id:randomUUID(),assessor_defaults:{
+    model_id:null,model_name:'unknown',model_metadata_source:'unknown',host:'Codex',
+    skill_id:contract.skill.skill_id,skill_version:contract.skill.skill_version,skill_sha256:contract.skill.package_sha256,
+    started_at:new Date().toISOString(),context_isolation:'not_enforced'
+  }};
+  mcpState.registerSnapshot(snapshot,getWorkspaceRoot(),defaults);
+  return {...handleGetRepositorySnapshot(snapshot.snapshot_id),snapshot_reused:false,acquisition_performed:true};
+}
+
+/** Returns acquisition metadata and its read ledger without reading or copying sources. */
+export function handleGetRepositorySnapshot(snapshot_id:string){
+  const entry=mcpState.getSnapshot(snapshot_id);
+  if(!entry?.preparation)throw Error('SNAPSHOT_NOT_FOUND_OR_EXPIRED');
+  if(entry.workspace_root!==getWorkspaceRoot())throw Error('SNAPSHOT_WORKSPACE_MISMATCH');
+  const {snapshot,preparation}=entry;
 
   const exclusions = snapshot.manifest.files
     .filter(f => f.disposition === "excluded")
@@ -23,17 +37,12 @@ export async function handlePrepareRepository(args: PrepareRepositoryArgs): Prom
       reason: f.exclusion_reason || "Excluded by standard policy"
     }));
 
-  return {
+  return structuredClone({
     status: snapshot.analysis_ready ? "READY_FOR_ANALYSIS" : "ACQUISITION_INCOMPLETE",
     analysis_ready: snapshot.analysis_ready,
     acquisition_record: snapshot.acquisition_record,
-    assessment_id: randomUUID(),
-    assessor_defaults: {
-      model_id: null, model_name: "unknown", model_metadata_source: "unknown", host: "Codex",
-      skill_id: contract.skill.skill_id, skill_version: contract.skill.skill_version,
-      skill_sha256: contract.skill.package_sha256,
-      started_at: new Date().toISOString(), context_isolation: "not_enforced"
-    },
+    ...structuredClone(preparation),
+    snapshot_reused:true,acquisition_performed:false,read_coverage:entry.tracker.exportReads(),
     assessment_input: {
       ...snapshot.source_identity, manifest_hash: snapshot.manifest_hash, manifest: snapshot.manifest,
       analysis_complete: snapshot.analysis_complete
@@ -49,6 +58,7 @@ export async function handlePrepareRepository(args: PrepareRepositoryArgs): Prom
       total_bytes: snapshot.total_bytes,
       analysis_complete: snapshot.analysis_complete
     },
-    exclusions
-  };
+    exclusions,
+    notice:'取得済みの固定スナップショットです。一覧確認・入力修正では再取得せず、このsnapshot_idとassessment_inputを使ってください。元ソースの変更を取り込む場合だけ明示的に再取得してください。'
+  });
 }

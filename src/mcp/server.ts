@@ -1,6 +1,6 @@
-import {prepareEstimateStart,startEstimateWorkflow,extendEstimateWorkflow,approveWorkflowAcquisition,approvedWorkflow,showEstimateWorkflow,resumeEstimateWorkflow,cancelEstimateWorkflow,withdrawEstimateWorkflow} from '../local/estimate-workflow.js';
+import {prepareEstimateStart,showEstimateStart,startEstimateWorkflow,extendEstimateWorkflow,approveWorkflowAcquisition,approvedWorkflow,showEstimateWorkflow,resumeEstimateWorkflow,cancelEstimateWorkflow,withdrawEstimateWorkflow} from '../local/estimate-workflow.js';
 import {completeEstimateWorkflow} from '../local/complete-workflow.js';
-import {readWorkflowFile,workflowDirectory} from '../local/workflow-store.js';
+import {readWorkflowFile,writeWorkflowFile,workflowDirectory} from '../local/workflow-store.js';
 import {estimateStartWidgetUri,estimateStartWidgetHtml,estimateWorkflowWidgetUri,estimateWorkflowWidgetHtml} from '../local/workflow-widget.js';
 import {validateBoundRules,validateRuleReferences,type BoundRules} from '../local/measurement-context.js';
 import {inspectSkillPackage} from '../profiles/skill-package.js';
@@ -9,7 +9,8 @@ import {jcsSha256} from '../core/canonical.js';
 import {validateSnapshotAssessment} from './tools/evaluate-assessment.js';
 import {saveRun} from '../local/runs.js';
 import path from 'node:path';
-import { WorkspaceSession } from "./workspace-session.js";
+import { WorkspaceSession,type WorkspaceBinding } from "./workspace-session.js";
+import {saveWorkflowSnapshot,restoreWorkflowSnapshot} from './workflow-snapshot.js';
 import { workspaceContext } from "../collector/workspace-context.js";
 import { mcpState } from "./state.js";
 import { RootsListChangedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
@@ -18,7 +19,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CallToolRequestSchema, ListToolsRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema, ListPromptsRequestSchema, GetPromptRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { handleGetAssessorContract } from "./tools/get-assessor-contract.js";
-import { handlePrepareRepository } from "./tools/prepare-repository.js";
+import { handlePrepareRepository,handleGetRepositorySnapshot } from "./tools/prepare-repository.js";
 import { handleReadRepositoryFile } from "./tools/read-repository-file.js";
 import { handleEvaluateAssessment } from "./tools/evaluate-assessment.js";
 import { handleGetEvaluation } from "./tools/get-evaluation.js";
@@ -41,7 +42,7 @@ const display = { locale: { type: "string", maxLength: 64 }, display_currency: {
 const output = (properties: Record<string, unknown>, required: string[]) => object(properties, required);
 const definition = (key: string) => ({ ...contract.$defs[key], $defs: contract.$defs });
 const workflowTools=[
- {name:'show_estimate_start',description:'After metadata-only discovery and official rule binding, show scope, acquisition limits, data destinations and three unchecked read/verify/publish options. Display is never consent.',inputSchema:object({rules_response:{type:'object',additionalProperties:true},display_currency:{enum:[...CURRENCIES]}},['rules_response']),outputSchema:{type:'object' as const},handler:async(_:any)=>({}),readOnly:false,network:false,_meta:{ui:{resourceUri:estimateStartWidgetUri}}},
+ {name:'show_estimate_start',description:'Show the single start confirmation card after metadata discovery and rule binding, then wait for its choice. Do not also ask a chat question/form. Use confirmation_mode=chat only if cards are unavailable. Repeating this call reuses the same start.',inputSchema:object({rules_response:{type:'object',additionalProperties:true},display_currency:{enum:[...CURRENCIES]},confirmation_mode:{enum:['card','chat']}},['rules_response']),outputSchema:{type:'object' as const},handler:async(_:any)=>({}),readOnly:false,network:false,_meta:{ui:{resourceUri:estimateStartWidgetUri}}},
  {name:'start_estimate_workflow',description:'Record the explicit start-screen choice or the actual user reply once. Read is mandatory; publish requires verify. This approval covers later fixed numbers and declared partial estimates, not scope/destination changes.',inputSchema:object({workflow_id:str,terms_hash:str,selection:object({read:{type:'boolean'},verify:{type:'boolean'},publish:{type:'boolean'}},['read','verify','publish']),explicit_answer:{type:'string',minLength:1,maxLength:2000}},['workflow_id','terms_hash','selection','explicit_answer']),outputSchema:{type:'object' as const},handler:async(_:any)=>({}),readOnly:false,network:false},
  {name:'extend_estimate_workflow',description:'Only after the user explicitly requests an unselected operation, approve that difference without reanalysis. Existing permissions cannot be silently removed; cancellation is separate.',inputSchema:object({workflow_id:str,terms_hash:str,selection:object({read:{type:'boolean'},verify:{type:'boolean'},publish:{type:'boolean'}},['read','verify','publish']),explicit_answer:{type:'string',minLength:1,maxLength:2000}},['workflow_id','terms_hash','selection','explicit_answer']),outputSchema:{type:'object' as const},handler:extendEstimateWorkflow,readOnly:false,network:false},
  {name:'complete_estimate_workflow',description:'Freeze the locally validated run from the approved acquisition, generate outputs, then continue selected proof and Web publication without new product consent. Persist operation IDs before sending.',inputSchema:object({workflow_id:str,run_id:str},['workflow_id','run_id']),outputSchema:{type:'object' as const},handler:completeEstimateWorkflow,readOnly:false,network:true,_meta:{ui:{resourceUri:estimateWorkflowWidgetUri}}},
@@ -58,8 +59,9 @@ const tools = [
   { name: "confirm_workspace", description: "Confirm the exact scanned candidate only after the user agrees in chat. user_confirmed is an assistant report, not independent proof of consent. false cancels.", inputSchema: object({ candidate_id: str, user_confirmed: { type: "boolean" } }, ["candidate_id", "user_confirmed"]), outputSchema: { type: "object" as const }, handler: async (_: any) => ({}), readOnly: false, network: false },
   { name: "get_assessor_contract", description: "Get the schema, trusted assessor workflow, configured workspace, TEST coefficients, scope and capabilities. Call before reading source.", inputSchema: object({}),
     outputSchema: { type: "object" as const, required: ["schema", "skill", "profile", "capabilities"] }, handler: handleGetAssessorContract, readOnly: true, network: false },
-  { name: "prepare_repository", description: "Snapshot a relative directory inside the configured workspace. Creates local cache; never executes target code or uploads it. Returns manifest and input defaults.",
-    inputSchema: object({ relative_path: { type: "string", maxLength: 1024 }, refresh_preflight:{type:"boolean"}, split_acquisition:{type:"boolean"} }), outputSchema: { type: "object" as const, required: ["snapshot_id", "manifest", "assessment_input"] }, handler: handlePrepareRepository, readOnly: false, network: false },
+  { name: "prepare_repository", description: "Acquire once, then reuse the existing snapshot, input defaults and read ledger. Do not reacquire to inspect files or repair Assessment. Use get_repository_snapshot for inspection. Only explicit refresh_snapshot/refresh_preflight or a changed split setting copies again; source code is never executed or uploaded.",
+    inputSchema: object({ relative_path: { type: "string", maxLength: 1024 }, refresh_snapshot:{type:'boolean'},refresh_preflight:{type:"boolean"}, split_acquisition:{type:"boolean"} }), outputSchema: { type: "object" as const, required: ["snapshot_id", "manifest", "assessment_input"] }, handler: handlePrepareRepository, readOnly: false, network: false },
+  {name:'get_repository_snapshot',description:'Read the existing snapshot manifest, exact assessment_input/defaults and recorded read ranges. Does not acquire, rescan, copy, or read source bodies. Use this to inspect results or repair validation errors on the same snapshot.',inputSchema:object({snapshot_id:str}),outputSchema:{type:'object' as const},handler:async(a:any)=>handleGetRepositorySnapshot(a.snapshot_id),readOnly:true,network:false},
   {name:"authorize_partial",description:"Only after the user explicitly requests an acquired-portion estimate, allow analysis of this incomplete snapshot. Project total remains uncalculated.",
     inputSchema:object({snapshot_id:str,user_requested_partial:{const:true}},["snapshot_id","user_requested_partial"]),outputSchema:{type:"object" as const},
     handler:async (args:any)=>{const entry=mcpState.getSnapshot(args.snapshot_id);if(!entry)throw new Error("SNAPSHOT_NOT_FOUND");entry.snapshot.analysis_ready=true;if(entry.snapshot.acquisition)entry.snapshot.acquisition.partial_authorized=true;return {status:"PARTIAL_AUTHORIZED",notice:"プロジェクト全体の工数は未算出"};},readOnly:false,network:false},
@@ -82,6 +84,9 @@ export function createMcpServer(): Server {
   let previousSnapshot: string | undefined;
   let pendingWorkflow:{workflow_id:string;candidate_id:string;rules:BoundRules}|undefined;
   let activeWorkflow:string|undefined;let activeRules:BoundRules|undefined;
+  let preparing:Promise<any>|undefined;
+  let startQueue=Promise.resolve();
+  const serializeStart=<T>(fn:()=>Promise<T>)=>{const op=startQueue.then(fn);startQueue=op.then(()=>{},()=>{});return op;};
   const server = new Server({ name: "open-estimate", version: "0.3.0" }, { capabilities: { tools: {}, resources: {}, prompts: {}, extensions:{'io.modelcontextprotocol/ui':{}} } });
   const workspace = new WorkspaceSession(server, () => {mcpState.clearSnapshots();previousSnapshot=undefined;activeWorkflow=undefined;activeRules=undefined;pendingWorkflow=undefined;});
   server.setNotificationHandler(RootsListChangedNotificationSchema, async () => workspace.reset());
@@ -99,17 +104,42 @@ export function createMcpServer(): Server {
       let result: any;
       if(workflowTools.some(t=>t.name===tool.name)){
         if(tool.name==='show_estimate_start'){
-          const c=await workspace.candidate();
+          result=await serializeStart(async()=>{
           const rules=validateBoundRules(args.rules_response,inspectSkillPackage(fileURLToPath(new URL('../../skills/open-estimate-assessor/',import.meta.url))));
-          result=await prepareEstimateStart({target_ref:c.root,target_hash:jcsSha256(c.root),plan_ref:c.candidate_id,plan_hash:c.plan.fingerprint,ruleset_ref:rules.ruleset_ref,display_currency:(args.display_currency as string)??'JPY'});
-          result.acquisition=c.plan.summary;result.scope=c.plan.scope;
-          pendingWorkflow={workflow_id:result.workflow_id,candidate_id:c.candidate_id,rules};
+          if(activeWorkflow){await workspace.requireRoot();const saved=await readWorkflowFile<any>(activeWorkflow,'state.json');if(args.display_currency&&args.display_currency!==saved.terms.display_currency||jcsSha256(rules.ruleset_ref)!==jcsSha256(saved.terms.ruleset_ref))throw Error('WORKFLOW_START_TERMS_CHANGED');return showEstimateWorkflow(activeWorkflow);}
+          const c=await workspace.candidate(),currency=(args.display_currency as string)??'JPY';
+          let view:any;
+          if(pendingWorkflow&&pendingWorkflow.candidate_id===c.candidate_id&&jcsSha256(pendingWorkflow.rules)===jcsSha256(rules)){
+            view=await showEstimateStart(pendingWorkflow.workflow_id);
+            if(view.terms.display_currency!==currency)throw Error('WORKFLOW_START_TERMS_CHANGED');
+          }else{
+            view=await prepareEstimateStart({target_ref:c.root,target_hash:jcsSha256(c.root),plan_ref:c.candidate_id,plan_hash:c.plan.fingerprint,ruleset_ref:rules.ruleset_ref,display_currency:currency});
+            await writeWorkflowFile(view.workflow_id,'mcp-context.json',{binding:await workspace.binding(),rules});
+            pendingWorkflow={workflow_id:view.workflow_id,candidate_id:c.candidate_id,rules};
+          }
+          return {...view,acquisition:c.plan.summary,scope:c.plan.scope,confirmation_mode:args.confirmation_mode??'card',chat_confirmation_required:args.confirmation_mode==='chat',next_action:args.confirmation_mode==='chat'?'ASK_ONE_CHAT_SELECTION':'WAIT_FOR_START_CARD_SELECTION',notice:view.notice+(args.confirmation_mode==='chat'?' カード非対応のため同じ条件をチャットで一度だけ選択してください。':' このカードで一度だけ選択してください。別の質問フォームで同じ確認を重ねないでください。')};
+          });
         }else if(tool.name==='start_estimate_workflow'){
+          result=await serializeStart(async()=>{
+          const saved=await readWorkflowFile<any>(args.workflow_id as string,'state.json');
+          if(saved.consent){
+            const view=await startEstimateWorkflow(args as any);
+            if(activeWorkflow&&activeWorkflow!==args.workflow_id)throw Error('WORKFLOW_SCOPE_CHANGE_REQUIRES_CONFIRMATION');
+            const context=await readWorkflowFile<{binding:WorkspaceBinding;rules:BoundRules}>(args.workflow_id as string,'mcp-context.json').catch((e:any)=>{if(e.code==='ENOENT')return null;throw e;});
+            if(context){
+              if(context.binding.root!==saved.target_ref||jcsSha256(context.rules.ruleset_ref)!==jcsSha256(saved.terms.ruleset_ref))throw Error('WORKFLOW_SCOPE_CHANGE_REQUIRES_CONFIRMATION');
+              await workspace.restore(context.binding);activeWorkflow=args.workflow_id as string;activeRules=context.rules;
+              await approvedWorkflow(activeWorkflow,{target_hash:jcsSha256(context.binding.root),plan_hash:context.binding.plan.fingerprint});
+              if(!previousSnapshot){const restored=await restoreWorkflowSnapshot(activeWorkflow,context.binding.root);previousSnapshot=restored?.snapshot_id;}
+            }
+            return {...view,start_reused:true,snapshot_id:previousSnapshot??null,acquisition_context_available:!!context,next_action:'CONTINUE_EXISTING_WORKFLOW_DO_NOT_RESTART_DISCOVERY'};
+          }
           const c=await workspace.candidate();if(!pendingWorkflow||pendingWorkflow.workflow_id!==args.workflow_id||pendingWorkflow.candidate_id!==c.candidate_id)throw Error('WORKFLOW_SCOPE_CHANGE_REQUIRES_CONFIRMATION');
-          result=await startEstimateWorkflow(args as any);await workspace.confirm({candidate_id:c.candidate_id,user_confirmed:true});activeWorkflow=args.workflow_id as string;activeRules=pendingWorkflow.rules;pendingWorkflow=undefined;
+          const view=await startEstimateWorkflow(args as any);await workspace.confirm({candidate_id:c.candidate_id,user_confirmed:true});activeWorkflow=args.workflow_id as string;activeRules=pendingWorkflow.rules;pendingWorkflow=undefined;return {...view,start_reused:false,next_action:'ACQUIRE_ONCE_THEN_ANALYZE'};
+          });
         }else result=await tool.handler(args as any);
         if(tool.name==='get_estimate_workflow_pdf')return {structuredContent:{status:'FILE_READY'},content:[{type:'text' as const,text:'固定したPDFを取得しました。'}],_meta:{file_base64:result.file_base64}};
-        const uri=tool.name==='show_estimate_start'?estimateStartWidgetUri:estimateWorkflowWidgetUri;
+        const uri=tool.name==='show_estimate_start'&&result.status==='AWAITING_START_SELECTION'?estimateStartWidgetUri:estimateWorkflowWidgetUri;
         return {structuredContent:result,content:[{type:'text' as const,text:JSON.stringify(result)}],_meta:{ui:{resourceUri:uri}}};
       }
       if(['show_document','get_document_pdf','get_document_markdown','get_document_proof'].includes(tool.name)){
@@ -130,11 +160,26 @@ export function createMcpServer(): Server {
         if(activeWorkflow){const options=await workspace.acquisitionOptions(false);await approvedWorkflow(activeWorkflow,{target_hash:jcsSha256(root),plan_hash:options.preflight.fingerprint});}
         if (tool.name === "prepare_repository") {
           if (args.relative_path && args.relative_path !== ".") throw new Error("TARGET_CHANGE_REQUIRES_DISCOVERY");
+          const prior=previousSnapshot?mcpState.getSnapshot(previousSnapshot):undefined;
+          const splitChanged=typeof args.split_acquisition==='boolean'&&prior&&args.split_acquisition!==(prior.snapshot.acquisition_record as any)?.split_acquisition;
+          const refresh=args.refresh_snapshot===true||args.refresh_preflight===true||splitChanged;
+          if(preparing){if(refresh)throw Error('ACQUISITION_IN_PROGRESS');await preparing;result=await workspaceContext.run(root,()=>handleGetRepositorySnapshot(previousSnapshot!));}
+          else if(previousSnapshot&&!refresh)result=await workspaceContext.run(root,()=>handleGetRepositorySnapshot(previousSnapshot!));
+          else{
+          const acquisitionRevision=workspace.revision();
+          preparing=(async()=>{
           const before=await workspace.acquisitionOptions(false);
           const options = await workspace.acquisitionOptions(args.refresh_preflight === true);
           if(activeWorkflow&&before.preflight.fingerprint!==options.preflight.fingerprint)await approveWorkflowAcquisition(activeWorkflow,jcsSha256(root),before.preflight,options.preflight);
-          result = await workspaceContext.run(root,()=>handlePrepareRepository({...options,relative_path:".",previous_snapshot_id:previousSnapshot,split_acquisition:args.split_acquisition === true,partial_authorized:!!activeWorkflow}));
-          previousSnapshot=result.snapshot_id;
+          const prepared = await workspaceContext.run(root,()=>handlePrepareRepository({...options,relative_path:".",previous_snapshot_id:previousSnapshot,split_acquisition:args.split_acquisition === true,partial_authorized:!!activeWorkflow}));
+          if(workspace.revision()!==acquisitionRevision){mcpState.removeSnapshot(prepared.snapshot_id);throw Error('PROJECT_CHANGED_RECONFIRM_REQUIRED');}
+          previousSnapshot=prepared.snapshot_id;
+          if(activeWorkflow){await saveWorkflowSnapshot(activeWorkflow,previousSnapshot!);await writeWorkflowFile(activeWorkflow,'mcp-context.json',{binding:await workspace.binding(),rules:activeRules});}
+          return prepared;
+          })();try{result=await preparing;}finally{preparing=undefined;}
+          }
+        }else if(tool.name==='get_repository_snapshot'){
+          result=await workspaceContext.run(root,()=>handleGetRepositorySnapshot((args.snapshot_id as string|undefined)??previousSnapshot??''));
         } else if(tool.name==='evaluate_assessment'&&activeWorkflow&&activeRules){
           result=await workspaceContext.run(root,async()=>{
             const {validated}=await validateSnapshotAssessment(args as any);validateRuleReferences(validated,activeRules!);
@@ -142,7 +187,10 @@ export function createMcpServer(): Server {
             const run=await saveRun(validated,validated,{ruleset_ref:activeRules!.ruleset_ref,bundle:activeRules!.bundle},root,snapshot.acquisition_record);
             return {...await tool.handler(args as any),...run,workflow_id:activeWorkflow};
           });
-        } else result = await workspaceContext.run(root, () => tool.handler(args as any));
+        } else {
+          result = await workspaceContext.run(root, () => tool.handler(args as any));
+          if(tool.name==='read_repository_file'&&activeWorkflow&&previousSnapshot===args.snapshot_id)await saveWorkflowSnapshot(activeWorkflow,previousSnapshot);
+        }
       }
       return { structuredContent: result, content: [{ type: "text" as const, text: JSON.stringify(result) }] };
     } catch (err: any) {

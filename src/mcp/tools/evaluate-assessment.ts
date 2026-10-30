@@ -9,6 +9,7 @@ import { handleGetAssessorContract } from "./get-assessor-contract.js";
 import { frbProvider, type FxProvider } from "../../profiles/frb.js";
 import type { Assessment } from "../../core/types.js";
 import { classifyFile } from "../../collector/classification.js";
+import {getWorkspaceRoot} from '../../collector/safe-paths.js';
 
 export interface EvaluateAssessmentArgs {
   snapshot_id: string;
@@ -20,6 +21,7 @@ export interface EvaluateAssessmentArgs {
 export async function validateSnapshotAssessment(args: EvaluateAssessmentArgs) {
   const entry = mcpState.getSnapshot(args.snapshot_id);
   if (!entry) throw new Error("SNAPSHOT_NOT_FOUND_OR_EXPIRED");
+  if(entry.workspace_root&&entry.workspace_root!==getWorkspaceRoot())throw Error('SNAPSHOT_WORKSPACE_MISMATCH');
   if (entry.snapshot.analysis_ready === false) throw new Error("ACQUISITION_INCOMPLETE_ADJUST_OR_AUTHORIZE_PARTIAL");
   const json = typeof args.assessment === "string" ? args.assessment : JSON.stringify(args.assessment);
   if (Buffer.byteLength(json, "utf8") > 8 * 1024 * 1024) throw new Error("ASSESSMENT_TOO_LARGE");

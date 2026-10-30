@@ -11,17 +11,18 @@ export interface EvaluatedState {
 }
 
 export class McpLocalState {
-  private snapshots: Map<string, { snapshot: SnapshotResult; tracker: SnapshotCoverageTracker }> = new Map();
+  private snapshots: Map<string, { snapshot: SnapshotResult; tracker: SnapshotCoverageTracker; workspace_root?:string; preparation?:{assessment_id:string;assessor_defaults:Record<string,unknown>} }> = new Map();
   private evaluations: Map<string, EvaluatedState> = new Map();
 
   public clearSnapshots(): void { this.snapshots.clear(); }
+  public removeSnapshot(id:string):void{this.snapshots.delete(id);}
 
-  public registerSnapshot(snapshot: SnapshotResult): void {
+  public registerSnapshot(snapshot: SnapshotResult, workspace_root?:string, preparation?:{assessment_id:string;assessor_defaults:Record<string,unknown>}): void {
     const tracker = new SnapshotCoverageTracker(snapshot.manifest, snapshot.analysis_complete);
-    this.snapshots.set(snapshot.snapshot_id, { snapshot, tracker });
+    this.snapshots.set(snapshot.snapshot_id, { snapshot, tracker, workspace_root, preparation });
   }
 
-  public getSnapshot(snapshot_id: string): { snapshot: SnapshotResult; tracker: SnapshotCoverageTracker } | undefined {
+  public getSnapshot(snapshot_id: string) {
     return this.snapshots.get(snapshot_id);
   }
 

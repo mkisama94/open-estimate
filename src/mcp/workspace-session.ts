@@ -19,10 +19,11 @@ export async function scanStructure(root: string, scope: ScopeRule[] = []) {
     truncated:!plan.summary.discovery_complete,source_content_read:false,acquisition:plan.summary,scope:plan.scope,fingerprint:plan.fingerprint,plan };
 }
 
+export interface WorkspaceBinding {candidate_id:string;root:string;roots_key:string;origin:string;plan:AcquisitionPlan}
 export class WorkspaceSession {
   private generation = 0;
-  private pending?: { candidate_id: string; root: string; roots_key: string; origin: string; plan: AcquisitionPlan };
-  private selected?: { root: string; roots_key: string; origin: string; plan: AcquisitionPlan };
+  private pending?: WorkspaceBinding;
+  private selected?: WorkspaceBinding;
   constructor(private server: Server, private changed: () => void) {}
   private async roots() {
     if (!this.server.getClientCapabilities()?.roots) return { paths: [] as string[], key: "host_context" };
@@ -75,6 +76,19 @@ export class WorkspaceSession {
     return selected.root;
   }
   current() { return this.selected?.root ?? null; }
+  revision(){return this.generation;}
+  async binding():Promise<WorkspaceBinding>{
+    const b=this.pending??this.selected;if(!b)throw Error('CANDIDATE_NOT_FOUND');
+    if((await this.roots()).key!==b.roots_key){this.reset();throw Error('PROJECT_CHANGED_RECONFIRM_REQUIRED');}
+    return structuredClone(b);
+  }
+  /** Restore only the private binding of an already-consented workflow. */
+  async restore(b:WorkspaceBinding){
+    const current=this.pending??this.selected;
+    if(current&&(current.root!==b.root||current.plan.fingerprint!==b.plan.fingerprint))throw Error('WORKFLOW_SCOPE_CHANGE_REQUIRES_CONFIRMATION');
+    if((await this.roots()).key!==b.roots_key){this.reset();throw Error('PROJECT_CHANGED_RECONFIRM_REQUIRED');}
+    await resolveSafePath('',b.root);this.selected=structuredClone(b);this.pending=undefined;
+  }
   async candidate() {
     const c=this.pending;if(!c)throw Error('CANDIDATE_NOT_FOUND');
     if((await this.roots()).key!==c.roots_key)throw Error('PROJECT_CHANGED_RECONFIRM_REQUIRED');

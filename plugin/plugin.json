@@ -1,6 +1,6 @@
 {
   "name": "open-estimate",
-  "version": "0.12.2",
+  "version": "0.12.3",
   "description": "開始時に読取・検証・365日のWeb公開を選択し、固定した結果・PDF・希望した公開URLを取得します。",
   "author": {
     "name": "Open Estimate"
