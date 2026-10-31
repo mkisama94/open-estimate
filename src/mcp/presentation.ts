@@ -26,6 +26,7 @@ export async function presentEvaluation(record: EvaluationRecord, provider: FxPr
   };
 }
 export type EvaluationView = Awaited<ReturnType<typeof presentEvaluation>>;
+export type WorkflowEvaluationView = EvaluationView & Awaited<ReturnType<typeof import('../local/runs.js').saveRun>> & {workflow_id:string;input_reconciled:boolean};
 const escape = (value: unknown) => String(value ?? "未算出").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 
 export function renderEvaluationHtml(view: EvaluationView): string {

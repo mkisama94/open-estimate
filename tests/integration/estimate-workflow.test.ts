@@ -13,7 +13,7 @@ import {jcsSha256} from '../../src/core/canonical.js';
 async function setup(selection={read:true,verify:true,publish:true}){
  const f=await publicationFixture();process.env.OES_WORKFLOWS_ROOT=await fs.mkdtemp(path.join(os.tmpdir(),'oes-workflow-'));const origin={target_hash:'a'.repeat(64),plan_hash:'b'.repeat(64)};
  const draft=await prepareEstimateStart({target_ref:path.resolve('examples/quality-check'),...origin,plan_ref:'local-plan',ruleset_ref:f.result.ruleset_ref,display_currency:'USD'},f.services);
- const adapters:WorkflowAdapters={issue:r=>f.issuer.issue(r,f.now),publish:async r=>(await f.service.register(r)).response,lookup:async(op,t)=>f.service.operation(op,t),withdraw:(id,t)=>f.service.withdraw(id,t) as any};
+ const adapters:WorkflowAdapters={issue:r=>f.issuer.issue(r,f.now),publish:async r=>(await f.service.register(r)).response,lookup:async(op,t)=>{try{return await f.service.operation(op,t);}catch(e:any){if(e.status===404)return {status:'NOT_FOUND'};throw e;}},withdraw:(id,t)=>f.service.withdraw(id,t) as any};
  return {...f,origin,draft,adapters,options:{adapters,services:f.services,keys:[f.key]},start:()=>startEstimateWorkflow({workflow_id:draft.workflow_id,terms_hash:draft.terms_hash,selection,explicit_answer:'[合成試験] 選択して開始'})};
 }
 it('sends nothing before consent or for unselected operations; preserves local outputs for each selection',async()=>{
@@ -28,7 +28,7 @@ it('sends nothing before consent or for unselected operations; preserves local o
 it('resumes only Web registration after failure with the identical operation and frozen rate, no extra consent',async()=>{const f=await setup();try{
  await f.start();await freezeEstimateWorkflow(f.draft.workflow_id,f.result,f.input,f.origin);let issue=0,publish=0;const requests:any[]=[];
  const failing={...f.adapters,issue:async(r:any)=>{issue++;return f.adapters.issue(r)},publish:async(r:any)=>{publish++;requests.push(r);throw new WorkflowTransportError('WEB_DOWN',true,true)}};
- const v=await resumeEstimateWorkflow(f.draft.workflow_id,{...f.options,adapters:failing});expect(v.proof_status).toBe('VERIFIED');expect(v.publication_status).toBe('RETRY_PENDING');expect(v.pdf_status).toBe('READY');expect(publish).toBe(2);
+ const v=await resumeEstimateWorkflow(f.draft.workflow_id,{...f.options,adapters:failing});expect(v.proof_status).toBe('VERIFIED');expect(v.publication_status).toBe('PUBLICATION_UNCONFIRMED');expect(v.pdf_status).toBe('READY');expect(publish).toBe(1);
  const success={...f.adapters,issue:failing.issue,publish:async(r:any)=>{requests.push(r);return f.adapters.publish(r)}};const done=await resumeEstimateWorkflow(f.draft.workflow_id,{...f.options,adapters:success});expect(issue).toBe(1);expect(done.publication_status).toBe('PUBLISHED');expect(new Set(requests.map(jcsSha256)).size).toBe(1);expect(done.result?.display_quote).toEqual(f.result.display_quote);
  await withdrawEstimateWorkflow(f.draft.workflow_id,f.adapters);expect((await resumeEstimateWorkflow(f.draft.workflow_id,f.options)).publication_status).toBe('WITHDRAWN');
  }finally{f.db.sqlite.close();}},30000);

@@ -8,7 +8,7 @@ process.once('message',async({id,mode,services,keys})=>{
    await resumeEstimateWorkflow(id,{services,keys,adapters:{
     issue:async()=>{throw Error('UNEXPECTED_PROOF_REISSUE');},
     publish:async request=>{process.send({phase:'PUBLISH_PENDING',operation_id:request.operation_id});return new Promise(()=>{});},
-    lookup:async()=>{throw Error('UNEXPECTED_LOOKUP');},withdraw:async()=>{throw Error('UNEXPECTED_WITHDRAW');}
+    lookup:async()=>({status:'NOT_FOUND'}),withdraw:async()=>{throw Error('UNEXPECTED_WITHDRAW');}
    }});
   }else await withWorkflowLock(id,async()=>{process.send({phase:'LOCKED'});await new Promise(()=>{});});
  }catch(e){process.send({error:e.message});process.exitCode=1;process.disconnect();}

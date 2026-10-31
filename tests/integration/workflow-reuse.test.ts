@@ -5,10 +5,13 @@ import path from 'node:path';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
 import {createMcpServer} from '../../src/mcp/server.js';
-import {responseFor} from '../fixtures/measurement.js';
+import {responseFor,setRuleReferences} from '../fixtures/measurement.js';
+import {recorded} from '../fixtures/recorded.js';
+import {withQuality} from '../fixtures/quality.js';
 import {inspectSkillPackage} from '../../src/profiles/skill-package.js';
 import {readWorkflowFile} from '../../src/local/workflow-store.js';
 import {mcpState} from '../../src/mcp/state.js';
+import {Ajv2020} from 'ajv/dist/2020.js';
 
 async function connect(){const [ct,st]=InMemoryTransport.createLinkedPair(),server=createMcpServer(),client=new Client({name:'reuse-regression',version:'1'});await server.connect(st);await client.connect(ct);return {client,close:async()=>{await client.close();await server.close();}};}
 async function fixture(){
@@ -22,7 +25,7 @@ async function fixture(){
  const rules=responseFor(inspectSkillPackage('skills/open-estimate-assessor'));
  const start=await ok('show_estimate_start',{rules_response:rules,display_currency:'USD'});
  const args={workflow_id:start.workflow_id,terms_hash:start.terms_hash,selection:{read:true,verify:false,publish:false},explicit_answer:'[合成試験] カードで開始を選択'};
- return {base,root,start,args,call,ok,rules,restart:async()=>{await current.close();mcpState.clearSnapshots();current=await connect();},cleanup:async()=>{await current.close();for(const k of keys){if(before[k]===undefined)delete process.env[k];else process.env[k]=before[k];}await fs.rm(base,{recursive:true,force:true});}};
+ return {base,root,start,args,call,ok,rules,listTools:()=>current.client.listTools(),restart:async()=>{await current.close();mcpState.clearSnapshots();current=await connect();},cleanup:async()=>{await current.close();for(const k of keys){if(before[k]===undefined)delete process.env[k];else process.env[k]=before[k];}await fs.rm(base,{recursive:true,force:true});}};
 }
 it('replays the card and chat start on one workflow without candidate lookup or rewriting consent',async()=>{
  const f=await fixture();try{
@@ -79,3 +82,29 @@ it('does not silently reacquire an expired snapshot or bind an old consent to a 
 it('uses one chat choice only when the explicit fallback mode is selected',async()=>{
  const f=await fixture();try{const view=await f.ok('show_estimate_start',{rules_response:f.rules,display_currency:'USD',confirmation_mode:'chat'});expect(view).toMatchObject({workflow_id:f.start.workflow_id,chat_confirmation_required:true,next_action:'ASK_ONE_CHAT_SELECTION'});}finally{await f.cleanup();}
 });
+
+it('publishes a valid workflow evaluation schema and completes the same frozen run twice without re-reading it',async()=>{
+ const f=await fixture();try{
+  const tools=await f.listTools(),published=tools.tools.find(t=>t.name==='evaluate_assessment')!.outputSchema!;
+  await f.ok('start_estimate_workflow',f.args);
+  const missing=await f.call('complete_estimate_workflow',{workflow_id:f.start.workflow_id,run_id:'11111111-1111-4111-8111-111111111111'});
+  expect(JSON.stringify(missing.content)).toContain('RUN_NOT_FOUND');expect(JSON.stringify(missing.content)).not.toContain(f.base);
+  expect(await f.ok('show_estimate_workflow',{workflow_id:f.start.workflow_id})).toMatchObject({last_error:'RUN_NOT_FOUND',last_error_stage:'PREPARE_RESULT',recovery_action:'CHECK_RUN_ID_AND_RETRY_COMPLETE'});
+  const prep=await f.ok('prepare_repository');await f.ok('read_repository_file',{snapshot_id:prep.snapshot_id,file_id:'notes.js'});
+  const a=recorded();a.assessment_id=prep.assessment_id;a.input=structuredClone(prep.assessment_input);a.assessor={...prep.assessor_defaults,finished_at:new Date().toISOString()};
+  a.components[0].path_prefixes=['notes.js'];a.data_groups[0].attributes=['id','title','content'];a.functional_processes[1].movements.find((m:any)=>m.type==='Exit').data_group_id='dg-note';
+  a.evidence[0]={...a.evidence[0],file_path:'notes.js',line_start:5,line_end:14};a.evidence[1]={...a.evidence[1],file_path:'notes.js',line_start:16,line_end:21};
+  a.scope_record!.files=a.input.manifest.files.map(x=>({path:x.path,membership:'included',reason:'Synthetic notes implementation',confirmation_ref:'scope-confirmed',evidence_refs:[]}));setRuleReferences(a);withQuality(a);a.input.acquisition=prep.assessment_input.acquisition;
+  const evaluated=await f.ok('evaluate_assessment',{snapshot_id:prep.snapshot_id,assessment:JSON.stringify(a),display_currency:'USD'});
+  const schema=JSON.parse(await fs.readFile('contracts/local-preview.schema.json','utf8'));const validate=new Ajv2020({strict:false,validateFormats:false}).compile({...schema.$defs.WorkflowEvaluationView,$defs:schema.$defs});
+  expect(validate(evaluated),JSON.stringify(validate.errors)).toBe(true);const publicValidate=new Ajv2020({strict:false,validateFormats:false}).compile(published);expect(publicValidate(evaluated),JSON.stringify(publicValidate.errors)).toBe(true);const noId={...evaluated};delete noId.run_id;expect(validate(noId)).toBe(false);expect(publicValidate(noId)).toBe(false);
+  const args={workflow_id:f.start.workflow_id,run_id:evaluated.run_id},modelPath=path.join(evaluated.run_directory,'model.json'),modelBytes=await fs.readFile(modelPath);await fs.unlink(modelPath);
+  const missingArtifact=await f.call('complete_estimate_workflow',args);expect(JSON.stringify(missingArtifact.content)).toContain('RUN_ARTIFACT_MISSING');expect(JSON.stringify(missingArtifact.content)).not.toContain(evaluated.run_directory);await fs.writeFile(modelPath,modelBytes);
+  const first=await f.ok('complete_estimate_workflow',args);expect(first.last_error).toBeNull();expect(first.pdf_status).toBe('READY');
+  const before=await readWorkflowFile<any>(args.workflow_id,'state.json');await fs.rm(evaluated.run_directory,{recursive:true,force:true});
+  const repeated=await f.ok('complete_estimate_workflow',args);expect(repeated.result).toEqual(first.result);
+  const after=await readWorkflowFile<any>(args.workflow_id,'state.json');expect(after.proof_request).toEqual(before.proof_request);expect(after.completed_run_id).toBe(evaluated.run_id);
+  const changed=await f.call('complete_estimate_workflow',{...args,run_id:'22222222-2222-4222-8222-222222222222'});expect(JSON.stringify(changed.content)).toContain('WORKFLOW_RESULT_FROZEN');
+  expect((await f.ok('complete_estimate_workflow',args)).last_error).toBeNull();
+ }finally{await f.cleanup();}
+},30000);

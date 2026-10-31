@@ -1,5 +1,5 @@
 import {prepareEstimateStart,showEstimateStart,startEstimateWorkflow,extendEstimateWorkflow,approveWorkflowAcquisition,approvedWorkflow,showEstimateWorkflow,resumeEstimateWorkflow,cancelEstimateWorkflow,withdrawEstimateWorkflow} from '../local/estimate-workflow.js';
-import {completeEstimateWorkflow} from '../local/complete-workflow.js';
+import {completeEstimateWorkflow,WorkflowCompletionError} from '../local/complete-workflow.js';
 import {readWorkflowFile,writeWorkflowFile,workflowDirectory} from '../local/workflow-store.js';
 import {estimateStartWidgetUri,estimateStartWidgetHtml,estimateWorkflowWidgetUri,estimateWorkflowWidgetHtml} from '../local/workflow-widget.js';
 import {validateBoundRules,validateRuleReferences,type BoundRules} from '../local/measurement-context.js';
@@ -8,6 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {jcsSha256} from '../core/canonical.js';
 import {validateSnapshotAssessment} from './tools/evaluate-assessment.js';
 import {saveRun} from '../local/runs.js';
+import type {WorkflowEvaluationView} from './presentation.js';
 import path from 'node:path';
 import { WorkspaceSession,type WorkspaceBinding } from "./workspace-session.js";
 import {saveWorkflowSnapshot,restoreWorkflowSnapshot} from './workflow-snapshot.js';
@@ -70,7 +71,7 @@ const tools = [
     outputSchema: { type: "object" as const, required: ["file_id", "content", "sha256", "has_more"] }, handler: handleReadRepositoryFile, readOnly: false, network: false },
   { name: "evaluate_assessment", description: "Validate a raw Assessment JSON string against snapshot evidence; calculate CFP and TEST design/implementation/test effort, save locally, and fetch FRB for this display. Planning/operations excluded. Does not issue or publish.",
     inputSchema: object({ snapshot_id: str, assessment: { type: "string", minLength: 2, maxLength: 8388608 }, ...display }, ["snapshot_id", "assessment"]),
-    outputSchema: definition("EvaluationView"), handler: handleEvaluateAssessment, readOnly: false, network: true },
+    outputSchema: definition("AnyEvaluationView"), handler: handleEvaluateAssessment, readOnly: false, network: true },
   { name: "get_evaluation", description: "Load a local evaluation ID and recalculate the displayed currency using the latest FRB release. Fixed CFP/hours/USD/hash remain unchanged; works after restart in the same configured workspace.",
     inputSchema: object({ evaluation_id: str, ...display }, ["evaluation_id"]), outputSchema: definition("EvaluationView"), handler: handleGetEvaluation, readOnly: true, network: true },
   { name: "render_report", description: "Generate a private local HTML review report with process counts, evidence, exclusions, TEST label, and a newly calculated FRB display quote. The exported HTML records generation time; rerun to refresh.",
@@ -185,7 +186,7 @@ export function createMcpServer(): Server {
             const {validated}=await validateSnapshotAssessment(args as any);validateRuleReferences(validated,activeRules!);
             const snapshot=mcpState.getSnapshot(args.snapshot_id as string)!.snapshot;
             const run=await saveRun(validated,validated,{ruleset_ref:activeRules!.ruleset_ref,bundle:activeRules!.bundle},root,snapshot.acquisition_record);
-            return {...await tool.handler(args as any),...run,workflow_id:activeWorkflow};
+            const view:WorkflowEvaluationView={...await tool.handler(args as any),...run,workflow_id:activeWorkflow!};return view;
           });
         } else {
           result = await workspaceContext.run(root, () => tool.handler(args as any));
@@ -196,7 +197,7 @@ export function createMcpServer(): Server {
     } catch (err: any) {
       // Never log source, raw assessment, network body or absolute OS error paths.
       const code = /^[A-Z][A-Z0-9_]+$/.test(err.message) ? err.message : err.errors ? "ASSESSMENT_VALIDATION_FAILED" : "TOOL_EXECUTION_ERROR";
-      return { isError: true, content: [{ type: "text" as const, text: JSON.stringify({ error: { code, message: code, details: err.errors } }) }] };
+      return { isError: true, content: [{ type: "text" as const, text: JSON.stringify({ error: { code, message: code, details: err.errors,...(err instanceof WorkflowCompletionError?{stage:err.stage,recovery_action:err.recovery_action}:{}) } }) }] };
     }
   });
   server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [{uri:estimateStartWidgetUri,name:"Estimate workflow start",mimeType:"text/html;profile=mcp-app"},{uri:estimateWorkflowWidgetUri,name:"Estimate workflow result",mimeType:"text/html;profile=mcp-app"},...OES_RESOURCES,{uri:documentWidgetUri,name:'Portable estimate document',mimeType:'text/html;profile=mcp-app'},{uri:resultWidgetUri,name:"Legacy local estimate result",mimeType:"text/html;profile=mcp-app"}] }));

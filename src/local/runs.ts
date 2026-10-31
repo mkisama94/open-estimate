@@ -102,7 +102,7 @@ export async function saveRun(a: Assessment, submitted: unknown, context: unknow
 }
 export async function readRun(run_id: string) {
   if (!uuid.test(run_id)) throw new Error("INVALID_RUN_ID");
-  const dir = path.join(runsRoot(),run_id); await checkedDirectory(dir);
+  const dir = path.join(runsRoot(),run_id); try{await checkedDirectory(dir);}catch(e:any){if(e.code==='ENOENT')throw Error('RUN_NOT_FOUND');throw e;}
   const json = async (name: string) => JSON.parse(await fs.readFile(await regular(dir,name),"utf8"));
   const complete = await json("COMPLETE.json"), checksums = await json("checksums.json");
   if (complete.run_id !== run_id || complete.checksums_sha256 !== jcsSha256(checksums)) throw new Error("RUN_CHECKSUM_MISMATCH");

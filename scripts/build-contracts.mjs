@@ -29,8 +29,11 @@ const view = obj({ evaluation_id: string, assessment_id: string, evaluated_at: s
   review: { type: 'object' }, storage: { const: 'LOCAL_ONLY' }, signed: { const: false }, published: { const: false },
   notices: { type: 'array', items: string }, input_reconciled: { type: 'boolean' } });
 view.required = view.required.filter(k => k !== 'input_reconciled');
+const uuid={type:'string',format:'uuid'};
+const workflowView=obj({...view.properties,run_id:uuid,run_directory:string,assessment_path:string,assessment_hash:hash,summary:{type:'object'},workflow_id:uuid});
+workflowView.required=workflowView.required.filter(k=>k!=='input_reconciled');
 const schema = { $schema: 'https://json-schema.org/draft/2020-12/schema', title: 'Open Estimate local preview 0.3.0',
-  $defs: { Assessment: old.definitions.Assessment, Report: report, DisplayQuote: quote, EvaluationView: view } };
+  $defs: { Assessment: old.definitions.Assessment, Report: report, DisplayQuote: quote, EvaluationView: view, WorkflowEvaluationView:workflowView, AnyEvaluationView:{type:'object',anyOf:[{$ref:'#/$defs/EvaluationView'},{$ref:'#/$defs/WorkflowEvaluationView'}]} } };
 fs.writeFileSync(new URL('../contracts/local-preview.schema.json', import.meta.url), JSON.stringify(schema, null, 2)+'\n');
 const { remoteArgsSchema } = await import('../dist/remote/model.js');
 fs.writeFileSync(new URL('../contracts/remote-model.schema.json', import.meta.url), JSON.stringify({
