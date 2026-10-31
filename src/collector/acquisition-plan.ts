@@ -25,16 +25,18 @@ export async function planAcquisition(root: string, scope: ScopeRule[] = []) {
   if (!(await fs.lstat(root)).isDirectory()) throw new Error("TARGET_MUST_BE_DIRECTORY");
   scope = normalizeScope(scope);
   const files: PlannedFile[] = [], issues: Array<{path:string;cause:string}> = [];
+  const excludedDirectories:string[]=[];
   let visited = 0, complete = true;
   const roleFor = (p: string): ScopeRole => scope.filter(r => within(p,r.path)).sort((a,b) => b.path.length-a.path.length)[0]?.role
     ?? (classifyFile(p).category === "source" ? "measurement" : "supporting");
   async function walk(dir: string, prefix: string, depth: number): Promise<void> {
+    const here=prefix||'.';
+    if(roleFor(here)==='excluded'&&!scope.some(r=>r.role!=='excluded'&&r.path!==here&&within(r.path,here))){excludedDirectories.push(here);return;}
     if (depth > 40) { complete = false; issues.push({path:prefix,cause:"DEPTH_LIMIT"}); return; }
     let items;
     try { items = await fs.readdir(dir,{withFileTypes:true}); }
     catch (e: any) { if (!["EACCES","EPERM"].includes(e.code)) throw e; complete=false; issues.push({path:prefix || ".",cause:"DIRECTORY_PERMISSION"}); return; }
     for (const item of items.sort((a,b)=>a.name < b.name ? -1 : 1)) {
-      if (++visited > LIMITS.files) { complete=false; issues.push({path:prefix || ".",cause:"FILE_COUNT_LIMIT"}); return; }
       const p = prefix ? `${prefix}/${item.name}` : item.name;
       const c = classifyFile(p + (item.isDirectory() ? "/dummy" : ""));
       // Protected directories are never traversed, including for metadata totals.
@@ -44,6 +46,11 @@ export async function planAcquisition(root: string, scope: ScopeRule[] = []) {
           && roleFor(within(r.path,p) ? r.path : p) === "measurement")) issues.push({path:p,cause:"SCOPE_EXCLUSION_CONFLICT"});
         continue;
       }
+      if(roleFor(p)==='excluded'){
+        if(item.isDirectory()&&!scope.some(r=>r.role!=='excluded'&&r.path!==p&&within(r.path,p))){if(!excludedDirectories.includes(p))excludedDirectories.push(p);continue;}
+        if(item.isFile()){const omitted=prefix||'.';if(!excludedDirectories.includes(omitted))excludedDirectories.push(omitted);continue;}
+      }
+      if (++visited > LIMITS.files) { complete=false; issues.push({path:prefix || ".",cause:"FILE_COUNT_LIMIT"}); return; }
       try {
         const full = await resolveSafePath(p,root);
         if (item.isDirectory()) { await walk(full,p,depth+1); if (visited > LIMITS.files) return; }
@@ -70,12 +77,13 @@ export async function planAcquisition(root: string, scope: ScopeRule[] = []) {
   const folders: Record<string,number> = {};
   for (const f of files.filter(f=>!f.cause)) { const folder=f.path.includes("/") ? f.path.split("/")[0] : "(root)"; folders[folder]=(folders[folder]??0)+f.bytes; }
   const summary={totals,oversized,folders,issues,discovery_complete:complete,limits:LIMITS,
+    excluded_metadata_not_enumerated:excludedDirectories,excluded_totals_complete:excludedDirectories.length===0&&!issues.some(i=>['POLICY_EXCLUSION','SAFETY_EXCLUSION','SAFETY_SYMLINK'].includes(i.cause)),
     splittable:complete && !issues.some(i=>i.cause === "SCOPE_EXCLUSION_CONFLICT") && !files.some(f=>f.role === "measurement" && !f.cause && f.bytes > LIMITS.single),
     ready:complete && !issues.some(i=>i.cause === "SCOPE_EXCLUSION_CONFLICT") && !files.some(f=>f.role === "measurement" && !f.cause && f.bytes > LIMITS.single)
       && totals.measurement.bytes <= LIMITS.bytes,
     all_selected_fit:totals.measurement.bytes+totals.supporting.bytes <= LIMITS.bytes && oversized.length===0,
     protected_metadata_not_enumerated:issues.filter(i=>["POLICY_EXCLUSION","SAFETY_EXCLUSION","SAFETY_SYMLINK"].includes(i.cause)).map(i=>i.path),
     selected_bytes:totals.measurement.bytes+totals.supporting.bytes, source_content_read:false};
-  return {scope,files,summary,fingerprint:jcsSha256({scope,files,issues,complete})};
+  return {scope,files,summary,fingerprint:jcsSha256({scope,files,issues,complete,excludedDirectories})};
 }
 export type AcquisitionPlan = Awaited<ReturnType<typeof planAcquisition>>;

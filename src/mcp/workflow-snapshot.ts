@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {readWorkflowFile,writeWorkflowFile} from '../local/workflow-store.js';
+import {readWorkflowData,writeWorkflowData} from '../local/workflow-data.js';
 import {getCacheRoot,type SnapshotResult} from '../collector/snapshot.js';
 import {resolveSafePath} from '../collector/safe-paths.js';
 import type {FileCoverageRecord} from '../collector/coverage.js';
@@ -9,16 +10,28 @@ import {mcpState} from './state.js';
 
 interface SavedSnapshot {version:1;workspace_root:string;snapshot:SnapshotResult;preparation:{assessment_id:string;assessor_defaults:Record<string,unknown>};reads:FileCoverageRecord[]}
 const writes=new Map<string,Promise<void>>();
+const metadataSaved=new Set<string>();
 export function saveWorkflowSnapshot(id:string,snapshot_id:string){
  const operation=(writes.get(id)??Promise.resolve()).then(async()=>{
  const e=mcpState.getSnapshot(snapshot_id);if(!e?.workspace_root||!e.preparation)throw Error('SNAPSHOT_NOT_FOUND_OR_EXPIRED');
- await writeWorkflowFile(id,'mcp-snapshot.json',{version:1,workspace_root:e.workspace_root,snapshot:e.snapshot,preparation:e.preparation,reads:e.tracker.exportReads()} satisfies SavedSnapshot);
+ const metadata_file=`mcp-snapshot-${snapshot_id}.json`,reads_file=`mcp-reads-${snapshot_id}.json`,key=id+'/'+snapshot_id;
+ if(!metadataSaved.has(key)){await writeWorkflowData(id,metadata_file,{version:1,workspace_root:e.workspace_root,snapshot:e.snapshot,preparation:e.preparation});metadataSaved.add(key);}
+ await writeWorkflowData(id,reads_file,e.tracker.exportReads());
+ await writeWorkflowFile(id,'mcp-snapshot.json',{version:2,workspace_root:e.workspace_root,snapshot_id,metadata_file,reads_file,analysis_ready:e.snapshot.analysis_ready,partial_authorized:e.snapshot.acquisition?.partial_authorized});
  });
  const done=operation.then(()=>{},()=>{});writes.set(id,done);void done.then(()=>{if(writes.get(id)===done)writes.delete(id);});return operation;
 }
 export async function restoreWorkflowSnapshot(id:string,root:string){
  let saved:SavedSnapshot;
- try{saved=await readWorkflowFile(id,'mcp-snapshot.json');}catch(e:any){if(e.code==='ENOENT')return;throw e;}
+ let head:any;try{head=await readWorkflowFile(id,'mcp-snapshot.json');}catch(e:any){if(e.code==='ENOENT')return;throw e;}
+ if(head.version===2){
+  if(head.workspace_root!==root||!/^[a-f0-9-]{36}$/.test(head.snapshot_id)||head.metadata_file!==`mcp-snapshot-${head.snapshot_id}.json`||head.reads_file!==`mcp-reads-${head.snapshot_id}.json`)throw Error('WORKFLOW_SNAPSHOT_INVALID');
+  const metadata=await readWorkflowData<Omit<SavedSnapshot,'reads'>>(id,head.metadata_file);
+  if(metadata.snapshot.snapshot_id!==head.snapshot_id)throw Error('WORKFLOW_SNAPSHOT_INVALID');
+  saved={...metadata,reads:await readWorkflowData<FileCoverageRecord[]>(id,head.reads_file)};
+  if(typeof head.analysis_ready==='boolean')saved.snapshot.analysis_ready=head.analysis_ready;
+  if(saved.snapshot.acquisition&&typeof head.partial_authorized==='boolean')saved.snapshot.acquisition.partial_authorized=head.partial_authorized;
+ }else saved=head;
  if(saved.version!==1||saved.workspace_root!==root||jcsSha256(saved.snapshot.manifest)!==saved.snapshot.manifest_hash)throw Error('WORKFLOW_SNAPSHOT_INVALID');
  const relative=path.relative(getCacheRoot(),saved.snapshot.cache_dir);
  try{
@@ -26,5 +39,6 @@ export async function restoreWorkflowSnapshot(id:string,root:string){
  }catch(e:any){if(e.code==='ENOENT')return {snapshot_id:saved.snapshot.snapshot_id,available:false};throw e;}
  mcpState.registerSnapshot(saved.snapshot,root,saved.preparation);
  mcpState.getSnapshot(saved.snapshot.snapshot_id)!.tracker.restoreReads(saved.reads);
+ if(head.version===2)metadataSaved.add(id+'/'+saved.snapshot.snapshot_id);
  return {snapshot_id:saved.snapshot.snapshot_id,available:true};
 }

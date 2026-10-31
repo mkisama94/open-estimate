@@ -7,8 +7,10 @@ import {presentEvaluation,renderEvaluationHtml} from "../../src/mcp/presentation
 import {FrbProvider} from "../../src/profiles/frb.js";
 import {frbHtml,fxNow,htmlResponse} from "../fixtures/frb.js";
 import type {Assessment} from "../../src/core/types.js";
+import {withQuality} from '../fixtures/quality.js';
 it("distinguishes missing source coverage from provisional judgments and preserves the effort value",()=>{
- const a={input:{acquisition:{scope_coverage:"COMPLETE"}},judgments:[{status:"provisional"}]} as Assessment;
+ const a=withQuality();a.input.acquisition!.scope_coverage='COMPLETE';for(const f of a.input.manifest.files)f.disposition='analyzed';a.judgments![0].status='provisional';
+ expect(resultCoverage({input:{acquisition:{scope_coverage:'COMPLETE'}},judgments:[]} as unknown as Assessment,{median:'108'}).project_effort).toBeNull();
  const hours={median:"108"};expect(resultCoverage(a,hours)).toMatchObject({scope_coverage:"COMPLETE",interpretation_status:"PROVISIONAL",project_effort:hours,acquired_portion_effort:null});
  a.input.acquisition!.scope_coverage="MISSING";
  expect(resultCoverage(a,hours)).toMatchObject({scope_coverage:"MISSING",project_effort:null,acquired_portion_effort:hours,headline:"プロジェクト全体の工数：未算出"});

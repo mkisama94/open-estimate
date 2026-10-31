@@ -13,7 +13,7 @@ export function validateQuality(a: Assessment): ValidationErrorDetail[] {
   const fail = (code: string, message: string) => errors.push({ pointer: "/quality", code, message });
   const unique = (values: string[]) => { if (new Set(values).size !== values.length) fail("DUPLICATE_ID", "Duplicate quality record"); };
   unique(q.scope_rules.map(r => r.rule_id)); unique(q.scope_rules.map(r => r.path_prefix));
-  unique(q.limitations.map(r => r.path)); unique(q.boundaries.map(r => r.process_id));
+  unique(q.limitations.map(r => JSON.stringify([r.path,r.cause]))); unique(q.boundaries.map(r => r.process_id));
   unique(q.attributes.map(r => r.data_group_id)); unique(q.findings.map(r => r.finding_id));
   for (const r of q.scope_rules) if (!safe(r.path_prefix)) fail("INVALID_PATH", r.path_prefix);
   const ruleFor = (p: string) => q.scope_rules.filter(r => under(p,r.path_prefix)).sort((a,b) => b.path_prefix.length-a.path_prefix.length)[0];

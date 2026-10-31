@@ -23,7 +23,8 @@ describe("scope-bound acquisition",()=>{
     const read=vi.spyOn(fs,"readFile"),open=vi.spyOn(fs,"open");
     try {
       const preflight=await planAcquisition(f.root,scope);
-      expect(preflight.files.filter(f=>f.cause === "AGREED_EXCLUSION").reduce((sum,f)=>sum+f.bytes,0)).toBe(85*1024*1024);
+      expect(preflight.files.some(f=>f.path.startsWith('base-data/raw/'))).toBe(false);
+      expect(preflight.summary.excluded_metadata_not_enumerated).toContain('base-data/raw');expect(preflight.summary.excluded_totals_complete).toBe(false);
       expect(preflight.summary.ready).toBe(true);expect(read).not.toHaveBeenCalled();expect(open).not.toHaveBeenCalled();
       const snapshot=await f.run(()=>createRepositorySnapshot(".",{scope,preflight}));
       expect(snapshot.acquisition?.scope_coverage).toBe("COMPLETE");expect(snapshot.total_bytes).toBeLessThan(1024);

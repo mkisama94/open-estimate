@@ -1,6 +1,7 @@
 import {prepareEstimateStart,showEstimateStart,startEstimateWorkflow,extendEstimateWorkflow,approveWorkflowAcquisition,approvedWorkflow,showEstimateWorkflow,resumeEstimateWorkflow,cancelEstimateWorkflow,withdrawEstimateWorkflow} from '../local/estimate-workflow.js';
 import {completeEstimateWorkflow,WorkflowCompletionError} from '../local/complete-workflow.js';
-import {readWorkflowFile,writeWorkflowFile,workflowDirectory} from '../local/workflow-store.js';
+import {readWorkflowFile,workflowDirectory} from '../local/workflow-store.js';
+import {readWorkflowData,writeWorkflowData} from '../local/workflow-data.js';
 import {estimateStartWidgetUri,estimateStartWidgetHtml,estimateWorkflowWidgetUri,estimateWorkflowWidgetHtml} from '../local/workflow-widget.js';
 import {validateBoundRules,validateRuleReferences,type BoundRules} from '../local/measurement-context.js';
 import {inspectSkillPackage} from '../profiles/skill-package.js';
@@ -115,7 +116,7 @@ export function createMcpServer(): Server {
             if(view.terms.display_currency!==currency)throw Error('WORKFLOW_START_TERMS_CHANGED');
           }else{
             view=await prepareEstimateStart({target_ref:c.root,target_hash:jcsSha256(c.root),plan_ref:c.candidate_id,plan_hash:c.plan.fingerprint,ruleset_ref:rules.ruleset_ref,display_currency:currency});
-            await writeWorkflowFile(view.workflow_id,'mcp-context.json',{binding:await workspace.binding(),rules});
+            await writeWorkflowData(view.workflow_id,'mcp-context.json',{binding:await workspace.binding(),rules});
             pendingWorkflow={workflow_id:view.workflow_id,candidate_id:c.candidate_id,rules};
           }
           return {...view,acquisition:c.plan.summary,scope:c.plan.scope,confirmation_mode:args.confirmation_mode??'card',chat_confirmation_required:args.confirmation_mode==='chat',next_action:args.confirmation_mode==='chat'?'ASK_ONE_CHAT_SELECTION':'WAIT_FOR_START_CARD_SELECTION',notice:view.notice+(args.confirmation_mode==='chat'?' カード非対応のため同じ条件をチャットで一度だけ選択してください。':' このカードで一度だけ選択してください。別の質問フォームで同じ確認を重ねないでください。')};
@@ -126,7 +127,7 @@ export function createMcpServer(): Server {
           if(saved.consent){
             const view=await startEstimateWorkflow(args as any);
             if(activeWorkflow&&activeWorkflow!==args.workflow_id)throw Error('WORKFLOW_SCOPE_CHANGE_REQUIRES_CONFIRMATION');
-            const context=await readWorkflowFile<{binding:WorkspaceBinding;rules:BoundRules}>(args.workflow_id as string,'mcp-context.json').catch((e:any)=>{if(e.code==='ENOENT')return null;throw e;});
+            const context=await readWorkflowData<{binding:WorkspaceBinding;rules:BoundRules}>(args.workflow_id as string,'mcp-context.json').catch((e:any)=>{if(e.code==='ENOENT')return null;throw e;});
             if(context){
               if(context.binding.root!==saved.target_ref||jcsSha256(context.rules.ruleset_ref)!==jcsSha256(saved.terms.ruleset_ref))throw Error('WORKFLOW_SCOPE_CHANGE_REQUIRES_CONFIRMATION');
               await workspace.restore(context.binding);activeWorkflow=args.workflow_id as string;activeRules=context.rules;
@@ -174,8 +175,8 @@ export function createMcpServer(): Server {
           if(activeWorkflow&&before.preflight.fingerprint!==options.preflight.fingerprint)await approveWorkflowAcquisition(activeWorkflow,jcsSha256(root),before.preflight,options.preflight);
           const prepared = await workspaceContext.run(root,()=>handlePrepareRepository({...options,relative_path:".",previous_snapshot_id:previousSnapshot,split_acquisition:args.split_acquisition === true,partial_authorized:!!activeWorkflow}));
           if(workspace.revision()!==acquisitionRevision){mcpState.removeSnapshot(prepared.snapshot_id);throw Error('PROJECT_CHANGED_RECONFIRM_REQUIRED');}
+          if(activeWorkflow){await saveWorkflowSnapshot(activeWorkflow,prepared.snapshot_id);await writeWorkflowData(activeWorkflow,'mcp-context.json',{binding:await workspace.binding(),rules:activeRules});}
           previousSnapshot=prepared.snapshot_id;
-          if(activeWorkflow){await saveWorkflowSnapshot(activeWorkflow,previousSnapshot!);await writeWorkflowFile(activeWorkflow,'mcp-context.json',{binding:await workspace.binding(),rules:activeRules});}
           return prepared;
           })();try{result=await preparing;}finally{preparing=undefined;}
           }

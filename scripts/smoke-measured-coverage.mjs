@@ -1,0 +1,26 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {randomUUID} from 'node:crypto';
+import assert from 'node:assert/strict';
+if(!['--production','--check'].includes(process.argv[2]))throw Error('EXPLICIT_PRODUCTION_SMOKE_REQUIRED');
+const plugin=path.resolve('release/local-marketplace/plugins/open-estimate'),server=path.join(plugin,'server'),load=p=>import(pathToFileURL(path.join(server,'dist',p)).href);
+const w=await load('local/estimate-workflow.js'),{resultFromDocument}=await load('contracts/estimate-result.js'),{inspectSkillPackage}=await load('profiles/skill-package.js');
+const {validateAndRecomputeNumericModel}=await load('core/numeric-model.js'),{certificateCalculationProfile}=await load('profiles/certificate-basis.js'),{jcsSha256}=await load('core/canonical.js'),{createDisplayQuote}=await load('core/display-quote.js');
+const {validateCalculationData}=await load('issuer/validation.js'),services=JSON.parse(await fs.readFile(path.join(server,'profiles/estimate-services.json'),'utf8'));
+assert.equal(services.environment,'production');const version=JSON.parse(await fs.readFile(path.join(plugin,'.codex-plugin/plugin.json'),'utf8')).version;
+const dir=path.resolve('release/normal-acceptance',version,'unread-'+randomUUID());await fs.mkdir(dir,{recursive:true});process.env.OES_WORKFLOWS_ROOT=path.join(dir,'private-workflows');
+const vector=JSON.parse(await fs.readFile('tests/fixtures/document-vector.json','utf8')),result=resultFromDocument(vector.request.document),input={...vector.request.validation_input,schema_version:'oes/estimate-validation-input/v1',skill_integrity:inspectSkillPackage(path.join(plugin,'skills/open-estimate-assessor'))};
+input.model={...input.model,partial:true,analysis_complete:false};const profile=certificateCalculationProfile(),report=validateAndRecomputeNumericModel(input.model,profile);input.expected_report_hash=jcsSha256({model:input.model,profile,report});
+result.scope_coverage='COMPLETE';result.result.measurement=report.measurement;result.result.calculation.effort=report.effort;result.result.calculation.reference_usd=report.reference_usd;
+result.result.limitation_codes=[...new Set([...report.limitation_codes,'TEST_DATA_ONLY'])].sort();result.result.quality={...result.result.quality,analysis_complete:false,unread_counts:{...result.result.quality.unread_counts,in_scope:1},partial_reason_codes:['IN_SCOPE_UNCONFIRMED']};input.quality=result.result.quality;
+result.display_quote=await createDisplayQuote({report,basis:profile,report_hash:input.expected_report_hash},{get:async()=>{throw Error('FX_NOT_NEEDED');}},'ja-JP','USD');
+await validateCalculationData({...vector.request.document,result:result.result,display_quote:result.display_quote},{...input,schema_version:'oes/document-validation-input/v1'},{skills:JSON.parse(await fs.readFile(path.join(server,'profiles/skill-releases.json'),'utf8')),rules:JSON.parse(await fs.readFile(path.join(server,'profiles/measurement-rules.json'),'utf8')),now:Date.now()});
+if(process.argv[2]==='--check'){console.log(JSON.stringify({status:'PASS_LOCAL_SYNTHETIC_COVERAGE_INPUT',version,network_sent:false}));process.exit(0);}
+const origin={target_hash:'a'.repeat(64),plan_hash:'b'.repeat(64)},start=await w.prepareEstimateStart({target_ref:path.join(dir,'synthetic-target'),...origin,plan_ref:'SYNTHETIC_METADATA_ONLY',ruleset_ref:result.ruleset_ref,display_currency:'USD'},services);
+await w.startEstimateWorkflow({workflow_id:start.workflow_id,terms_hash:start.terms_hash,selection:{read:true,verify:true,publish:true},explicit_answer:'[合成試験] 取得完了・未読1件の表示確認。実案件の同意ではない。'});await w.freezeEstimateWorkflow(start.workflow_id,result,input,origin);
+const view=await w.resumeEstimateWorkflow(start.workflow_id);assert.equal(view.proof_status,'VERIFIED',view.last_error);assert.equal(view.publication_status,'PUBLISHED',view.last_error);assert.equal(view.presentation.median,null);assert.equal(view.presentation.portion_median,'18');
+const page=await fetch(view.publication.canonical_url);assert.equal(page.status,200);const html=await page.text();assert.match(html,/全体工数：未算出/);assert.doesNotMatch(html,/総工数の目安/);
+const pdf=await fetch(view.publication.canonical_url+'/pdf');assert.equal(pdf.status,200);const bytes=Buffer.from(await pdf.arrayBuffer());assert.equal(bytes.subarray(0,5).toString(),'%PDF-');await fs.writeFile(path.join(dir,'unread.pdf'),bytes);
+await w.withdrawEstimateWorkflow(start.workflow_id);assert.equal((await fetch(view.publication.canonical_url)).status,410);
+const evidence={status:'PASS_PRODUCTION_ACQUIRED_BUT_UNREAD',version,created_at:new Date().toISOString(),input:'SYNTHETIC_ONLY',actual_chatgpt_full_journey:false,acquisition_coverage:result.scope_coverage,in_scope_unread:1,measurement:result.result.measurement.status,project_median:view.presentation.median,portion_median:view.presentation.portion_median,remote_proof:true,remote_publication:true,web_total_suppressed:true,pdf:true,withdrawn:true,publication:view.publication};await fs.writeFile(path.join(dir,'REPORT.json'),JSON.stringify(evidence,null,2));console.log(JSON.stringify({dir,...evidence}));

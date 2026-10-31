@@ -28,7 +28,12 @@ export class SnapshotCoverageTracker {
   public recordRead(filePath: string, startLine: number, endLine: number): void {
     const record = this.files.get(filePath);
     if (!record) return;
-    record.readRanges.push({ start: startLine, end: endLine });
+    if(endLine<startLine)return;
+    const merged:Array<{start:number;end:number}>=[];
+    for(const range of [...record.readRanges,{start:startLine,end:endLine}].sort((a,b)=>a.start-b.start)){
+      const last=merged.at(-1);if(last&&range.start<=last.end+1)last.end=Math.max(last.end,range.end);else merged.push({...range});
+    }
+    record.readRanges=merged;
   }
 
   public exportReads(): FileCoverageRecord[] {
