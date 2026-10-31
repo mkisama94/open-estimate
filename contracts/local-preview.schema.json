@@ -2680,6 +2680,355 @@
         }
       }
     },
+    "WorkflowEvaluationSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "response_format",
+        "workflow_id",
+        "snapshot_id",
+        "assessment_id",
+        "draft_id",
+        "input_version",
+        "input_hash",
+        "status",
+        "validation_passed",
+        "run_id",
+        "last_error",
+        "validation",
+        "signed",
+        "published",
+        "next_action",
+        "byte_limit"
+      ],
+      "properties": {
+        "response_format": {
+          "const": "oes/workflow-evaluation/v2"
+        },
+        "workflow_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "assessment_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "draft_id": {
+          "type": "string",
+          "pattern": "^draft_[a-f0-9]{64}$"
+        },
+        "input_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "input_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "status": {
+          "type": "string"
+        },
+        "validation_passed": {
+          "type": "boolean"
+        },
+        "run_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "validation": {
+          "type": "object"
+        },
+        "signed": {
+          "const": false
+        },
+        "published": {
+          "const": false
+        },
+        "next_action": {
+          "type": "string"
+        },
+        "byte_limit": {
+          "const": 65536
+        },
+        "coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scope_coverage",
+            "interpretation_status",
+            "project_effort",
+            "acquired_portion_effort",
+            "headline",
+            "effort_label",
+            "notice"
+          ],
+          "properties": {
+            "scope_coverage": {
+              "enum": [
+                "COMPLETE",
+                "MISSING",
+                "UNKNOWN"
+              ]
+            },
+            "interpretation_status": {
+              "enum": [
+                "RECORDED",
+                "PROVISIONAL",
+                "UNKNOWN"
+              ]
+            },
+            "project_effort": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "p25",
+                    "median",
+                    "p75"
+                  ],
+                  "properties": {
+                    "p25": {
+                      "type": "string"
+                    },
+                    "median": {
+                      "type": "string"
+                    },
+                    "p75": {
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "acquired_portion_effort": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "p25",
+                    "median",
+                    "p75"
+                  ],
+                  "properties": {
+                    "p25": {
+                      "type": "string"
+                    },
+                    "median": {
+                      "type": "string"
+                    },
+                    "p75": {
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "headline": {
+              "type": "string"
+            },
+            "effort_label": {
+              "type": "string"
+            },
+            "notice": {
+              "type": "string"
+            }
+          }
+        },
+        "measurement": {
+          "type": "object"
+        },
+        "display_quote": {
+          "$ref": "#/$defs/DisplayQuote"
+        }
+      }
+    },
+    "RepositorySnapshotSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "response_format",
+        "snapshot_id",
+        "assessment_id",
+        "status",
+        "assessor_defaults",
+        "manifest_hash",
+        "analysis_ready",
+        "scope_coverage",
+        "summary",
+        "issues",
+        "snapshot_reused",
+        "acquisition_performed",
+        "previous_snapshot_id",
+        "byte_limit",
+        "json_payload_limit",
+        "details",
+        "next_action",
+        "notice"
+      ],
+      "properties": {
+        "response_format": {
+          "const": "oes/snapshot-summary/v2"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "assessment_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "type": "string"
+        },
+        "assessor_defaults": {
+          "type": "object"
+        },
+        "manifest_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "analysis_ready": {
+          "type": "boolean"
+        },
+        "scope_coverage": {
+          "enum": [
+            "COMPLETE",
+            "MISSING",
+            "UNKNOWN"
+          ]
+        },
+        "summary": {
+          "type": "object"
+        },
+        "issues": {
+          "type": "object"
+        },
+        "snapshot_reused": {
+          "type": "boolean"
+        },
+        "acquisition_performed": {
+          "type": "boolean"
+        },
+        "previous_snapshot_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "byte_limit": {
+          "const": 65536
+        },
+        "json_payload_limit": {
+          "type": "integer"
+        },
+        "details": {
+          "type": "object"
+        },
+        "next_action": {
+          "type": "string"
+        },
+        "notice": {
+          "type": "string"
+        }
+      }
+    },
+    "RepositoryDetailPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "section",
+        "revision",
+        "total_records",
+        "total_items",
+        "offset",
+        "items",
+        "returned_items",
+        "has_more",
+        "next_cursor",
+        "byte_limit",
+        "json_payload_limit"
+      ],
+      "properties": {
+        "section": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "total_records": {
+          "type": "integer"
+        },
+        "total_items": {
+          "type": "integer"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "returned_items": {
+          "type": "integer"
+        },
+        "has_more": {
+          "type": "boolean"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "byte_limit": {
+          "const": 65536
+        },
+        "json_payload_limit": {
+          "type": "integer"
+        }
+      }
+    },
     "AnyEvaluationView": {
       "type": "object",
       "anyOf": [
@@ -2688,6 +3037,9 @@
         },
         {
           "$ref": "#/$defs/WorkflowEvaluationView"
+        },
+        {
+          "$ref": "#/$defs/WorkflowEvaluationSummary"
         }
       ]
     }

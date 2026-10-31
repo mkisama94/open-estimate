@@ -15,7 +15,7 @@ import { privateDirectory } from "../local-files.js";
 import { resolveSafePath } from "../collector/safe-paths.js";
 import { handlePrepareRepository } from "../mcp/tools/prepare-repository.js";
 import { handleReadRepositoryFile } from "../mcp/tools/read-repository-file.js";
-import { handleGetAssessorContract } from "../mcp/tools/get-assessor-contract.js";
+import { handleGetAssessorContract,summarizeAssessorContract,assessorContractPage } from "../mcp/tools/get-assessor-contract.js";
 import { validateSnapshotAssessment } from "../mcp/tools/evaluate-assessment.js";
 import { mcpState } from "../mcp/state.js";
 import { projectModel } from "../remote/model.js";
@@ -32,6 +32,10 @@ import { existsSync } from "node:fs";
 import { inspectSkillPackage } from "../profiles/skill-package.js";
 import { requireBoundRules, validateBoundRules, validateRuleReferences, saveMeasurementContext, writeContentAddressed } from "./measurement-context.js";
 import { CLIENT_PROTOCOL } from "../rules/measurement-contract.js";
+import {publicDiscovery,snapshotSummary,snapshotPage,publicAcquisition,pageRows} from '../mcp/response-pages.js';
+import {saveWorkflowDraft,evaluateWorkflowDraft,getWorkflowEvaluation,workflowDraftPage,recoverSavedWorkflowRun} from './workflow-evaluation.js';
+import {saveWorkflowSnapshot,restoreWorkflowSnapshot} from '../mcp/workflow-snapshot.js';
+import {writeWorkflowData} from './workflow-data.js';
 import { saveRun, showRun, saveRemoteOperation } from "./runs.js";
 import { compareRuns } from "./compare.js";
 import { preparePublicResult } from "./public-result.js";
@@ -70,10 +74,14 @@ async function input() {
 }
 async function main() {
   const command = process.argv[2], args = await input();
+  if(command==='response-page'){if(!uuid.test(args.session_id)||!/^[a-f0-9]{64}$/.test(args.response_id))throw Error('INVALID_RESPONSE_REFERENCE');const file=await resolveSafePath(`${args.session_id}/responses/${args.response_id}.json`,base);if((await fs.stat(file)).size>64*1024*1024)throw Error('RESPONSE_ARCHIVE_TOO_LARGE');const value=JSON.parse(await fs.readFile(file,'utf8'));return pageRows([value],'legacy-response',args.cursor,args.limit,args.response_id);}
   if(command==='extend-estimate-workflow')return extendEstimateWorkflow(args);
   if(command==='complete-estimate-workflow')return completeEstimateWorkflow(args);
   if(command==='resume-estimate-workflow')return resumeEstimateWorkflow(args.workflow_id);
   if(command==='show-estimate-workflow')return showEstimateWorkflow(args.workflow_id);
+  if(command==='get-workflow-evaluation')return getWorkflowEvaluation(args.workflow_id,args.draft_id);
+  if(command==='recover-saved-workflow-run')return recoverSavedWorkflowRun(args);
+  if(command==='draft-page')return workflowDraftPage(args);
   if(command==='cancel-estimate-workflow')return cancelEstimateWorkflow(args.workflow_id);
   if(command==='withdraw-estimate-workflow')return withdrawEstimateWorkflow(args.workflow_id);
   if(command==='get-estimate-workflow-pdf'){const dir=await workflowDirectory(args.workflow_id);return {path:path.join(dir,'estimate.pdf'),pdf_signed:false};}
@@ -98,11 +106,12 @@ async function main() {
   if (["publish-certificate","resume-certificate"].includes(command)) throw new Error("AUTH_CONSENT_NOT_READY");
   if (command === "prepare-public-result") return preparePublicResult(args);
   if (command === "skill-integrity") return currentSkill();
+  if(command==='contract-page')return assessorContractPage(args);
   // Saved runs are independent of source access, snapshot lifetime, and session purge.
   if (command === "show-run") return showRun(args.run_id);
   if (command === "record-remote") return saveRemoteOperation(args.run_id,args);
   if (command === "compare-runs") return compareRuns(args);
-  if (command === "contract") return { ...await handleGetAssessorContract(), contract_version: `${currentSkill().skill_version}-desktop`,
+  if (command === "contract") return { ...summarizeAssessorContract(await handleGetAssessorContract()), contract_version: `${currentSkill().skill_version}-desktop`,
     measurement_client_protocol: CLIENT_PROTOCOL,
     workspace_root: null, execution: "one_shot_cli", capabilities: { local_evidence_validation: true,
       assessment_drafts: true, local_assessment_artifacts: true, recorded_assessment_v2: true,
@@ -121,7 +130,7 @@ async function main() {
     const summary = await scanStructure(root, scope), session_id = randomUUID();
     const state = { root, scope, preflight: summary.plan, created: Date.now(), confirmed: false, snapshots: {}, skill_integrity: currentSkill() };
     await fs.writeFile(path.join(base, `${session_id}.json`), JSON.stringify(state), { mode: 0o600, flag: "wx" });
-    return { session_id, workspace_root: root, summary, status: "AWAITING_USER_CONFIRMATION", cache_root: base, retention_hours: 24 };
+    return { session_id, workspace_root: root, summary:publicDiscovery(summary), status: "READY_FOR_START_CARD", next_action:'SHOW_ESTIMATE_START',cache_root: base, retention_hours: 24 };
   }
   if (!uuid.test(args.session_id)) throw new Error("INVALID_SESSION_ID");
   const stateFile = await resolveSafePath(`${args.session_id}.json`, base);
@@ -160,7 +169,9 @@ async function main() {
     }
     if(command==='show-estimate-start'){
       const rules=requireBoundRules(state);
-      return {...await prepareEstimateStart({target_ref:state.root,target_hash:jcsSha256(state.root),plan_ref:stateFile,plan_hash:state.preflight.fingerprint,ruleset_ref:rules.ruleset_ref,display_currency:args.display_currency??'JPY'}),acquisition:state.preflight.summary,scope:state.scope};
+      let view:any;if(state.start_workflow_id){const old=await readWorkflowFile<any>(state.start_workflow_id,'state.json');if(args.display_currency&&old.terms.display_currency!==args.display_currency)throw Error('WORKFLOW_START_TERMS_CHANGED');view=old.consent?await showEstimateWorkflow(state.start_workflow_id):await import('./estimate-workflow.js').then(m=>m.showEstimateStart(state.start_workflow_id));}
+      else{view=await prepareEstimateStart({target_ref:state.root,target_hash:jcsSha256(state.root),plan_ref:stateFile,plan_hash:state.preflight.fingerprint,ruleset_ref:rules.ruleset_ref,display_currency:args.display_currency??'JPY'});state.start_workflow_id=view.workflow_id;const tmp=path.join(base,randomUUID()+'.tmp');await fs.writeFile(tmp,JSON.stringify(state),{flag:'wx',mode:0o600});await fs.rename(tmp,stateFile);}
+      return {...view,acquisition:publicAcquisition(state.preflight.summary),scope:state.scope.slice(0,10),scope_rule_count:state.scope.length};
     }
     if(command==='start-estimate-workflow'){
       const draft=await readWorkflowFile<any>(args.workflow_id,'state.json');
@@ -168,7 +179,8 @@ async function main() {
       const result=await startEstimateWorkflow(args);state.workflow_id=args.workflow_id;state.confirmed=true;
       const tmp=path.join(base,randomUUID()+'.tmp');await fs.writeFile(tmp,JSON.stringify(state),{flag:'wx',mode:0o600});await fs.rename(tmp,stateFile);return result;
     }
-    if(state.workflow_id&&['prepare','read','export','authorize-partial'].includes(command))await approvedWorkflow(state.workflow_id,{target_hash:jcsSha256(state.root),plan_hash:state.preflight.fingerprint});
+    if(command==='prepare-summary'&&!state.workflow_id)throw Error('WORKFLOW_START_REQUIRED');
+    if(state.workflow_id&&['prepare','prepare-summary','read','export','authorize-partial','snapshot-page','save-draft','evaluate-draft'].includes(command))await approvedWorkflow(state.workflow_id,{target_hash:jcsSha256(state.root),plan_hash:state.preflight.fingerprint});
     if (command === "draft") {
       const raw = typeof args.assessment === "string" ? parseStrictJson(args.assessment) : args.assessment;
       if (!raw || typeof raw !== "object") throw new Error("ASSESSMENT_INPUT_REQUIRED");
@@ -177,40 +189,47 @@ async function main() {
       await fs.writeFile(draftPath, JSON.stringify(raw, null, 2) + "\n", { flag: "wx", mode: 0o600 });
       let errors: unknown[] = [];
       try { validateAssessment(raw); } catch (e) { if (e instanceof SemanticValidationError) errors = e.errors; else throw e; }
-      return { status: "DRAFT_SAVED", local_path: draftPath, validation_errors: errors, exported: false };
+      return { status: "DRAFT_SAVED", local_path: draftPath, total_errors:errors.length, validation_errors: errors.slice(0,10).map((e:any)=>({code:e.code,pointer:String(e.pointer??'').slice(0,300),message:String(e.message??'').slice(0,300)})), exported: false, notice:'互換下書きです。検査結果の全件参照と復旧にはsave-draft／draft-pageを使ってください。' };
     }
     if (command === "confirm") {
       if (args.user_confirmed !== true) throw new Error("WORKSPACE_CONFIRMATION_REQUIRED");
       state.confirmed = true;
     } else if (!state.confirmed) throw new Error("WORKSPACE_CONFIRMATION_REQUIRED");
-    const rules = ["prepare", "read", "export"].includes(command) ? requireBoundRules(state) : null;
+    const rules = ["prepare",'prepare-summary','save-draft','evaluate-draft', "read", "export"].includes(command) ? requireBoundRules(state) : null;
     if (command === "export" && Object.hasOwn(args, "ruleset_ref")) throw new Error("INVALID_RULESET_REF");
     process.env.OES_CACHE_ROOT = sessionCache;
     let result: unknown;
     await workspaceContext.run(state.root, async () => {
       if (command === "confirm") result = { status: "CONFIRMED", confirmation: "assistant_reports_user_confirmation" };
-      else if (command === "prepare") {
+      else if (command === "prepare"||command==='prepare-summary'&&!state.latest_snapshot_id||command==='prepare-summary'&&(args.refresh_snapshot===true||args.refresh_preflight===true)) {
         if (Object.hasOwn(args,"scope")) throw new Error("SCOPE_CHANGE_REQUIRES_NEW_SCAN");
         if (args.refresh_preflight === true) {
           const fresh=await planAcquisition(state.root,state.scope);
           if(state.workflow_id&&fresh.fingerprint!==state.preflight.fingerprint)await approveWorkflowAcquisition(state.workflow_id,jcsSha256(state.root),state.preflight,fresh);
           state.preflight=fresh;
         }
-        result = await handlePrepareRepository({ relative_path: ".", scope:state.scope, preflight:state.preflight,
+        result = await handlePrepareRepository({ relative_path: ".", scope:state.scope, preflight:state.preflight,response_format:command==='prepare-summary'?'summary':'legacy',
           previous_snapshot_id:state.latest_snapshot_id, partial_authorized:!!state.workflow_id || args.user_requested_partial === true, split_acquisition:args.split_acquisition === true });
         Object.assign(result as object, { ruleset_ref: rules!.ruleset_ref, rule_ids: rules!.bundle.rule_ids });
         const id = (result as any).snapshot_id;
-        state.snapshots[id] = { snapshot: mcpState.getSnapshot(id)!.snapshot, reads: [] };
+        const prepared=mcpState.getSnapshot(id)!;
+        if(command==='prepare-summary'){if(!state.workflow_id)throw Error('WORKFLOW_START_REQUIRED');await saveWorkflowSnapshot(state.workflow_id,id);await writeWorkflowData(state.workflow_id,'mcp-context.json',{rules,binding:{candidate_id:args.session_id,root:state.root,roots_key:'host_context',origin:'one_shot_cli',plan:state.preflight}});state.snapshots[id]={workflow_snapshot:true};}
+        else state.snapshots[id] = { snapshot: prepared.snapshot, preparation:prepared.preparation, reads: [] };
         state.latest_snapshot_id=id;
       } else {
+        args.snapshot_id??=state.latest_snapshot_id;
         const entry = state.snapshots[args.snapshot_id];
         if (!entry || !uuid.test(args.snapshot_id)) throw new Error("SNAPSHOT_NOT_FOUND");
         // Restore only a cache path derived from this session and snapshot ID.
-        entry.snapshot.cache_dir = await resolveSafePath(`${args.session_id}/${args.snapshot_id}`, base);
-        mcpState.registerSnapshot(entry.snapshot);
+        if(entry.workflow_snapshot){await restoreWorkflowSnapshot(state.workflow_id,state.root,args.snapshot_id);entry.snapshot=mcpState.getSnapshot(args.snapshot_id)!.snapshot;}
+        else {entry.snapshot.cache_dir = await resolveSafePath(`${args.session_id}/${args.snapshot_id}`, base);mcpState.registerSnapshot(entry.snapshot,state.root,entry.preparation);}
         const tracker = mcpState.getSnapshot(args.snapshot_id)!.tracker;
-        tracker.restoreReads(entry.reads);
-        if (command === "authorize-partial") {
+        if(!entry.workflow_snapshot)tracker.restoreReads(entry.reads);
+        if(command==='prepare-summary')result=snapshotSummary(args.snapshot_id);
+        else if(command==='snapshot-page')result=snapshotPage(args);
+        else if(command==='save-draft'){if(!state.workflow_id)throw Error('WORKFLOW_START_REQUIRED');result=await saveWorkflowDraft({...args,workflow_id:state.workflow_id});}
+        else if(command==='evaluate-draft'){if(!state.workflow_id)throw Error('WORKFLOW_START_REQUIRED');result=await evaluateWorkflowDraft({...args,workflow_id:state.workflow_id},rules!);}
+        else if (command === "authorize-partial") {
           if (!state.workflow_id && args.user_requested_partial !== true) throw new Error("EXPLICIT_PARTIAL_REQUEST_REQUIRED");
           entry.snapshot.analysis_ready=true;
           entry.snapshot.acquisition.partial_authorized=true;
@@ -244,12 +263,14 @@ async function main() {
               ledger_pointer: "/assessment/judgments", candidates_pointer: "/assessment/function_candidates" },
             notice: "新フローでは開始時の承認を適用して選択した工程を継続します。旧互換の送信は別同意です。数値モデル・表示通貨・配布スキルのID/版/整合性確認用ハッシュ・測定ルールの参照版を送信します。対象ソース、名称、説明、パス、根拠本文、対象ソースhash、Assessment、判断台帳、ルール本文、ローカルcontextは送信しません。送信同意を確認し、長期保管が必要なAssessmentとcontextは一緒に保持してください。" };
         } else throw new Error("UNKNOWN_COMMAND");
-        entry.reads = tracker.exportReads();
+        if(entry.workflow_snapshot){await saveWorkflowSnapshot(state.workflow_id,args.snapshot_id);delete entry.snapshot;}
+        else entry.reads = tracker.exportReads();
       }
     });
     const temp = path.join(base, `${args.session_id}.${randomUUID()}.tmp`);
     await fs.writeFile(temp, JSON.stringify(state), { mode: 0o600, flag: "wx" });
     await fs.rename(temp, stateFile);
+    if(['prepare','export','draft'].includes(command)&&Buffer.byteLength(JSON.stringify(result))>65536){const bytes=JSON.stringify(result),response_id=sha256Hex(bytes),dir=path.join(sessionCache,'responses');await privateDirectory(dir);await fs.writeFile(path.join(dir,response_id+'.json'),bytes,{mode:0o600});const value=result as any;return {response_format:'oes/legacy-summary/v2',status:command==='export'?'RUN_SAVED':'DETAILS_PAGED',snapshot_id:value.snapshot_id??args.snapshot_id,assessment_id:value.assessment_id??null,run_id:value.local?.run_id??null,response_id,total_json_bytes:Buffer.byteLength(bytes),details_command:'response-page',session_id:args.session_id,byte_limit:65536,notice:'旧形式の大きな応答は同じセッションの非公開領域に保存しました。response-pageで全件復元でき、run保存済みならrun_idで続行できます。標準経路はprepare-summary／save-draft／evaluate-draftです。'};}
     return result;
   } finally { await lock.close(); await fs.unlink(path.join(base, `${args.session_id}.lock`)); }
 }

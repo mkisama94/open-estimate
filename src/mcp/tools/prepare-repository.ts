@@ -4,9 +4,11 @@ import { randomUUID } from "node:crypto";
 import { handleGetAssessorContract } from "./get-assessor-contract.js";
 import type { AcquisitionOptions } from "../../collector/acquire.js";
 import {getWorkspaceRoot} from '../../collector/safe-paths.js';
+import {snapshotSummary} from '../response-pages.js';
 
 export interface PrepareRepositoryArgs extends AcquisitionOptions {
   relative_path?: string;
+  response_format?:'summary'|'legacy';
 }
 
 export async function handlePrepareRepository(args: PrepareRepositoryArgs): Promise<any> {
@@ -20,7 +22,7 @@ export async function handlePrepareRepository(args: PrepareRepositoryArgs): Prom
     started_at:new Date().toISOString(),context_isolation:'not_enforced'
   }};
   mcpState.registerSnapshot(snapshot,getWorkspaceRoot(),defaults);
-  return {...handleGetRepositorySnapshot(snapshot.snapshot_id),snapshot_reused:false,acquisition_performed:true};
+  return {...(args.response_format==='summary'?snapshotSummary(snapshot.snapshot_id):handleGetRepositorySnapshot(snapshot.snapshot_id)),snapshot_reused:false,acquisition_performed:true};
 }
 
 /** Returns acquisition metadata and its read ledger without reading or copying sources. */

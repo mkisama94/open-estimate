@@ -55,16 +55,16 @@ export class WorkspaceSession {
     if (generation !== this.generation) throw new Error("PROJECT_CHANGED_RECONFIRM_REQUIRED");
     const candidate = { candidate_id: randomUUID(), root, roots_key: roots.key, plan:summary.plan, origin: roots.key === "host_context" ? "conversation_context_unverified" : "mcp_roots" };
     this.pending = candidate;
-    return { status: "AWAITING_USER_CONFIRMATION", candidate_id: candidate.candidate_id, workspace_root: root, origin: candidate.origin, summary,
-      notice: "ファイル構成のみを走査しました。この範囲でコード本文を読み、評価してよいか利用者へ確認してください。" };
+    return { status: "READY_FOR_START_CARD", candidate_id: candidate.candidate_id, workspace_root: root, origin: candidate.origin, summary,
+      next_action:'SHOW_ESTIMATE_START',notice: "ファイル構成のみを走査しました。対象範囲と処理を選ぶ開始カードを表示してください。カードの前に別の対象確認やconfirm_workspaceを要求しないでください。" };
   }
   async confirm(args: { candidate_id: string; user_confirmed: boolean }) {
-    const candidate = this.pending;
+    const candidate = this.pending??this.selected;
     if (!candidate || candidate.candidate_id !== args.candidate_id) throw new Error("CANDIDATE_NOT_FOUND");
     if (!args.user_confirmed) { this.reset(); return { status: "CANCELLED" }; }
     if ((await this.roots()).key !== candidate.roots_key) { this.reset(); throw new Error("PROJECT_CHANGED_RECONFIRM_REQUIRED"); }
     await resolveSafePath("", candidate.root);
-    if (this.pending !== candidate) throw new Error("PROJECT_CHANGED_RECONFIRM_REQUIRED");
+    if ((this.pending??this.selected) !== candidate) throw new Error("PROJECT_CHANGED_RECONFIRM_REQUIRED");
     this.selected = candidate; this.pending = undefined;
     return { status: "CONFIRMED", workspace_root: candidate.root, origin: candidate.origin, confirmation: "assistant_reports_user_confirmation" };
   }
@@ -90,7 +90,7 @@ export class WorkspaceSession {
     await resolveSafePath('',b.root);this.selected=structuredClone(b);this.pending=undefined;
   }
   async candidate() {
-    const c=this.pending;if(!c)throw Error('CANDIDATE_NOT_FOUND');
+    const c=this.pending??this.selected;if(!c)throw Error('CANDIDATE_NOT_FOUND');
     if((await this.roots()).key!==c.roots_key)throw Error('PROJECT_CHANGED_RECONFIRM_REQUIRED');
     return {candidate_id:c.candidate_id,root:c.root,plan:c.plan};
   }

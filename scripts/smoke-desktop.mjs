@@ -50,13 +50,16 @@ try {
   const start=run('show-estimate-start',{...common,display_currency:'USD'});
   assert.deepEqual(start.initial_selection,{read:false,verify:false,publish:false});
   run('start-estimate-workflow',{...common,workflow_id:start.workflow_id,terms_hash:start.terms_hash,selection:{read:true,verify:false,publish:false},explicit_answer:'[合成スモーク] ローカル解析だけで開始'});
-  const prepared = run('prepare', common);
-  assert.equal(prepared.manifest.files.find(f => f.path === '.env').disposition, 'excluded');
+  const prepared = run('prepare-summary', common);
+  assert.equal(prepared.response_format,'oes/snapshot-summary/v2');
+  const sourceFiles=run('snapshot-page',{...common,snapshot_id:prepared.snapshot_id,section:'manifest'}).items.map(x=>x.value);
+  const issues=run('snapshot-page',{...common,snapshot_id:prepared.snapshot_id,section:'issues'}).items.map(x=>x.value);
+  assert.equal(sourceFiles.find(f => f.path === '.env').disposition, 'excluded');
   const read = run('read', { ...common, snapshot_id: prepared.snapshot_id, file_id: 'main.js' });
   assert.equal(read.content, '1: export const value = 1;');
   run('read', { ...common, snapshot_id: prepared.snapshot_id, file_id: 'notes.js' });
   const a = JSON.parse(await fs.readFile(path.join(repo, 'examples/recorded-assessment.json'), 'utf8'));
-  a.assessment_id = prepared.assessment_id; a.input = prepared.assessment_input;
+  a.assessment_id = prepared.assessment_id; a.input = {manifest:{files:sourceFiles},acquisition:{issues}};
   a.assessor = { ...prepared.assessor_defaults, finished_at: new Date().toISOString() };
   a.components[0].path_prefixes = ['notes.js'];
   a.scope_record.files = a.input.manifest.files.map(f => ({ path:f.path, membership:f.path==='notes.js'?'included':f.path==='main.js'?'supporting':'outside',
@@ -71,7 +74,11 @@ try {
     limitations:a.input.acquisition.issues.map(i=>({...i,impact:'outside',rule_id:'secret',reason:'Secret file outside declared implementation scope',missing:null})),
     boundaries:a.functional_processes.map(p=>({process_id:p.process_id,rerun:'no',rerun_basis:'One HTTP request',continuation:'no',continuation_reason:'Independent user request',queues:[]})),
     attributes:a.data_groups.map(g=>({data_group_id:g.data_group_id,mappings:g.attributes.map(attribute=>({attribute,implementation:'notes.'+attribute,evidence_refs:[a.evidence[0].evidence_id]}))})),findings:[]};
-  const exported = run('export', {...common,snapshot_id:prepared.snapshot_id,assessment:a});
+  delete a.input;
+  const draft=run('save-draft',{...common,snapshot_id:prepared.snapshot_id,assessment:JSON.stringify(a)});
+  const saved=run('evaluate-draft',{...common,snapshot_id:prepared.snapshot_id,draft_id:draft.draft_id});assert.equal(saved.status,'RUN_SAVED');
+  assert.equal(run('get-workflow-evaluation',{workflow_id:start.workflow_id}).run_id,saved.run_id);
+  const exported={local:{run_id:saved.run_id,summary:run('show-run',{run_id:saved.run_id}).summary}};
   assert.equal(exported.local.summary.measurement.cfp,6);
   run('purge', common);
   assert.equal(run('show-run',{run_id:exported.local.run_id}).summary.measurement.cfp,6);

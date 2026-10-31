@@ -56,14 +56,14 @@ export function resultSummary(a: Assessment) {
     fx:{status:"NOT_REQUESTED",observed_on:null,fetched_at:null},
     assurance:"Structure and arithmetic checked; source coverage and semantic interpretation not independently audited; hashes are not signatures." };
 }
-export async function saveRun(a: Assessment, submitted: unknown, context: unknown, target: string, acquisition?: unknown) {
+export async function saveRun(a: Assessment, submitted: unknown, context: unknown, target: string, acquisition?: unknown, options:{run_id?:string;workflow_binding?:unknown}={}) {
   validateAssessment(a);
   const root = runsRoot();
   // Forbid target-contained storage, including ancestors that would place scans inside output.
   const rel = path.relative(path.resolve(target),root);
   if (!rel || (!rel.startsWith(".."+path.sep) && rel !== ".." && !path.isAbsolute(rel))) throw new Error("RUN_DIRECTORY_INSIDE_TARGET");
   await privateDirectory(root);
-  const run_id = randomUUID(), dir = path.join(root,run_id);
+  const run_id = options.run_id??randomUUID();if(!uuid.test(run_id))throw Error('INVALID_RUN_ID');const dir = path.join(root,run_id);
   await fs.mkdir(dir,{mode:0o700}); // Exclusive reservation; failures never replace another run.
   try {
     const {normalized,assessment_hash} = normalizeAssessment(a), model = projectModel(a), summary = resultSummary(a);
@@ -75,7 +75,7 @@ export async function saveRun(a: Assessment, submitted: unknown, context: unknow
       const bytes = await fs.readFile(path.join(installation,"node_modules",name,"package.json"));
       dependencies.push({name,version:JSON.parse(bytes.toString()).version,package_metadata_sha256:sha256Hex(bytes)});
     }
-    const metadata = {format:"oes/run/v1",run_id,started_at:a.assessor.started_at,finished_at:a.assessor.finished_at,saved_at:new Date().toISOString(),
+    const metadata = {format:"oes/run/v1",run_id,workflow_binding:options.workflow_binding??null,started_at:a.assessor.started_at,finished_at:a.assessor.finished_at,saved_at:new Date().toISOString(),
       target:{root:target,...a.input,manifest:undefined}, acquisition_record:acquisition??null, scope:a.scope,scope_record:a.scope_record??null,
       manifest_hash:a.input.manifest_hash,assessment_hash,numeric_model_hash:jcsSha256(model),
       skill:{id:a.assessor.skill_id,version:a.assessor.skill_version,declared_package_sha256:a.assessor.skill_sha256,

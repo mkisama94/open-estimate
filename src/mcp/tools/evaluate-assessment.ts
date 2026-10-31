@@ -42,9 +42,10 @@ export async function validateSnapshotAssessment(args: EvaluateAssessmentArgs) {
       && ["test", "doc", "manifest", "secret", "binary", "asset"].includes(category))
       throw new Error("EVIDENCE_TYPE_MISMATCH");
   }
-  const contract = await handleGetAssessorContract();
-  if (validated.assessor.skill_id !== contract.skill.skill_id || validated.assessor.skill_version !== contract.skill.skill_version
-    || validated.assessor.skill_sha256 !== contract.skill.package_sha256) throw new Error("ASSESSOR_SKILL_MISMATCH");
+  const expected=entry.preparation?.assessor_defaults;
+  const contract = expected?null:await handleGetAssessorContract();
+  if (validated.assessor.skill_id !== (expected?.skill_id??contract!.skill.skill_id) || validated.assessor.skill_version !== (expected?.skill_version??contract!.skill.skill_version)
+    || validated.assessor.skill_sha256 !== (expected?.skill_sha256??contract!.skill.package_sha256)) throw new Error("ASSESSOR_SKILL_MISMATCH");
   if (Date.parse(validated.assessor.started_at) > Date.parse(validated.assessor.finished_at)) throw new Error("INVALID_ASSESSOR_TIMES");
   return { validated, wasReconciled };
 }

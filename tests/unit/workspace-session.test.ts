@@ -82,6 +82,7 @@ it('negotiates real MCP roots and invalidates pending candidates on notification
   expect(accepted.structuredContent?.workspace_root).toBe(root);
   const prep=await client.callTool({name:'prepare_repository',arguments:{}});
   expect(prep.isError,JSON.stringify(prep)).not.toBe(true);
-  expect((prep.structuredContent?.manifest as any).files.some((f:any)=>f.path==='src/app.ts')).toBe(true);
+  const page=await client.callTool({name:'get_repository_snapshot_page',arguments:{snapshot_id:prep.structuredContent?.snapshot_id,section:'manifest'}});
+  expect((page.structuredContent?.items as any[]).some((f:any)=>f.value.path==='src/app.ts')).toBe(true);
  }finally{await client.close();await server.close();}
 });
