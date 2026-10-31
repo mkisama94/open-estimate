@@ -31,6 +31,14 @@ export async function planAcquisition(root: string, scope: ScopeRule[] = []) {
     ?? (classifyFile(p).category === "source" ? "measurement" : "supporting");
   async function walk(dir: string, prefix: string, depth: number): Promise<void> {
     const here=prefix||'.';
+    // Default distribution output is outside the acquisition scope. Prune it
+    // before enumeration so permissions and volume cannot invalidate sources.
+    if (here === 'release' && !scope.some(r => r.role !== 'excluded' && (within(r.path,here) || within(here,r.path)))) {
+      excludedDirectories.push(here); return;
+    }
+    if (here === '.wrangler' && !scope.some(r => r.role !== 'excluded' && (within(r.path,here) || within(here,r.path)))) {
+      excludedDirectories.push(here); return;
+    }
     if(roleFor(here)==='excluded'&&!scope.some(r=>r.role!=='excluded'&&r.path!==here&&within(r.path,here))){excludedDirectories.push(here);return;}
     if (depth > 40) { complete = false; issues.push({path:prefix,cause:"DEPTH_LIMIT"}); return; }
     let items;

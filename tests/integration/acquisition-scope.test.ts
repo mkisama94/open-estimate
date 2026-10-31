@@ -28,7 +28,8 @@ describe("scope-bound acquisition",()=>{
       expect(preflight.summary.ready).toBe(true);expect(read).not.toHaveBeenCalled();expect(open).not.toHaveBeenCalled();
       const snapshot=await f.run(()=>createRepositorySnapshot(".",{scope,preflight}));
       expect(snapshot.acquisition?.scope_coverage).toBe("COMPLETE");expect(snapshot.total_bytes).toBeLessThan(1024);
-      expect(snapshot.manifest.files.find(x=>x.path==="release/artifact.js")?.exclusion_reason).toBe("POLICY_EXCLUSION");
+      expect(snapshot.manifest.files.some(x=>x.path.startsWith('release/'))).toBe(false);
+      expect(preflight.summary.excluded_metadata_not_enumerated).toContain('release');
       expect(snapshot.manifest.files.find(x=>x.path==="tests/release/main.test.ts")?.disposition).toBe("unread");
       for(const p of ["packages/application/src/release/main.ts","packages/common/core.ts","packages/companies/power.ts"]) expect(snapshot.manifest.files.find(x=>x.path===p)?.disposition).toBe("unread");
       expect(open.mock.calls.some(c=>String(c[0]).includes("data.json"))).toBe(false);
