@@ -2,7 +2,7 @@
 import {getCacheRoot} from '../collector/snapshot.js';
 import {prepareStartChoice,decorateStart,startHistoryPage,recalculationInputPage,reuseRecalculationSnapshot,recordWorkflowResume,assertEvaluationEditable} from './workflow-start-methods.js';
 import {createDocument} from './create-document.js';
-import {prepareEstimateStart,startEstimateWorkflow,extendEstimateWorkflow,approveWorkflowAcquisition,approvedWorkflow,resumeEstimateWorkflow,showEstimateWorkflow,cancelEstimateWorkflow,withdrawEstimateWorkflow} from './estimate-workflow.js';
+import {beginEstimateWorkflow,approveEstimateTransmission,showEstimateTransmission,cancelEstimateTransmission,prepareEstimateStart,startEstimateWorkflow,extendEstimateWorkflow,approveWorkflowAcquisition,approvedWorkflow,resumeEstimateWorkflow,showEstimateWorkflow,cancelEstimateWorkflow,withdrawEstimateWorkflow} from './estimate-workflow.js';
 import {completeEstimateWorkflow} from './complete-workflow.js';
 import {readWorkflowFile,workflowDirectory} from './workflow-store.js';
 import {jcsSha256} from '../core/canonical.js';
@@ -78,6 +78,9 @@ const initialSnapshotCache=getCacheRoot();
 async function main() {
   const command = process.argv[2], args = await input();
   if(command==='response-page'){if(!uuid.test(args.session_id)||!/^[a-f0-9]{64}$/.test(args.response_id))throw Error('INVALID_RESPONSE_REFERENCE');const file=await resolveSafePath(`${args.session_id}/responses/${args.response_id}.json`,base);if((await fs.stat(file)).size>64*1024*1024)throw Error('RESPONSE_ARCHIVE_TOO_LARGE');const value=JSON.parse(await fs.readFile(file,'utf8'));return pageRows([value],'legacy-response',args.cursor,args.limit,args.response_id);}
+  if(command==='show-estimate-transmission')return showEstimateTransmission(args.workflow_id);
+  if(command==='approve-estimate-transmission')return approveEstimateTransmission(args);
+  if(command==='cancel-estimate-transmission')return cancelEstimateTransmission(args.workflow_id);
   if(command==='extend-estimate-workflow')return extendEstimateWorkflow(args);
   if(command==='complete-estimate-workflow')return completeEstimateWorkflow(args);
   if(command==='resume-estimate-workflow')return resumeEstimateWorkflow(args.workflow_id);
@@ -123,7 +126,7 @@ async function main() {
       local_public_result_candidate: true,
       local_certificate_preparation: true, offline_certificate_verification: true,
       owner_preview_transfer: true,
-      local_result_preview:true,pdf_report:true,portable_document:true,document_proof:true,stateless_web_preview:false,workflow_consent:true,estimate_proof:true,public_result_365_days:true,standard_completion:"SELECTED_WORKFLOW_STAGES_COMPLETE",
+      local_result_preview:true,pdf_report:true,portable_document:true,document_proof:true,stateless_web_preview:false,workflow_consent:true,local_work_contract:"oes/local-work/v2",external_approval_contract:"oes/workflow-consent/v2",additional_read_confirmation:false,estimate_proof:true,public_result_365_days:true,standard_completion:"SELECTED_WORKFLOW_STAGES_COMPLETE",
       remote_recalculation_required: false, persistent_evaluations: true, html_report: true, web_management: false, certificates: false, publishing: false } };
   await privateDirectory(base);
   if (command === "scan") {
@@ -134,7 +137,7 @@ async function main() {
     const summary = await scanStructure(root, scope), session_id = randomUUID();
     const state = { root, scope, preflight: summary.plan, created: Date.now(), confirmed: false, snapshots: {}, skill_integrity: currentSkill() };
     await fs.writeFile(path.join(base, `${session_id}.json`), JSON.stringify(state), { mode: 0o600, flag: "wx" });
-    return { session_id, workspace_root: root, summary:publicDiscovery(summary), status: "READY_FOR_START_CARD", next_action:'SHOW_ESTIMATE_START',cache_root: base, retention_hours: 24 };
+    return { session_id, workspace_root: root, summary:publicDiscovery(summary), status: "READY_FOR_LOCAL_WORK", next_action:'SHOW_ESTIMATE_START',cache_root: base, retention_hours: 24 };
   }
   if (!uuid.test(args.session_id)) throw new Error("INVALID_SESSION_ID");
   const stateFile = await resolveSafePath(`${args.session_id}.json`, base);
@@ -180,15 +183,15 @@ async function main() {
        const made=await prepareStartChoice(b,rules,args.display_currency??'JPY',{method:args.start_method,request_id:args.start_request_id,source_workflow_id:args.source_workflow_id,source_run_id:args.source_run_id});
        view=made.view;state.start_workflow_id=view.workflow_id;state.preflight=made.binding.plan;state.scope=made.binding.plan.scope;state.confirmed=false;delete state.workflow_id;delete state.snapshot_cache_root;delete state.snapshot_cache_session;state.snapshots={};delete state.latest_snapshot_id;
        if(made.resume){await recordWorkflowResume(view.workflow_id,args.start_request_id);state.workflow_id=view.workflow_id;state.confirmed=true;state.measurement_rules=made.rules;const old=await readWorkflowData<any>(view.workflow_id,'mcp-context.json');state.snapshot_cache_session=old.binding.origin==='one_shot_cli'?old.binding.candidate_id:undefined;state.snapshot_cache_root=state.snapshot_cache_session?await resolveSafePath(state.snapshot_cache_session,base):initialSnapshotCache;process.env.OES_CACHE_ROOT=state.snapshot_cache_root;const restored=await restoreWorkflowSnapshot(view.workflow_id,state.root);if(restored?.available){state.latest_snapshot_id=restored.snapshot_id;state.snapshots[restored.snapshot_id]={workflow_snapshot:true};}}
-      }else if(state.start_workflow_id){const old=await readWorkflowFile<any>(state.start_workflow_id,'state.json');if(args.display_currency&&old.terms.display_currency!==args.display_currency)throw Error('WORKFLOW_START_TERMS_CHANGED');view=old.consent?await showEstimateWorkflow(state.start_workflow_id):await import('./estimate-workflow.js').then(m=>m.showEstimateStart(state.start_workflow_id));}
+      }else if(state.start_workflow_id){const old=await readWorkflowFile<any>(state.start_workflow_id,'state.json');if(args.display_currency&&old.terms.display_currency!==args.display_currency)throw Error('WORKFLOW_START_TERMS_CHANGED');view=old.consent||old.local_work?await showEstimateWorkflow(state.start_workflow_id):await import('./estimate-workflow.js').then(m=>m.showEstimateStart(state.start_workflow_id));}
       else{const made=await prepareStartChoice({candidate_id:state.snapshot_cache_session??args.session_id,root:state.root,roots_key:'host_context',origin:'one_shot_cli',plan:state.preflight},rules,args.display_currency??'JPY',{method:'NEW',request_id:randomUUID()});view=made.view;state.start_workflow_id=view.workflow_id;}
       const tmp=path.join(base,randomUUID()+'.tmp');await fs.writeFile(tmp,JSON.stringify(state),{flag:'wx',mode:0o600});await fs.rename(tmp,stateFile);
       return {...await decorateStart(view,state.root),method_selection_explicit:!!args.start_method,acquisition:publicAcquisition(state.preflight.summary),scope:state.scope.slice(0,10),scope_rule_count:state.scope.length};
     }
-    if(command==='start-estimate-workflow'){
+    if(command==='start-estimate-workflow'||command==='begin-estimate-workflow'){
       const draft=await readWorkflowFile<any>(args.workflow_id,'state.json');
       if(draft.terms.target_hash!==jcsSha256(state.root)||draft.terms.plan_hash!==state.preflight.fingerprint)throw Error('WORKFLOW_SCOPE_CHANGE_REQUIRES_CONFIRMATION');
-      const result=await startEstimateWorkflow(args);state.workflow_id=args.workflow_id;state.confirmed=true;
+      const result=await (command==='begin-estimate-workflow'?beginEstimateWorkflow(args):startEstimateWorkflow(args));state.workflow_id=args.workflow_id;state.confirmed=true;
       const tmp=path.join(base,randomUUID()+'.tmp');await fs.writeFile(tmp,JSON.stringify(state),{flag:'wx',mode:0o600});await fs.rename(tmp,stateFile);return result;
     }
     if(state.workflow_id&&['prepare','prepare-summary','save-draft','export','draft'].includes(command))await assertEvaluationEditable(state.workflow_id);

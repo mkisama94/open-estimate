@@ -4,23 +4,24 @@ import {jcsSha256} from '../core/canonical.js';
 import type {EstimateServices} from './estimate-services.js';
 export interface WorkflowTerms {
  start?:{method:'NEW'|'RECALCULATE';request_id:string;source_workflow_id?:string;source_run_id?:string;source_checksums_hash?:string};
- contract_version:'oes/workflow-consent/v1';workflow_id:string;target_hash:string;plan_hash:string;ruleset_ref:EstimateResult['ruleset_ref'];
+ contract_version:'oes/workflow-consent/v1'|'oes/workflow-consent/v2';workflow_id:string;target_hash:string;plan_hash:string;ruleset_ref:EstimateResult['ruleset_ref'];
  services:EstimateServices;display_currency:string;calculation_policy:'oes-fixed-test-calculation/v1';publication_days:365;
  quality_policy:'DECLARED_PARTIAL_ALLOWED_PROJECT_TOTAL_UNCALCULATED';
  transmission_policy:'oes/estimate-transmission/v1';
 }
-export interface WorkflowSelection {read:boolean;verify:boolean;publish:boolean}
+export interface WorkflowSelection {read?:boolean;verify:boolean;publish:boolean}
 export interface WorkflowConsent {terms:WorkflowTerms;terms_hash:string;selection:WorkflowSelection;explicit_answer:string;confirmed_at:string;evidence:'HOST_REPORTED_EXPLICIT_CHOICE_NOT_IDENTITY_PROOF';cancelled_at:string|null}
 export function consentWorkflow(terms:WorkflowTerms,selection:WorkflowSelection,explicit_answer:string,expected_hash:string,now=Date.now()):WorkflowConsent {
+ if(!['oes/workflow-consent/v1','oes/workflow-consent/v2'].includes(terms.contract_version))throw Error('WORKFLOW_CONTRACT_UNSUPPORTED');
  if(expected_hash!==jcsSha256(terms))throw Error('WORKFLOW_TERMS_CHANGED');
- if(Object.keys(selection).sort().join(',')!=='publish,read,verify'||Object.values(selection).some(v=>typeof v!=='boolean')||!selection.read||selection.publish&&!selection.verify)throw Error('WORKFLOW_SELECTION_INVALID');
+ if((terms.contract_version==='oes/workflow-consent/v1'?Object.keys(selection).sort().join(',')!=='publish,read,verify'||!selection.read:Object.keys(selection).sort().join(',')!=='publish,verify'||!selection.verify)||Object.values(selection).some(v=>typeof v!=='boolean')||selection.publish&&!selection.verify)throw Error('WORKFLOW_SELECTION_INVALID');
  if(typeof explicit_answer!=='string'||!explicit_answer.trim()||explicit_answer.length>2000)throw Error('WORKFLOW_EXPLICIT_CHOICE_REQUIRED');
  return {terms:structuredClone(terms),terms_hash:expected_hash,selection:{...selection},explicit_answer,confirmed_at:new Date(now).toISOString(),evidence:'HOST_REPORTED_EXPLICIT_CHOICE_NOT_IDENTITY_PROOF',cancelled_at:null};
 }
 export function assertWorkflowContext(c:WorkflowConsent,target_hash:string,plan_hash:string){
- if(c.cancelled_at)throw Error('WORKFLOW_CANCELLED');if(jcsSha256(c.terms)!==c.terms_hash||c.terms.target_hash!==target_hash||c.terms.plan_hash!==plan_hash||!c.selection.read)throw Error('WORKFLOW_SCOPE_CHANGE_REQUIRES_CONFIRMATION');
+ if(c.cancelled_at)throw Error('WORKFLOW_CANCELLED');if(jcsSha256(c.terms)!==c.terms_hash||c.terms.target_hash!==target_hash||c.terms.plan_hash!==plan_hash||c.terms.contract_version==='oes/workflow-consent/v1'&&!c.selection.read)throw Error('WORKFLOW_SCOPE_CHANGE_REQUIRES_CONFIRMATION');
 }
-export function assertResultTerms(c:WorkflowConsent,result:EstimateResult,input:EstimateValidationInput){
+export function assertResultTerms(c:{terms:WorkflowTerms},result:EstimateResult,input:EstimateValidationInput){
  checkEstimate('result',result);const t=c.terms;
  if(jcsSha256(result.ruleset_ref)!==jcsSha256(t.ruleset_ref)||jcsSha256(input.ruleset_ref)!==jcsSha256(t.ruleset_ref)||result.display_quote.display_currency!==t.display_currency||input.display_currency!==t.display_currency||t.publication_days!==PUBLICATION_DAYS||t.calculation_policy!=='oes-fixed-test-calculation/v1'||t.quality_policy!=='DECLARED_PARTIAL_ALLOWED_PROJECT_TOTAL_UNCALCULATED'||t.transmission_policy!=='oes/estimate-transmission/v1')throw Error('WORKFLOW_CONDITIONS_CHANGED');
 }

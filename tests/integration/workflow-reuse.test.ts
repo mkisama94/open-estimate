@@ -39,7 +39,7 @@ async function fixture(legacyConfirm=false,extraFiles=0,currency='USD'){
 }
 it('replays the card and chat start on one workflow without candidate lookup or rewriting consent',async()=>{
  const f=await fixture();try{
-  expect(f.start).toMatchObject({confirmation_mode:'card',chat_confirmation_required:false,next_action:'WAIT_FOR_START_CARD_SELECTION'});
+  expect(f.start).toMatchObject({confirmation_mode:'card',chat_confirmation_required:false,next_action:'BEGIN_LOCAL_WORK_FROM_ESTIMATE_REQUEST'});
   const again=await f.ok('show_estimate_start',{rules_response:f.rules,display_currency:'USD'});expect(again.workflow_id).toBe(f.start.workflow_id);
   const results=await Promise.all([f.ok('start_estimate_workflow',f.args),f.ok('start_estimate_workflow',{...f.args,explicit_answer:'[合成試験] 別フォームからの同じ選択'})]);
   expect(results.map(r=>r.start_reused)).toEqual([false,true]);
@@ -60,8 +60,8 @@ async function choose(f:Awaited<ReturnType<typeof fixture>>,method:string,source
  return f.ok('select_estimate_start',{workflow_id:f.start.workflow_id,start_method:method,start_request_id:request,...(source?{source_workflow_id:f.start.workflow_id,...(method==='RECALCULATE'?{source_run_id:source.run.run_id}:{})}:{})});
 }
 async function startChosen(f:Awaited<ReturnType<typeof fixture>>,view:any){return f.ok('start_estimate_workflow',{workflow_id:view.workflow_id,terms_hash:view.terms_hash,selection:{read:true,verify:false,publish:false},explicit_answer:'[合成] 新しい開始方法を選択'});}
-it('returns the start-card resource after selecting a new method and the result-card resource after starting',async()=>{
- const f=await fixture();try{const selected=await f.call('select_estimate_start',{workflow_id:f.start.workflow_id,start_method:'NEW',start_request_id:randomUUID()});expect((selected._meta as any)?.ui.resourceUri).toBe('ui://open-estimate/workflow-start.html');const view=selected.structuredContent as any;const started=await f.call('start_estimate_workflow',{workflow_id:view.workflow_id,terms_hash:view.terms_hash,selection:{read:true,verify:false,publish:false},explicit_answer:'[合成] 開始カードから開始'});expect(started.isError).not.toBe(true);expect((started._meta as any)?.ui.resourceUri).toBe('ui://open-estimate/workflow-result.html');
+it('returns progress without requiring a start card after selecting a method',async()=>{
+ const f=await fixture();try{const selected=await f.call('select_estimate_start',{workflow_id:f.start.workflow_id,start_method:'NEW',start_request_id:randomUUID()});expect((selected._meta as any)?.ui.resourceUri).toBe('ui://open-estimate/workflow-result.html');const view=selected.structuredContent as any;const started=await f.call('start_estimate_workflow',{workflow_id:view.workflow_id,terms_hash:view.terms_hash,selection:{read:true,verify:false,publish:false},explicit_answer:'[合成] 開始カードから開始'});expect(started.isError).not.toBe(true);expect((started._meta as any)?.ui.resourceUri).toBe('ui://open-estimate/workflow-result.html');
  }finally{await f.cleanup();}
 });
 
@@ -156,8 +156,8 @@ it('does not silently reacquire an expired snapshot or bind an old consent to a 
  }finally{await f.cleanup();}
 },30000);
 
-it('uses one chat choice only when the explicit fallback mode is selected',async()=>{
- const f=await fixture();try{const view=await f.ok('show_estimate_start',{rules_response:f.rules,display_currency:'USD',confirmation_mode:'chat'});expect(view).toMatchObject({workflow_id:f.start.workflow_id,chat_confirmation_required:true,next_action:'ASK_ONE_CHAT_SELECTION'});}finally{await f.cleanup();}
+it('does not require a chat confirmation when cards are unavailable',async()=>{
+ const f=await fixture();try{const view=await f.ok('show_estimate_start',{rules_response:f.rules,display_currency:'USD',confirmation_mode:'chat'});expect(view).toMatchObject({workflow_id:f.start.workflow_id,chat_confirmation_required:false,next_action:'BEGIN_LOCAL_WORK_FROM_ESTIMATE_REQUEST'});}finally{await f.cleanup();}
 });
 
 it('publishes a valid workflow evaluation schema and completes the same frozen run twice without re-reading it',async()=>{
@@ -187,13 +187,13 @@ it('publishes a valid workflow evaluation schema and completes the same frozen r
 },30000);
 
 async function editableDraft(f:Awaited<ReturnType<typeof fixture>>){
- await f.ok('start_estimate_workflow',f.args);const prep=await f.ok('prepare_repository');await f.ok('read_repository_file',{snapshot_id:prep.snapshot_id,file_id:'notes.js'});
+ if(!(await readWorkflowFile<any>(f.start.workflow_id,'state.json')).local_work)await f.ok('start_estimate_workflow',f.args);const prep=await f.ok('prepare_repository');await f.ok('read_repository_file',{snapshot_id:prep.snapshot_id,file_id:'notes.js'});
  const a=recorded();a.input=structuredClone(prep.assessment_input);a.assessment_id=prep.assessment_id;a.assessor={...prep.assessor_defaults,finished_at:new Date().toISOString()};a.components[0].path_prefixes=['notes.js'];a.data_groups[0].attributes=['id','title','content'];a.functional_processes[1].movements.find(m=>m.type==='Exit')!.data_group_id='dg-note';
  a.evidence[0]={...a.evidence[0],file_path:'notes.js',line_start:5,line_end:14};a.evidence[1]={...a.evidence[1],file_path:'notes.js',line_start:16,line_end:21};a.scope_record!.files=a.input.manifest.files.map(x=>({path:x.path,membership:'included',reason:'Synthetic notes',confirmation_ref:'scope-confirmed',evidence_refs:[]}));setRuleReferences(a);withQuality(a);
  const body:any=structuredClone(a);delete body.input;delete body.assessment_id;body.assessor={finished_at:a.assessor.finished_at};return {prep,body};
 }
-it('uses only the start card in its contract and survives a prior legacy confirmation',async()=>{
- const f=await fixture(true);try{const c=await f.ok('get_assessor_contract');expect(c).toMatchObject({workspace_selection:'discover_then_start_card',requires_workspace_confirmation:false});const repeated=await f.ok('show_estimate_start',{rules_response:f.rules,display_currency:'USD'});expect(repeated.workflow_id).toBe(f.start.workflow_id);expect((await f.ok('start_estimate_workflow',f.args)).start_reused).toBe(false);expect((await f.ok('start_estimate_workflow',f.args)).start_reused).toBe(true);}finally{await f.cleanup();}
+it('declares request-based local work and preserves a prior legacy confirmation',async()=>{
+ const f=await fixture(true);try{const c=await f.ok('get_assessor_contract');expect(c).toMatchObject({workspace_selection:'estimate_request_then_local_work',requires_workspace_confirmation:false});const repeated=await f.ok('show_estimate_start',{rules_response:f.rules,display_currency:'USD'});expect(repeated.workflow_id).toBe(f.start.workflow_id);expect((await f.ok('start_estimate_workflow',f.args)).start_reused).toBe(false);expect((await f.ok('start_estimate_workflow',f.args)).start_reused).toBe(true);}finally{await f.cleanup();}
 });
 it('keeps large snapshot responses and every detail page within 64 KiB without missing files',async()=>{
  const f=await fixture(false,1200);try{
@@ -241,5 +241,25 @@ it('recovers only an explicitly verified legacy run and preserves changed-acquis
   expect(JSON.stringify((await f.call('complete_estimate_workflow',{workflow_id:f.start.workflow_id,run_id:saved.run_id})).content)).toContain('WORKFLOW_ACQUISITION_CHANGED');
   expect((await readWorkflowFile<any>(f.start.workflow_id,'state.json')).result).toBeUndefined();expect((await readRun(saved.run_id)).checksums_hash).toBe(run.checksums_hash);
   const other=structuredClone(acquisition);other.snapshot_id='11111111-1111-4111-8111-111111111111';const foreign=await saveRun(validated,raw,{ruleset_ref:f.rules.ruleset_ref,bundle:f.rules.bundle},f.root,other);expect(JSON.stringify((await f.call('recover_saved_workflow_run',{workflow_id:f.start.workflow_id,run_id:foreign.run_id})).content)).toContain('RUN_WORKFLOW_BINDING_MISMATCH');
+ }finally{await f.cleanup();}
+},30000);
+
+it('LUX01/02/07/08/11 starts from the actual request without read consent, saves a real run and PDF, and restores local-only work',async()=>{
+ const f=await fixture();try{
+ const missing=await f.call('begin_estimate_workflow',{workflow_id:f.start.workflow_id,local_request:''});expect(missing.isError).toBe(true);
+ await f.ok('begin_estimate_workflow',{workflow_id:f.start.workflow_id,local_request:'このプロジェクトを新規に見積もりPDFを作って'});
+ const state=await readWorkflowFile<any>(f.start.workflow_id,'state.json');expect(state.consent).toBeNull();expect(state.local_work.request).toContain('新規に見積もり');expect(JSON.stringify(state.local_work)).not.toContain('explicit_answer');
+ const old=await savedOriginal(f),view=await f.ok('show_estimate_workflow',{workflow_id:f.start.workflow_id});
+ expect(view.pdf_status).toBe('READY');expect(view.selected_stages_complete).toBe(true);expect(view.proof).toBeNull();expect(view.publication).toBeNull();expect(view.confirmed_run_id).toBe(old.run.run_id);
+ await f.restart();const restored=await f.ok('show_estimate_workflow',{workflow_id:f.start.workflow_id});expect(restored.local_work_started).toBe(true);expect(restored.confirmed_run_id).toBe(old.run.run_id);
+ const pdf=await f.call('get_estimate_workflow_pdf',{workflow_id:f.start.workflow_id});expect(Buffer.from((pdf._meta as any).file_base64,'base64').subarray(0,5).toString()).toBe('%PDF-');
+ }finally{await f.cleanup();}
+},30000);
+it('LUX03 external cancellation does not prevent source acquisition or local evaluation',async()=>{
+ const f=await fixture();try{
+ await f.ok('begin_estimate_workflow',{workflow_id:f.start.workflow_id,local_request:'この対象を見積もって'});
+ await f.ok('cancel_estimate_transmission',{workflow_id:f.start.workflow_id});
+ const old=await savedOriginal(f),view=await f.ok('show_estimate_workflow',{workflow_id:f.start.workflow_id});
+ expect(view.status).toBe('RESULT_READY');expect(view.external_cancelled).toBe(true);expect(view.result).not.toBeNull();expect(view.pdf_status).toBe('READY');expect(view.confirmed_run_id).toBe(old.run.run_id);
  }finally{await f.cleanup();}
 },30000);

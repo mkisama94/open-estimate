@@ -55,8 +55,8 @@ export class WorkspaceSession {
     if (generation !== this.generation) throw new Error("PROJECT_CHANGED_RECONFIRM_REQUIRED");
     const candidate = { candidate_id: randomUUID(), root, roots_key: roots.key, plan:summary.plan, origin: roots.key === "host_context" ? "conversation_context_unverified" : "mcp_roots" };
     this.pending = candidate;
-    return { status: "READY_FOR_START_CARD", candidate_id: candidate.candidate_id, workspace_root: root, origin: candidate.origin, summary,
-      next_action:'SHOW_ESTIMATE_START',notice: "ファイル構成のみを走査しました。対象範囲と処理を選ぶ開始カードを表示してください。カードの前に別の対象確認やconfirm_workspaceを要求しないでください。" };
+    return { status: "READY_FOR_LOCAL_WORK", candidate_id: candidate.candidate_id, workspace_root: root, origin: candidate.origin, summary,
+      next_action:'SHOW_ESTIMATE_START_THEN_BEGIN_LOCAL_WORK',notice: "対象範囲・取得上限を案内し、実際の見積依頼を根拠にローカル作業を始めてください。追加の読取確認・開始カード操作は不要です。" };
   }
   async confirm(args: { candidate_id: string; user_confirmed: boolean }) {
     const candidate = this.pending??this.selected;

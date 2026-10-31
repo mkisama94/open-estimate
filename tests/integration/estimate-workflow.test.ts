@@ -11,6 +11,34 @@ import {prepareEstimateStart,startEstimateWorkflow,freezeEstimateWorkflow,resume
 import {readWorkflowFile,withWorkflowLock} from '../../src/local/workflow-store.js';
 import {WorkflowTransportError,type WorkflowAdapters} from '../../src/local/publication-client.js';
 import {jcsSha256} from '../../src/core/canonical.js';
+import {beginEstimateWorkflow,showEstimateTransmission,approveEstimateTransmission,cancelEstimateTransmission,approvedWorkflow} from '../../src/local/estimate-workflow.js';
+
+it('LUX03/05/06/09 binds external approval before or after fixed numbers, while local-only sends nothing',async()=>{
+ for(const early of [true,false]){const f=await setup();try{
+  const id=f.draft.workflow_id;await beginEstimateWorkflow({workflow_id:id,local_request:'[合成] この対象を見積もってください'});
+  let issues=0,posts=0;const options={...f.options,adapters:{...f.adapters,issue:async(r:any)=>{issues++;return f.adapters.issue(r);},publish:async(r:any)=>{posts++;return f.adapters.publish(r);}}};
+  const disclosure=await showEstimateTransmission(id);expect(disclosure.initial_selection).toEqual({verify:false,publish:false});
+  const approve=()=>approveEstimateTransmission({workflow_id:id,terms_hash:disclosure.terms_hash,selection:{verify:true,publish:true},explicit_answer:'[合成] 説明済み条件で検証と365日公開を希望します'});
+  if(early)await approve();
+  await freezeEstimateWorkflow(id,f.result,f.input,f.origin);
+  if(!early){const local=await resumeEstimateWorkflow(id,options);expect(local.pdf_status).toBe('READY');expect(local.selected_stages_complete).toBe(true);expect(issues+posts).toBe(0);await approve();}
+  const done=await resumeEstimateWorkflow(id,options);expect(done.publication_status).toBe('PUBLISHED');expect(issues).toBe(1);expect(posts).toBe(1);
+  await resumeEstimateWorkflow(id,options);expect(issues).toBe(1);expect(posts).toBe(1);
+  const state=await readWorkflowFile<any>(id,'state.json');expect(state.terms.contract_version).toBe('oes/workflow-consent/v2');expect(state.consent.selection).toEqual({verify:true,publish:true});expect(state.applications).toHaveLength(2);
+ }finally{f.db.sqlite.close();}}
+},60000);
+it('LUX02/03/10 rejects absent requests and changed scope, and cancellation preserves local calculation',async()=>{
+ const f=await setup();try{const id=f.draft.workflow_id;
+ await expect(beginEstimateWorkflow({workflow_id:id,local_request:''})).rejects.toThrow('REQUEST_REQUIRED');
+ await beginEstimateWorkflow({workflow_id:id,local_request:'[合成] この対象を試算してください'});
+ await expect(approvedWorkflow(id,{...f.origin,target_hash:'c'.repeat(64)})).rejects.toThrow('SCOPE_CHANGE');
+ const d=await showEstimateTransmission(id);
+ await expect(approveEstimateTransmission({workflow_id:id,terms_hash:'wrong',selection:{verify:true,publish:true},explicit_answer:'説明済み条件に同意'})).rejects.toThrow('TERMS_CHANGED');
+ await approveEstimateTransmission({workflow_id:id,terms_hash:d.terms_hash,selection:{verify:true,publish:false},explicit_answer:'[合成] 検証だけを承認'});
+ await cancelEstimateTransmission(id);await approvedWorkflow(id,f.origin);await freezeEstimateWorkflow(id,f.result,f.input,f.origin);
+ let sends=0;const view=await resumeEstimateWorkflow(id,{...f.options,adapters:{...f.adapters,issue:async()=>{sends++;throw Error('UNEXPECTED_SEND');}}});expect(sends).toBe(0);expect(view.result).toEqual(f.result);expect(view.status).toBe('RESULT_READY');expect(view.pdf_status).toBe('READY');
+ }finally{f.db.sqlite.close();}
+});
 async function setup(selection={read:true,verify:true,publish:true}){
  const f=await publicationFixture();process.env.OES_WORKFLOWS_ROOT=await fs.mkdtemp(path.join(os.tmpdir(),'oes-workflow-'));const origin={target_hash:'a'.repeat(64),plan_hash:'b'.repeat(64)};
  const draft=await prepareEstimateStart({target_ref:path.resolve('examples/quality-check'),...origin,plan_ref:'local-plan',ruleset_ref:f.result.ruleset_ref,display_currency:'USD'},f.services);
@@ -42,8 +70,9 @@ it('resumes only Web registration after failure with the identical operation and
  }finally{f.db.sqlite.close();}},30000);
 it('cancels unsent stages and resolves a committed but lost publish response using only a private read-only lookup',async()=>{const f=await setup();try{
  await f.start();await freezeEstimateWorkflow(f.draft.workflow_id,f.result,f.input,f.origin);let posts=0,lookups=0;
- const adapters={...f.adapters,publish:async(r:any)=>{posts++;await f.adapters.publish(r);await cancelEstimateWorkflow(f.draft.workflow_id);throw new WorkflowTransportError('LOST',true,true)},lookup:async(op:string,t:string)=>{lookups++;return f.adapters.lookup(op,t)}};
- await resumeEstimateWorkflow(f.draft.workflow_id,{...f.options,adapters});const view=await resumeEstimateWorkflow(f.draft.workflow_id,{...f.options,adapters});expect(posts).toBe(1);expect(lookups).toBe(1);expect(view.status).toBe('CANCELLED');expect(view.publication_status).toBe('PUBLISHED');expect(view.publication?.canonical_url).toMatch(/\/results\/res_/);
+ const adapters={...f.adapters,publish:async(r:any)=>{posts++;await f.adapters.publish(r);await cancelEstimateTransmission(f.draft.workflow_id);throw new WorkflowTransportError('LOST',true,true)},lookup:async(op:string,t:string)=>{lookups++;return f.adapters.lookup(op,t)}};
+ const uncertain=await resumeEstimateWorkflow(f.draft.workflow_id,{...f.options,adapters});expect(uncertain.selected_stages_complete).toBe(false);expect(uncertain.external_cancelled).toBe(true);
+ const view=await resumeEstimateWorkflow(f.draft.workflow_id,{...f.options,adapters});expect(posts).toBe(1);expect(lookups).toBe(1);expect(view.status).toBe('PUBLISHED');expect(view.publication_status).toBe('PUBLISHED');expect(view.publication?.canonical_url).toMatch(/\/results\/res_/);
  const g=await setup();try{await g.start();await freezeEstimateWorkflow(g.draft.workflow_id,g.result,g.input,g.origin);await cancelEstimateWorkflow(g.draft.workflow_id);let sends=0;await resumeEstimateWorkflow(g.draft.workflow_id,{...g.options,adapters:{...g.adapters,issue:async()=>{sends++;throw Error()}}});expect(sends).toBe(0);}finally{g.db.sqlite.close();}
  }finally{f.db.sqlite.close();}});
 it('blocks scope/destination expansion, malformed responses and altered fixed data',async()=>{const f=await setup();try{

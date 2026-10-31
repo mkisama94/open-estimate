@@ -41,7 +41,7 @@ export async function handleGetAssessorContract(): Promise<any> {
     assessment_formats: { recommended: "oes/assessment/v2", quality_extension: "oes/quality-records/v1", remote_model_formats:["oes/remote-model/v1","oes/remote-model/v2"], legacy: ["unversioned", "oes/assessment/v1"],
       legacy_notice: "旧形式・判断記録不足。過去の数値とhashは維持し、新要件への適合は主張しません。",
       analysis_complete: "v2 input.analysis_completeは収集器が確認した走査・取得完了。範囲内の読取・候補・判断の完了はlocal.recordsから導出し、remote-modelのanalysis_completeへ投影。v1の意味は変更しない。" },
-    capabilities: { local_evaluation: true, persistent_evaluations: true, display_time_frb: true, html_report: true,portable_document:true,document_proof:true,stateless_web_preview:false,workflow_consent:true,estimate_proof:true,public_result_365_days:true,standard_completion:'SELECTED_WORKFLOW_STAGES_COMPLETE', web_management: false, certificates: false, publishing: false },
+    capabilities: { local_evaluation: true, persistent_evaluations: true, display_time_frb: true, html_report: true,portable_document:true,document_proof:true,stateless_web_preview:false,workflow_consent:true,local_work_contract:"oes/local-work/v2",external_approval_contract:"oes/workflow-consent/v2",additional_read_confirmation:false,estimate_proof:true,public_result_365_days:true,standard_completion:'SELECTED_WORKFLOW_STAGES_COMPLETE', web_management: false, certificates: false, publishing: false },
     profile: getLocalProfile(),
     privacy_notice: "ソースコードはOpen Estimateのサーバーへアップロードされず、一般公開もされません。CodexはAI解析のためにコードをモデル提供元へ送信する場合があります。",
     schema: schemaJson.definitions.Assessment,

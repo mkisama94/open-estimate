@@ -40,7 +40,7 @@ await fs.mkdir(path.join(plugin, '.codex-plugin'), { recursive: true });
 const json = async (file, data) => { await fs.mkdir(path.dirname(file), { recursive: true }); await fs.writeFile(file, JSON.stringify(data, null, 2) + '\n'); };
 const manifest = JSON.parse(await fs.readFile(path.join(repo, 'plugin/plugin.json'), 'utf8'));
 await json(path.join(plugin, '.codex-plugin/plugin.json'), manifest);
-// Select the project through discovery and confirmation; plugin cwd is not the project.
+// Select the project through metadata discovery and the estimate request; plugin cwd is not the project.
 await json(path.join(plugin, '.mcp.json'), { mcpServers: { 'open-estimate-local': {type:'stdio',command:'node',args:['./server/dist/index.js'],cwd:'.'}, 'open-estimate': {
   type: 'http', url: 'https://open-estimate.ai-orchestration.jp/mcp'
 } } });
@@ -49,7 +49,7 @@ for (const dir of ['dist', 'contracts', 'profiles', 'skills'])
 await fs.cp(path.join(repo, 'skills'), path.join(plugin, 'skills'), { recursive: true });
 try { await fs.copyFile(path.join(repo, 'LICENSE'), path.join(plugin, 'LICENSE')); } catch(e) { if(e.code !== 'ENOENT') throw e; }
 await fs.copyFile(path.join(repo, 'docs/DESKTOP-PLUGIN.md'), path.join(plugin, 'README.md'));
-for (const file of ['START-METHODS.md','START-METHODS-ACCEPTANCE.md','DRAFT-RECOVERY-API.md','DRAFT-RECOVERY-ACCEPTANCE.md','SYSTEM-SPEC.md','SYSTEM-IMPLEMENTATION-PLAN.md','SYSTEM-IMPLEMENTATION-ACCEPTANCE.md','DOCUMENT-OPERATIONS.md','DOCUMENT-STAGING-ACCEPTANCE.md','PUBLICATION-OPERATIONS.md','PUBLICATION-IMPLEMENTATION-MAP.md','PUBLICATION-STAGING-ACCEPTANCE.md','WORKFLOW-RECOVERY-REVIEW.md','evidence/workflow-recovery-2026-10-29.json','WEB-PUBLICATION-SIMPLIFICATION-PROPOSAL.md']) { for (const target of [plugin, marketplace]) { const destination=path.join(target,'implementation',file);await fs.mkdir(path.dirname(destination),{recursive:true}); await fs.copyFile(path.join(repo,'docs/implementation',file),destination); } }
+for (const file of ['LOCAL-UX-AND-TRANSMISSION-SPEC.md','LOCAL-UX-IMPLEMENTATION-ACCEPTANCE.md','START-METHODS.md','START-METHODS-ACCEPTANCE.md','DRAFT-RECOVERY-API.md','DRAFT-RECOVERY-ACCEPTANCE.md','SYSTEM-SPEC.md','SYSTEM-IMPLEMENTATION-PLAN.md','SYSTEM-IMPLEMENTATION-ACCEPTANCE.md','DOCUMENT-OPERATIONS.md','DOCUMENT-STAGING-ACCEPTANCE.md','PUBLICATION-OPERATIONS.md','PUBLICATION-IMPLEMENTATION-MAP.md','PUBLICATION-STAGING-ACCEPTANCE.md','WORKFLOW-RECOVERY-REVIEW.md','evidence/workflow-recovery-2026-10-29.json','WEB-PUBLICATION-SIMPLIFICATION-PROPOSAL.md']) { for (const target of [plugin, marketplace]) { const destination=path.join(target,'implementation',file);await fs.mkdir(path.dirname(destination),{recursive:true}); await fs.copyFile(path.join(repo,'docs/implementation',file),destination); } }
 await fs.mkdir(path.join(plugin, 'implementation'), { recursive: true });
 await fs.copyFile(path.join(repo, 'docs/implementation/PLUGIN-QUALITY-0.8.0.md'), path.join(plugin, 'implementation/PLUGIN-QUALITY-0.8.0.md'));
 await fs.copyFile(path.join(repo, 'docs/implementation/PLUGIN-QUALITY-0.8.1.md'), path.join(plugin, 'implementation/PLUGIN-QUALITY-0.8.1.md'));

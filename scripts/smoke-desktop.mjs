@@ -49,7 +49,7 @@ try {
   run('bind-rules', { ...common, rules_response: response });
   const start=run('show-estimate-start',{...common,display_currency:'USD'});
   assert.deepEqual(start.initial_selection,{read:false,verify:false,publish:false});
-  run('start-estimate-workflow',{...common,workflow_id:start.workflow_id,terms_hash:start.terms_hash,selection:{read:true,verify:false,publish:false},explicit_answer:'[合成スモーク] ローカル解析だけで開始'});
+  const begun=run('begin-estimate-workflow',{...common,workflow_id:start.workflow_id,local_request:'[合成スモーク] このプロジェクトを見積もりPDFを作成してください'});assert.equal(begun.local_work_started,true);assert.deepEqual(begun.selection,{verify:false,publish:false});
   const prepared = run('prepare-summary', common);
   assert.equal(prepared.response_format,'oes/snapshot-summary/v2');
   const sourceFiles=run('snapshot-page',{...common,snapshot_id:prepared.snapshot_id,section:'manifest'}).items.map(x=>x.value);
@@ -97,7 +97,7 @@ try {
   const client=new Client({name:'relocated-local-result',version:'1'},{capabilities:{}});
   const configuredLaunch={command:localMcp.command,args:localMcp.args,cwd:path.resolve(plugin,localMcp.cwd??'.')};
   await client.connect(new StdioClientTransport({...configuredLaunch,env:{...process.env,OES_RUNS_ROOT:path.join(temp,'runs'),OES_WORKFLOWS_ROOT:path.join(temp,'workflows')}}));
-  try{const card=await client.callTool({name:'show_document',arguments:{document_dir:preview.dir}});assert.notEqual(card.isError,true);assert.equal(card.structuredContent.document_sha256,preview.document_sha256);
+  try{const tools=(await client.listTools()).tools.map(t=>t.name);for(const name of ['begin_estimate_workflow','show_estimate_transmission','approve_estimate_transmission','cancel_estimate_transmission'])assert.ok(tools.includes(name));const card=await client.callTool({name:'show_document',arguments:{document_dir:preview.dir}});assert.notEqual(card.isError,true);assert.equal(card.structuredContent.document_sha256,preview.document_sha256);
     const resource=await client.readResource({uri:card._meta.ui.resourceUri});assert.equal(resource.contents[0].mimeType,'text/html;profile=mcp-app');
     const pdf=await client.callTool({name:'get_document_pdf',arguments:{document_dir:preview.dir}});assert.equal(Buffer.from(pdf._meta.file_base64,'base64').subarray(0,5).toString(),'%PDF-');
     const result=await client.callTool({name:'show_estimate_workflow',arguments:{workflow_id:start.workflow_id}});assert.notEqual(result.isError,true);assert.equal(result.structuredContent.presentation.median,'18');

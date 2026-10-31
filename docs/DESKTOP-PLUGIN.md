@@ -1,16 +1,25 @@
-# Open Estimate 0.14.0（配布候補）
+# Open Estimate 0.15.0（ローカル検証用配布候補）
 
-この版はローカル検証用の配布候補です。現行インストールの置換と本番側の対応版登録・配備は今回実施していません。実ホストの通し受入も未確認です。最新の実施状態はSTART-METHODS-ACCEPTANCE.mdを参照してください。
+許可された対象への見積依頼から、追加の読取チェック・開始ボタン・同じ回答の再要求なしで取得・解析し、結果とPDFを作ります。対象と取得上限・データ取扱いは短く案内し、案内への回答を待ちません。
 
-通常の配布・インストール先は `open-estimate@open-estimate-desktop` に一本化する。0.14.0は開始カードで新規・引継ぎ再計算・中断処理の再開を選びます。新規/再計算は新workflowを作り、再開は既存IDと承認を維持します。確定後の評価変更は入口で拒否し、新しい評価と旧公開結果の混在を防ぎます。旧ローカル版・ステージング版の別登録を新規の利用入口にしない。正規URLの証明・Web保存は配備状態を確認し、ローカル検証の成功と区別する。
+検証・証明と365日のWeb公開は任意です。希望時だけ送信先・項目・目的・品質・公開範囲を説明し、実際の回答または外部承認画面の操作を記録します。説明済み条件への明示依頼は再質問しません。公開には検証が必要です。外部選択待ちでローカル作業を止めません。
 
-本文を読まない対象確認後、読取・検証・365日のWeb公開を一度に選び、固定した参考工数・結果カード・PDF・希望した公開URLを得ます。読取は必須、検証と公開は任意、公開には検証が必要です。選択済み工程の正常系では追加の製品側同意を要求しません。
+ソース・対象パス・名称・根拠・判断台帳はOpen Estimateへ送りません。ホストAIによる解析では、利用中のAIサービスのモデル提供元で処理される場合があります。公式ルールや為替の取得通信は、見積由来情報の送信と区別して案内します。
 
-ソースはOpen Estimateへ送らず、AI解析ではモデル提供元で処理される場合があります。MCPには匿名数値等の検証入力、Webには集計結果・計算/為替条件・品質コード・証明だけを送ります。ログイン不要のURLは知る人が閲覧でき、最初の公開から365日で終了します。手元のPDFはその後も利用できます。
+Node.js 24以上が必要です。ローカルMCPで次の操作を確認してください。
 
-Node.js 24以上が必要です。show_estimate_start / start_estimate_workflow / issue_estimate_proofが接続先にあることを確認してください。操作は同梱implementation/PUBLICATION-OPERATIONS.md、対応表はPUBLICATION-IMPLEMENTATION-MAP.md、受入状態はSYSTEM-IMPLEMENTATION-ACCEPTANCE.mdを参照。ローカル・ステージング・本番・実ホストの確認状態を区別します。
+- `show_estimate_start` → `begin_estimate_workflow`：準備したworkflowへ実際の依頼を記録し、直ちに取得・解析を続行します。
+- `show_estimate_transmission` → `approve_estimate_transmission`：外部操作を希望した場合だけ使用します。
+- `cancel_estimate_transmission`：未送信の外部操作だけを取消し、ローカル作業を保持します。
+- `cancel_estimate_workflow`：見積全体を中止します。
 
-取得は一度行い、状態確認や入力修正でやり直しません。通常はprepare-summary → snapshot-page/read → save-draft → evaluate-draft → complete-estimate-workflow。MCPの対応操作と旧形式の互換方針はimplementation/DRAFT-RECOVERY-API.md、開始方法・引継ぎ・旧データ互換はSTART-METHODS.md、今回の検証はSTART-METHODS-ACCEPTANCE.mdに記録しています。以前の復旧調査はDRAFT-RECOVERY-ACCEPTANCE.mdを参照。
+CLIも同じ機能をハイフン区切りのコマンド名で提供します。標準の取得・評価はprepare-summary → snapshot-page/read → save-draft → evaluate-draft → complete-estimate-workflowです。固定結果と同じ操作IDで再開し、旧承認を新しい再計算結果に流用しません。
+
+通常のプラグインIDは `open-estimate@open-estimate-desktop` を維持します。この配布候補の生成とローカル検証は、インストール更新・本番登録・配備・実ホスト受入とは別です。公式ルール取得先への0.15.0の正規登録とホストの更新・再接続後、実ホストで確認してください。未登録版のために整合性検査を迂回しないでください。
+
+仕様・対応表・検証状態と更新手順は同梱の[実装・受入記録](implementation/LOCAL-UX-IMPLEMENTATION-ACCEPTANCE.md)と[ローカル利用体験仕様](implementation/LOCAL-UX-AND-TRANSMISSION-SPEC.md)を参照してください。`test:publication`と`build:publication-web`は保存系の検査コマンドです。`test:document`と`build:document-web`は旧文書・保存なしプレビューの互換検査として維持します。
+
+公開URLを知る人はログインなしで保存結果を閲覧でき、最初の公開から365日で終了します。ダウンロード済みPDFはその後も読めます。証明は固定した数値結果の検査範囲を示し、実工数・意味判断・ソースの網羅性・本人性は保証しません。
 
 ---
 

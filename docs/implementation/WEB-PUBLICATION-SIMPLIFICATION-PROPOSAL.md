@@ -1,5 +1,7 @@
 # Open Estimate Web保存を標準にしたフロー改善仕様案
 
+> **2026-10-31改訂による位置づけ**：本書は2026-10-28当時の設計履歴です。読取チェック、開始カード必須、解析開始前の一括同意、三項目選択、およびそれを前提とするA01/A02/A14/A17等は、[SYSTEM-SPEC.md](SYSTEM-SPEC.md)と[ローカル利用体験と外部送信の確認](LOCAL-UX-AND-TRANSMISSION-SPEC.md)で置き換えました。新しい画面文言・受入条件は後者のLUX01〜LUX12を参照してください。証明・外部送信範囲・365日期限等の不変条件は維持します。旧本文と受入IDは履歴として残し、新仕様の合格に読み替えません。
+
 作成日：2026-10-28。状態：実装指示書へ反映済みの設計背景。対象：ChatGPT上の見積体験、MCPの検証・証明、Web保存・公開、および旧フローの整理。実装の正本は[SYSTEM-SPEC.md](SYSTEM-SPEC.md)と[SYSTEM-IMPLEMENTATION-PLAN.md](SYSTEM-IMPLEMENTATION-PLAN.md)。
 
 ## 1 目標と変更の要点
