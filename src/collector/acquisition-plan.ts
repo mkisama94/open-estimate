@@ -5,6 +5,7 @@ import { resolveSafePath } from "./safe-paths.js";
 import { jcsSha256 } from "../core/canonical.js";
 
 export const LIMITS = { files: 10000, bytes: 100 * 1024 * 1024, single: 2 * 1024 * 1024 };
+export const SOURCE_READ_BYTES_LIMIT = 64 * 1024;
 export type ScopeRole = "measurement" | "supporting" | "excluded";
 export interface ScopeRule { path: string; role: ScopeRole }
 export interface PlannedFile { path: string; bytes: number; mtime_ms: number; role: ScopeRole; cause: string | null }

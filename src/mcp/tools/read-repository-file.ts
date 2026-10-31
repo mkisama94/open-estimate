@@ -4,9 +4,10 @@ import { mcpState } from "../state.js";
 import { sha256Hex } from "../../core/canonical.js";
 import { resolveSafePath } from "../../collector/safe-paths.js";
 import {getWorkspaceRoot} from '../../collector/safe-paths.js';
+import {SOURCE_READ_BYTES_LIMIT} from '../../collector/acquisition-plan.js';
 
 const MAX_LINES_LIMIT = 400;
-const MAX_BYTES_LIMIT = 64 * 1024; // 64 KiB
+const MAX_BYTES_LIMIT = SOURCE_READ_BYTES_LIMIT;
 
 export interface ReadRepositoryFileArgs {
   snapshot_id: string;

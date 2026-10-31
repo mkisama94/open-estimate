@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 import { privateDirectory } from "../local-files.js";
 import { getWorkspaceRoot, resolveSafePath } from "./safe-paths.js";
 import { classifyFile } from "./classification.js";
-import { planAcquisition, LIMITS, type ScopeRule, type AcquisitionPlan } from "./acquisition-plan.js";
+import { planAcquisition, LIMITS, SOURCE_READ_BYTES_LIMIT, type ScopeRule, type AcquisitionPlan } from "./acquisition-plan.js";
 import { calculateLineCount, getCacheRoot, type SnapshotResult } from "./snapshot.js";
 import { sha256Hex, jcsSha256 } from "../core/canonical.js";
 import type { ManifestFileEntry, SourceManifest } from "../core/types.js";
@@ -53,6 +53,11 @@ export async function acquireRepository(targetRelativePath = "", options: Acquis
       } finally { await handle.close(); }
       try { if (content.includes(0)) throw new Error(); new TextDecoder("utf-8",{fatal:true}).decode(content); }
       catch { exclude(f,"BINARY_OR_INVALID_UTF8"); continue; }
+      // The source reader preserves complete lines. Do not advertise content
+      // as readable when a single line cannot fit in any permitted chunk.
+      if (content.toString('utf8').split('\n').some(line => Buffer.byteLength(line,'utf8') + 1 > SOURCE_READ_BYTES_LIMIT)) {
+        exclude(f,"LINE_SIZE_LIMIT"); continue;
+      }
       const dest=path.join(cacheFilesDir,...f.path.split("/"));
       await fs.mkdir(path.dirname(dest),{recursive:true,mode:0o700});
       await fs.writeFile(dest,content,{flag:"wx",mode:0o600});

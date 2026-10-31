@@ -60,7 +60,8 @@ describe("scope-bound acquisition",()=>{
   });
   it("prioritizes measurement sources over supporting data when the combined capacity exceeds the cap",async()=>{
     const f=await fixture();
-    for(let i=0;i<51;i++) await f.put(`aaa-support/${i}.txt`,"x".repeat(LIMITS.single));
+    // Preserve the capacity boundary while keeping every line readable.
+    for(let i=0;i<51;i++) await f.put(`aaa-support/${i}.txt`,("x".repeat(1023)+"\n").repeat(LIMITS.single/1024));
     const scope=normalizeScope([{path:"aaa-support",role:"supporting"}]);
     const snapshot=await f.run(()=>createRepositorySnapshot(".",{scope}));
     expect(snapshot.acquisition?.scope_coverage).toBe("COMPLETE");expect(snapshot.total_bytes).toBeLessThanOrEqual(LIMITS.bytes);
@@ -69,7 +70,7 @@ describe("scope-bound acquisition",()=>{
   });
   it("captures a project larger than 100 MiB in bounded batches with one unique merged manifest",async()=>{
     const f=await fixture();
-    for(let i=0;i<51;i++) await f.put(`packages/companies/company-${i}.ts`,"x".repeat(LIMITS.single));
+    for(let i=0;i<51;i++) await f.put(`packages/companies/company-${i}.ts`,("x".repeat(1023)+"\n").repeat(LIMITS.single/1024));
     const preflight=await planAcquisition(f.root);expect(preflight.summary.ready).toBe(false);expect(preflight.summary.splittable).toBe(true);
     const snapshot=await f.run(()=>createRepositorySnapshot(".",{preflight,split_acquisition:true}));
     expect(snapshot.analysis_ready).toBe(true);expect(snapshot.acquisition?.scope_coverage).toBe("COMPLETE");
