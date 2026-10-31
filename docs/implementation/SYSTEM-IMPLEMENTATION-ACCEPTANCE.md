@@ -1,3 +1,9 @@
+# 0.14.0 開始方法と再計算フロー（配布候補、2026-10-31 JST）
+
+開始カードで新規・引継ぎ再計算・中断処理の再開を選ぶ実装を追加した。新規/再計算は新workflow、再開は既存workflowを使う。確定後の新しい評価は入口で拒否し、画面の参照を確定runへ統一した。最終全回帰は66ファイル510件すべて合格。
+
+操作・状態・互換性は[START-METHODS.md](START-METHODS.md)、検証境界と実測結果は[START-METHODS-ACCEPTANCE.md](START-METHODS-ACCEPTANCE.md)。0.14.0はローカル配布候補として生成する。今回、現行インストールの置換、本番対応版の登録/配備、DB/署名鍵の変更、プッシュによる自動配備は行わない。実ホストの通し受入は未確認。以下は過去版の記録。
+
 # 0.13.0 開始確認・評価復旧・応答量の改善（2026-10-31 JST）
 
 詳細は[DRAFT-RECOVERY-ACCEPTANCE.md](DRAFT-RECOVERY-ACCEPTANCE.md)、入出力と互換方針は[DRAFT-RECOVERY-API.md](DRAFT-RECOVERY-API.md)。66ファイル496件の回帰試験、配布設定での移設起動と新CLI経路、インストール済み通常版の33ツール、本番MCP・合成の証明/保存/HTML/PDFが合格した。通常版は同じIDの0.13.0へ更新した。

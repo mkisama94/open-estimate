@@ -5,6 +5,7 @@ import path from 'node:path';
 import {fork} from 'node:child_process';
 import {once} from 'node:events';
 import {fileURLToPath} from 'node:url';
+import {randomUUID} from 'node:crypto';
 import {publicationFixture} from '../fixtures/estimate-publication.js';
 import {prepareEstimateStart,startEstimateWorkflow,freezeEstimateWorkflow,resumeEstimateWorkflow,showEstimateWorkflow,cancelEstimateWorkflow,withdrawEstimateWorkflow} from '../../src/local/estimate-workflow.js';
 import {readWorkflowFile,withWorkflowLock} from '../../src/local/workflow-store.js';
@@ -16,6 +17,13 @@ async function setup(selection={read:true,verify:true,publish:true}){
  const adapters:WorkflowAdapters={issue:r=>f.issuer.issue(r,f.now),publish:async r=>(await f.service.register(r)).response,lookup:async(op,t)=>{try{return await f.service.operation(op,t);}catch(e:any){if(e.status===404)return {status:'NOT_FOUND'};throw e;}},withdraw:(id,t)=>f.service.withdraw(id,t) as any};
  return {...f,origin,draft,adapters,options:{adapters,services:f.services,keys:[f.key]},start:()=>startEstimateWorkflow({workflow_id:draft.workflow_id,terms_hash:draft.terms_hash,selection,explicit_answer:'[合成試験] 選択して開始'})};
 }
+it('publishes a recalculated edition with a different URL while preserving the previous proof, URL and expiry',async()=>{
+ const f=await setup();try{await f.start();const oldRun=randomUUID();await freezeEstimateWorkflow(f.draft.workflow_id,f.result,f.input,f.origin,oldRun);const old=await resumeEstimateWorkflow(f.draft.workflow_id,f.options),before=await readWorkflowFile<any>(f.draft.workflow_id,'state.json');
+  const next=await prepareEstimateStart({target_ref:path.resolve('examples/quality-check'),...f.origin,plan_ref:'new-plan',ruleset_ref:f.result.ruleset_ref,display_currency:'USD',start:{method:'RECALCULATE',request_id:randomUUID(),source_workflow_id:f.draft.workflow_id,source_run_id:oldRun}},f.services);
+  expect(next.initial_selection).toEqual({read:false,verify:false,publish:false});await startEstimateWorkflow({workflow_id:next.workflow_id,terms_hash:next.terms_hash,selection:{read:true,verify:true,publish:true},explicit_answer:'[合成] 新版の検証と公開を選択'});const nextRun=randomUUID();await freezeEstimateWorkflow(next.workflow_id,f.result,f.input,f.origin,nextRun);const done=await resumeEstimateWorkflow(next.workflow_id,f.options);
+  expect(done.confirmed_run_id).toBe(nextRun);expect(done.analysis.run_id).toBe(nextRun);expect(done.publication?.canonical_url).not.toBe(old.publication?.canonical_url);expect(done.proof?.statement.proof_id).not.toBe(old.proof?.statement.proof_id);expect(done.lineage?.source_run_id).toBe(oldRun);expect(await readWorkflowFile(f.draft.workflow_id,'state.json')).toEqual(before);expect(done.publication?.expires_at).toBeDefined();expect(JSON.stringify((await readWorkflowFile<any>(next.workflow_id,'state.json')).publish_request)).not.toContain(f.draft.workflow_id);
+ }finally{f.db.sqlite.close();}
+});
 it('sends nothing before consent or for unselected operations; preserves local outputs for each selection',async()=>{
  for(const selection of [{read:true,verify:false,publish:false},{read:true,verify:true,publish:false},{read:true,verify:true,publish:true}]){const f=await setup(selection);try{
   expect(f.draft.initial_selection).toEqual({read:false,verify:false,publish:false});await expect(freezeEstimateWorkflow(f.draft.workflow_id,f.result,f.input,f.origin)).rejects.toThrow('START_REQUIRED');

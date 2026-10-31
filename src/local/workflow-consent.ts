@@ -3,6 +3,7 @@ import {checkEstimate,PUBLICATION_DAYS} from '../contracts/estimate-result.js';
 import {jcsSha256} from '../core/canonical.js';
 import type {EstimateServices} from './estimate-services.js';
 export interface WorkflowTerms {
+ start?:{method:'NEW'|'RECALCULATE';request_id:string;source_workflow_id?:string;source_run_id?:string;source_checksums_hash?:string};
  contract_version:'oes/workflow-consent/v1';workflow_id:string;target_hash:string;plan_hash:string;ruleset_ref:EstimateResult['ruleset_ref'];
  services:EstimateServices;display_currency:string;calculation_policy:'oes-fixed-test-calculation/v1';publication_days:365;
  quality_policy:'DECLARED_PARTIAL_ALLOWED_PROJECT_TOTAL_UNCALCULATED';

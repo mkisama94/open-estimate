@@ -78,6 +78,9 @@ try {
   const draft=run('save-draft',{...common,snapshot_id:prepared.snapshot_id,assessment:JSON.stringify(a)});
   const saved=run('evaluate-draft',{...common,snapshot_id:prepared.snapshot_id,draft_id:draft.draft_id});assert.equal(saved.status,'RUN_SAVED');
   assert.equal(run('get-workflow-evaluation',{workflow_id:start.workflow_id}).run_id,saved.run_id);
+  const restarted=run('scan',{root}),resumedCommon={root,session_id:restarted.session_id};run('bind-rules',{...resumedCommon,rules_response:response});
+  const resumed=run('select-estimate-start',{...resumedCommon,start_method:'RESUME',start_request_id:crypto.randomUUID(),source_workflow_id:start.workflow_id});assert.equal(resumed.workflow_id,start.workflow_id);
+  const reused=run('prepare-summary',resumedCommon);assert.equal(reused.snapshot_id,prepared.snapshot_id);assert.equal(reused.acquisition_performed,false);
   const exported={local:{run_id:saved.run_id,summary:run('show-run',{run_id:saved.run_id}).summary}};
   assert.equal(exported.local.summary.measurement.cfp,6);
   run('purge', common);

@@ -1,6 +1,8 @@
-# Open Estimate 0.13.0
+# Open Estimate 0.14.0（配布候補）
 
-通常の配布・インストール先は `open-estimate@open-estimate-desktop` に一本化する。0.13.0は開始カードへの確認一本化、保存済み下書き・評価runからの復旧、取得要約と詳細ページを含む。旧ローカル版・ステージング版の別登録を新規の利用入口にしない。正規URLの証明・Web保存は配備状態を確認し、ローカル検証の成功と区別する。
+この版はローカル検証用の配布候補です。現行インストールの置換と本番側の対応版登録・配備は今回実施していません。実ホストの通し受入も未確認です。最新の実施状態はSTART-METHODS-ACCEPTANCE.mdを参照してください。
+
+通常の配布・インストール先は `open-estimate@open-estimate-desktop` に一本化する。0.14.0は開始カードで新規・引継ぎ再計算・中断処理の再開を選びます。新規/再計算は新workflowを作り、再開は既存IDと承認を維持します。確定後の評価変更は入口で拒否し、新しい評価と旧公開結果の混在を防ぎます。旧ローカル版・ステージング版の別登録を新規の利用入口にしない。正規URLの証明・Web保存は配備状態を確認し、ローカル検証の成功と区別する。
 
 本文を読まない対象確認後、読取・検証・365日のWeb公開を一度に選び、固定した参考工数・結果カード・PDF・希望した公開URLを得ます。読取は必須、検証と公開は任意、公開には検証が必要です。選択済み工程の正常系では追加の製品側同意を要求しません。
 
@@ -8,7 +10,7 @@
 
 Node.js 24以上が必要です。show_estimate_start / start_estimate_workflow / issue_estimate_proofが接続先にあることを確認してください。操作は同梱implementation/PUBLICATION-OPERATIONS.md、対応表はPUBLICATION-IMPLEMENTATION-MAP.md、受入状態はSYSTEM-IMPLEMENTATION-ACCEPTANCE.mdを参照。ローカル・ステージング・本番・実ホストの確認状態を区別します。
 
-取得は一度行い、状態確認や入力修正でやり直しません。通常はprepare-summary → snapshot-page/read → save-draft → evaluate-draft → complete-estimate-workflow。MCPの対応操作と旧形式の互換方針はimplementation/DRAFT-RECOVERY-API.md、今回の検証と既存見積の回収結果はDRAFT-RECOVERY-ACCEPTANCE.mdに記録しています。
+取得は一度行い、状態確認や入力修正でやり直しません。通常はprepare-summary → snapshot-page/read → save-draft → evaluate-draft → complete-estimate-workflow。MCPの対応操作と旧形式の互換方針はimplementation/DRAFT-RECOVERY-API.md、開始方法・引継ぎ・旧データ互換はSTART-METHODS.md、今回の検証はSTART-METHODS-ACCEPTANCE.mdに記録しています。以前の復旧調査はDRAFT-RECOVERY-ACCEPTANCE.mdを参照。
 
 ---
 

@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import {getCacheRoot} from '../collector/snapshot.js';
+import {prepareStartChoice,decorateStart,startHistoryPage,recalculationInputPage,reuseRecalculationSnapshot,recordWorkflowResume,assertEvaluationEditable} from './workflow-start-methods.js';
 import {createDocument} from './create-document.js';
 import {prepareEstimateStart,startEstimateWorkflow,extendEstimateWorkflow,approveWorkflowAcquisition,approvedWorkflow,resumeEstimateWorkflow,showEstimateWorkflow,cancelEstimateWorkflow,withdrawEstimateWorkflow} from './estimate-workflow.js';
 import {completeEstimateWorkflow} from './complete-workflow.js';
@@ -35,7 +37,7 @@ import { CLIENT_PROTOCOL } from "../rules/measurement-contract.js";
 import {publicDiscovery,snapshotSummary,snapshotPage,publicAcquisition,pageRows} from '../mcp/response-pages.js';
 import {saveWorkflowDraft,evaluateWorkflowDraft,getWorkflowEvaluation,workflowDraftPage,recoverSavedWorkflowRun} from './workflow-evaluation.js';
 import {saveWorkflowSnapshot,restoreWorkflowSnapshot} from '../mcp/workflow-snapshot.js';
-import {writeWorkflowData} from './workflow-data.js';
+import {readWorkflowData,writeWorkflowData} from './workflow-data.js';
 import { saveRun, showRun, saveRemoteOperation } from "./runs.js";
 import { compareRuns } from "./compare.js";
 import { preparePublicResult } from "./public-result.js";
@@ -72,6 +74,7 @@ async function input() {
   }
   return parseStrictJson(Buffer.concat(chunks).toString("utf8")) as any;
 }
+const initialSnapshotCache=getCacheRoot();
 async function main() {
   const command = process.argv[2], args = await input();
   if(command==='response-page'){if(!uuid.test(args.session_id)||!/^[a-f0-9]{64}$/.test(args.response_id))throw Error('INVALID_RESPONSE_REFERENCE');const file=await resolveSafePath(`${args.session_id}/responses/${args.response_id}.json`,base);if((await fs.stat(file)).size>64*1024*1024)throw Error('RESPONSE_ARCHIVE_TOO_LARGE');const value=JSON.parse(await fs.readFile(file,'utf8'));return pageRows([value],'legacy-response',args.cursor,args.limit,args.response_id);}
@@ -82,6 +85,7 @@ async function main() {
   if(command==='get-workflow-evaluation')return getWorkflowEvaluation(args.workflow_id,args.draft_id);
   if(command==='recover-saved-workflow-run')return recoverSavedWorkflowRun(args);
   if(command==='draft-page')return workflowDraftPage(args);
+  if(command==='recalculation-input-page')return recalculationInputPage(args);
   if(command==='cancel-estimate-workflow')return cancelEstimateWorkflow(args.workflow_id);
   if(command==='withdraw-estimate-workflow')return withdrawEstimateWorkflow(args.workflow_id);
   if(command==='get-estimate-workflow-pdf'){const dir=await workflowDirectory(args.workflow_id);return {path:path.join(dir,'estimate.pdf'),pdf_signed:false};}
@@ -167,11 +171,19 @@ async function main() {
       await fs.writeFile(temp, JSON.stringify(state), { flag: "wx", mode: 0o600 }); await fs.rename(temp, stateFile);
       return { status: "RULESET_BOUND", ruleset_ref: response.ruleset_ref, rule_ids: response.bundle.rule_ids };
     }
-    if(command==='show-estimate-start'){
-      const rules=requireBoundRules(state);
-      let view:any;if(state.start_workflow_id){const old=await readWorkflowFile<any>(state.start_workflow_id,'state.json');if(args.display_currency&&old.terms.display_currency!==args.display_currency)throw Error('WORKFLOW_START_TERMS_CHANGED');view=old.consent?await showEstimateWorkflow(state.start_workflow_id):await import('./estimate-workflow.js').then(m=>m.showEstimateStart(state.start_workflow_id));}
-      else{view=await prepareEstimateStart({target_ref:state.root,target_hash:jcsSha256(state.root),plan_ref:stateFile,plan_hash:state.preflight.fingerprint,ruleset_ref:rules.ruleset_ref,display_currency:args.display_currency??'JPY'});state.start_workflow_id=view.workflow_id;const tmp=path.join(base,randomUUID()+'.tmp');await fs.writeFile(tmp,JSON.stringify(state),{flag:'wx',mode:0o600});await fs.rename(tmp,stateFile);}
-      return {...view,acquisition:publicAcquisition(state.preflight.summary),scope:state.scope.slice(0,10),scope_rule_count:state.scope.length};
+    if(command==='project-estimates')return startHistoryPage({root:state.root,...args});
+    if(command==='show-estimate-start'||command==='select-estimate-start'){
+      const rules=requireBoundRules(state);if(command==='select-estimate-start'&&!args.start_method)throw Error('START_METHOD_REQUIRED');
+      let view:any;
+      if(args.start_method){
+       const b={candidate_id:args.session_id,root:state.root,roots_key:'host_context',origin:'one_shot_cli',plan:structuredClone(state.preflight)};if(args.start_method==='NEW'&&(state.workflow_id||state.start_workflow_id&&(await readWorkflowFile<any>(state.start_workflow_id,'state.json')).terms.start?.method==='RECALCULATE'))b.plan.scope=[];
+       const made=await prepareStartChoice(b,rules,args.display_currency??'JPY',{method:args.start_method,request_id:args.start_request_id,source_workflow_id:args.source_workflow_id,source_run_id:args.source_run_id});
+       view=made.view;state.start_workflow_id=view.workflow_id;state.preflight=made.binding.plan;state.scope=made.binding.plan.scope;state.confirmed=false;delete state.workflow_id;delete state.snapshot_cache_root;delete state.snapshot_cache_session;state.snapshots={};delete state.latest_snapshot_id;
+       if(made.resume){await recordWorkflowResume(view.workflow_id,args.start_request_id);state.workflow_id=view.workflow_id;state.confirmed=true;state.measurement_rules=made.rules;const old=await readWorkflowData<any>(view.workflow_id,'mcp-context.json');state.snapshot_cache_session=old.binding.origin==='one_shot_cli'?old.binding.candidate_id:undefined;state.snapshot_cache_root=state.snapshot_cache_session?await resolveSafePath(state.snapshot_cache_session,base):initialSnapshotCache;process.env.OES_CACHE_ROOT=state.snapshot_cache_root;const restored=await restoreWorkflowSnapshot(view.workflow_id,state.root);if(restored?.available){state.latest_snapshot_id=restored.snapshot_id;state.snapshots[restored.snapshot_id]={workflow_snapshot:true};}}
+      }else if(state.start_workflow_id){const old=await readWorkflowFile<any>(state.start_workflow_id,'state.json');if(args.display_currency&&old.terms.display_currency!==args.display_currency)throw Error('WORKFLOW_START_TERMS_CHANGED');view=old.consent?await showEstimateWorkflow(state.start_workflow_id):await import('./estimate-workflow.js').then(m=>m.showEstimateStart(state.start_workflow_id));}
+      else{const made=await prepareStartChoice({candidate_id:state.snapshot_cache_session??args.session_id,root:state.root,roots_key:'host_context',origin:'one_shot_cli',plan:state.preflight},rules,args.display_currency??'JPY',{method:'NEW',request_id:randomUUID()});view=made.view;state.start_workflow_id=view.workflow_id;}
+      const tmp=path.join(base,randomUUID()+'.tmp');await fs.writeFile(tmp,JSON.stringify(state),{flag:'wx',mode:0o600});await fs.rename(tmp,stateFile);
+      return {...await decorateStart(view,state.root),method_selection_explicit:!!args.start_method,acquisition:publicAcquisition(state.preflight.summary),scope:state.scope.slice(0,10),scope_rule_count:state.scope.length};
     }
     if(command==='start-estimate-workflow'){
       const draft=await readWorkflowFile<any>(args.workflow_id,'state.json');
@@ -179,6 +191,7 @@ async function main() {
       const result=await startEstimateWorkflow(args);state.workflow_id=args.workflow_id;state.confirmed=true;
       const tmp=path.join(base,randomUUID()+'.tmp');await fs.writeFile(tmp,JSON.stringify(state),{flag:'wx',mode:0o600});await fs.rename(tmp,stateFile);return result;
     }
+    if(state.workflow_id&&['prepare','prepare-summary','save-draft','export','draft'].includes(command))await assertEvaluationEditable(state.workflow_id);
     if(command==='prepare-summary'&&!state.workflow_id)throw Error('WORKFLOW_START_REQUIRED');
     if(state.workflow_id&&['prepare','prepare-summary','read','export','authorize-partial','snapshot-page','save-draft','evaluate-draft'].includes(command))await approvedWorkflow(state.workflow_id,{target_hash:jcsSha256(state.root),plan_hash:state.preflight.fingerprint});
     if (command === "draft") {
@@ -197,7 +210,9 @@ async function main() {
     } else if (!state.confirmed) throw new Error("WORKSPACE_CONFIRMATION_REQUIRED");
     const rules = ["prepare",'prepare-summary','save-draft','evaluate-draft', "read", "export"].includes(command) ? requireBoundRules(state) : null;
     if (command === "export" && Object.hasOwn(args, "ruleset_ref")) throw new Error("INVALID_RULESET_REF");
-    process.env.OES_CACHE_ROOT = sessionCache;
+    process.env.OES_CACHE_ROOT = state.snapshot_cache_root??sessionCache;
+    if(command==='prepare-summary'&&!state.latest_snapshot_id&&args.refresh_snapshot!==true&&args.refresh_preflight!==true){const id=await workspaceContext.run(state.root,()=>reuseRecalculationSnapshot(state.workflow_id,state.root));if(id){state.latest_snapshot_id=id;state.snapshots[id]={workflow_snapshot:true};}}
+
     let result: unknown;
     await workspaceContext.run(state.root, async () => {
       if (command === "confirm") result = { status: "CONFIRMED", confirmation: "assistant_reports_user_confirmation" };
@@ -277,5 +292,5 @@ async function main() {
 try { process.stdout.write(JSON.stringify(await main()) + "\n"); }
 catch (e: any) {
   const code = /^[A-Z][A-Z0-9_]+$/.test(e.message) ? e.message : "HELPER_EXECUTION_FAILED";
-  process.stdout.write(JSON.stringify({ error: { code, ...(e instanceof SemanticValidationError ? { code: "ASSESSMENT_VALIDATION_FAILED", details: e.errors } : {}) } }) + "\n"); process.exitCode = 1;
+  process.stdout.write(JSON.stringify({ error: { code, ...(code==='WORKFLOW_RECALCULATION_REQUIRED'?{recovery_action:'SELECT_RECALCULATE_TO_CREATE_NEW_WORKFLOW',next_command:'select-estimate-start',start_method:'RECALCULATE'}:{}), ...(e instanceof SemanticValidationError ? { code: "ASSESSMENT_VALIDATION_FAILED", details: e.errors } : {}) } }) + "\n"); process.exitCode = 1;
 }

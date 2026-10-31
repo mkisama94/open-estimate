@@ -15,6 +15,7 @@ import {presentEvaluation} from '../mcp/presentation.js';
 import {frbProvider,type FxProvider} from '../profiles/frb.js';
 import {resultCoverage} from './result-coverage.js';
 import {saveEvaluation,loadEvaluation} from '../mcp/storage.js';
+import {assertEvaluationEditable,fixedEvaluation} from './workflow-start-methods.js';
 
 interface Draft {draft_id:string;workflow_id:string;snapshot_id:string;assessment_id:string;version:number;input_hash:string;submission:string;input_mode:'collector'|'legacy';read_revision:string;display_currency:string;created_at:string}
 interface Journal {status:string;validation_passed:boolean;errors:any[];run_id?:string;evaluation_id?:string;attempts:string[];input_reconciled?:boolean;last_error?:string}
@@ -30,6 +31,7 @@ const saveJournal=(d:Draft,j:Journal)=>writeWorkflowData(d.workflow_id,journalNa
 async function recovered(workflow_id:string){try{const ref=await readWorkflowData<any>(workflow_id,'recovered-evaluation.json'),run=await readRun(ref.run_id);if(run.checksums_hash!==ref.checksums_hash)throw Error('RUN_CHECKSUM_MISMATCH');const blocked=ref.completion_blockers?.length>0;return {response_format:'oes/recovered-evaluation/v1',status:blocked?'RUN_SAVED_COMPLETION_BLOCKED':'RUN_SAVED',workflow_id,run_id:ref.run_id,assessment_id:run.assessment.assessment_id,snapshot_id:ref.snapshot_id,validation_passed:true,last_error:blocked?ref.completion_blockers[0]:null,next_action:blocked?'CHECK_ACQUISITION_BEFORE_COMPLETE':'COMPLETE_ESTIMATE_WORKFLOW',signed:false,published:false};}catch(e:any){if(e.code==='ENOENT')return {status:'ACQUISITION_OR_ANALYSIS',workflow_id,run_id:null};return {status:'RUN_REFERENCE_UNAVAILABLE',workflow_id,run_id:null,last_error:safeCode(e)};}}
 export async function peekWorkflowEvaluation(workflow_id:string){const history=await index(workflow_id);if(!history.latest_draft_id)return recovered(workflow_id);const d=await draftFor(workflow_id,history.latest_draft_id);return summary(d,await journalFor(d));}
 export async function recoverSavedWorkflowRun(args:{workflow_id:string;run_id:string}){return withWorkflowLock(args.workflow_id,async()=>{
+ await assertEvaluationEditable(args.workflow_id);
  const run=await readRun(args.run_id),a:any=run.metadata.acquisition_record,state=await readWorkflowFile<any>(args.workflow_id,'state.json'),head=await readWorkflowFile<any>(args.workflow_id,'mcp-snapshot.json');
  const snapshot_id=head.snapshot_id??head.snapshot?.snapshot_id;
  if(!snapshot_id||a?.snapshot_id!==snapshot_id||jcsSha256(run.metadata.rules_context?.ruleset_ref)!==jcsSha256(state.terms.ruleset_ref))throw Error('RUN_WORKFLOW_BINDING_MISMATCH');
@@ -42,6 +44,7 @@ const binding=(d:Draft)=>({workflow_id:d.workflow_id,snapshot_id:d.snapshot_id,d
 async function matchingRun(d:Draft,j:Journal){if(!j.run_id)return null;const run=await readRun(j.run_id);if(jcsSha256(run.metadata.workflow_binding)!==jcsSha256(binding(d)))throw Error('RUN_DRAFT_BINDING_MISMATCH');return run;}
 function summary(d:Draft,j:Journal){return bounded({response_format:'oes/workflow-evaluation/v2',workflow_id:d.workflow_id,snapshot_id:d.snapshot_id,assessment_id:d.assessment_id,draft_id:d.draft_id,input_version:d.version,input_hash:d.input_hash,status:j.status,validation_passed:j.validation_passed,run_id:j.status.startsWith('RUN_SAVED')?j.run_id??null:null,last_error:j.last_error??null,validation:{total_errors:j.errors.length,errors:j.errors.slice(0,5).map(e=>({code:e.code,pointer:e.pointer,message:String(e.message??'').slice(0,300)})),details_tool:'get_assessment_draft_page',section:'validation'},signed:false,published:false,next_action:j.status.startsWith('RUN_SAVED')?'COMPLETE_ESTIMATE_WORKFLOW':j.status==='SAVE_INTERRUPTED'?'RETRY_SAME_DRAFT_TO_SAVE':'CORRECT_OR_EVALUATE_SAVED_DRAFT',byte_limit:65536});}
 export async function saveWorkflowDraft(args:{workflow_id:string;snapshot_id:string;assessment:string;input_mode?:'collector'|'legacy';display_currency?:string}){return withWorkflowLock(args.workflow_id,async()=>{
+ await assertEvaluationEditable(args.workflow_id);
  const e=snapshotEntry(args.snapshot_id),record:any=e.snapshot.acquisition_record;if(!e.workspace_root||!record?.preflight?.fingerprint)throw Error('ACQUISITION_BINDING_REQUIRED');await approvedWorkflow(args.workflow_id,{target_hash:jcsSha256(e.workspace_root),plan_hash:record.preflight.fingerprint});
  if(Buffer.byteLength(args.assessment)>8*1024*1024)throw Error('ASSESSMENT_TOO_LARGE');
  const terms=await readWorkflowFile<any>(args.workflow_id,'state.json');const read_revision=jcsSha256(e.tracker.exportReads()),input_mode=args.input_mode??'collector',display_currency=args.display_currency??terms.terms.display_currency,input_hash=jcsSha256({snapshot_id:args.snapshot_id,manifest_hash:e.snapshot.manifest_hash,read_revision,input_mode,submission:args.assessment,display_currency}),draft_id='draft_'+input_hash,history=await index(args.workflow_id);
@@ -50,6 +53,7 @@ export async function saveWorkflowDraft(args:{workflow_id:string;snapshot_id:str
  if(!history.drafts.some(x=>x.draft_id===draft_id))history.drafts.push({draft_id,snapshot_id:args.snapshot_id,version:d.version});history.latest_draft_id=draft_id;await writeWorkflowData(args.workflow_id,'evaluation-index.json',history);return summary(d,await journalFor(d));
 });}
 export async function getWorkflowEvaluation(workflow_id:string,draft_id?:string){return withWorkflowLock(workflow_id,async()=>{
+ const state=await readWorkflowFile<any>(workflow_id,'state.json');if(state.result)return fixedEvaluation(state);
  const history=await index(workflow_id),id=draft_id??history.latest_draft_id;if(!id)return recovered(workflow_id);const d=await draftFor(workflow_id,id),j=await journalFor(d);
  if(j.status==='RUN_SAVE_PENDING'&&j.run_id){try{await matchingRun(d,j);j.status='RUN_SAVED';j.validation_passed=true;delete j.last_error;await saveJournal(d,j);}catch(e:any){j.last_error=safeCode(e);}}
  return summary(d,j);
@@ -61,6 +65,7 @@ export async function workflowDraftPage(args:{workflow_id:string;draft_id?:strin
  return pageRows(rows,args.section,args.cursor,args.limit,{draft_id:d.draft_id,input_hash:d.input_hash,status:args.section==='validation'?j.status:null});
 }
 export async function evaluateWorkflowDraft(args:{workflow_id:string;draft_id:string;legacy_view?:boolean},rules:BoundRules,options:{provider?:FxProvider;save?:typeof saveRun;afterSave?:()=>Promise<void>}={}){return withWorkflowLock(args.workflow_id,async()=>{
+ const state=await readWorkflowFile<any>(args.workflow_id,'state.json');if(state.result){const d=await draftFor(args.workflow_id,args.draft_id),j=await journalFor(d);if(!state.completed_run_id||j.run_id!==state.completed_run_id)throw Error('WORKFLOW_RECALCULATION_REQUIRED');return fixedEvaluation(state);}
  const d=await draftFor(args.workflow_id,args.draft_id),j=await journalFor(d),e=snapshotEntry(d.snapshot_id),record:any=e.snapshot.acquisition_record;
  await approvedWorkflow(d.workflow_id,{target_hash:jcsSha256(e.workspace_root),plan_hash:record.preflight.fingerprint});
  let run:Awaited<ReturnType<typeof readRun>>|null=null;

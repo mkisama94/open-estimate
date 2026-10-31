@@ -2,6 +2,125 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Open Estimate local preview 0.3.0",
   "$defs": {
+    "StartChoice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "request_id"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "NEW",
+            "RECALCULATE",
+            "RESUME"
+          ]
+        },
+        "request_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "source_workflow_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "source_run_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "method": {
+              "const": "NEW"
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "source_workflow_id"
+                ]
+              },
+              {
+                "required": [
+                  "source_run_id"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "method": {
+              "const": "RECALCULATE"
+            }
+          },
+          "required": [
+            "source_workflow_id",
+            "source_run_id"
+          ]
+        },
+        {
+          "properties": {
+            "method": {
+              "const": "RESUME"
+            }
+          },
+          "required": [
+            "source_workflow_id"
+          ],
+          "not": {
+            "required": [
+              "source_run_id"
+            ]
+          }
+        }
+      ]
+    },
+    "FrozenWorkflowEvaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "workflow_id",
+        "run_id",
+        "validation_passed",
+        "next_action",
+        "result"
+      ],
+      "properties": {
+        "status": {
+          "const": "RESULT_FROZEN"
+        },
+        "workflow_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "run_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "validation_passed": {
+          "const": true
+        },
+        "next_action": {
+          "const": "RESUME_SELECTED_STAGES"
+        },
+        "result": {
+          "type": "object"
+        }
+      }
+    },
     "Assessment": {
       "type": "object",
       "additionalProperties": false,

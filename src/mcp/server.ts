@@ -1,3 +1,5 @@
+import {prepareStartChoice,decorateStart,startHistoryPage,recalculationInputPage,reuseRecalculationSnapshot,recordWorkflowResume} from '../local/workflow-start-methods.js';
+import {randomUUID} from 'node:crypto';
 import {prepareEstimateStart,showEstimateStart,startEstimateWorkflow,extendEstimateWorkflow,approveWorkflowAcquisition,approvedWorkflow,showEstimateWorkflow,resumeEstimateWorkflow,cancelEstimateWorkflow,withdrawEstimateWorkflow} from '../local/estimate-workflow.js';
 import {completeEstimateWorkflow,WorkflowCompletionError} from '../local/complete-workflow.js';
 import {readWorkflowFile,workflowDirectory} from '../local/workflow-store.js';
@@ -46,7 +48,8 @@ const display = { locale: { type: "string", maxLength: 64 }, display_currency: {
 const output = (properties: Record<string, unknown>, required: string[]) => object(properties, required);
 const definition = (key: string) => ({ ...contract.$defs[key], $defs: contract.$defs });
 const workflowTools=[
- {name:'show_estimate_start',description:'Show the single start confirmation card after metadata discovery and rule binding, then wait for its choice. Do not also ask a chat question/form. Use confirmation_mode=chat only if cards are unavailable. Repeating this call reuses the same start.',inputSchema:object({rules_response:{type:'object',additionalProperties:true},display_currency:{enum:[...CURRENCIES]},confirmation_mode:{enum:['card','chat']}},['rules_response']),outputSchema:{type:'object' as const},handler:async(_:any)=>({}),readOnly:false,network:false,_meta:{ui:{resourceUri:estimateStartWidgetUri}}},
+ {name:'show_estimate_start',description:'Show the single start confirmation card after metadata discovery and rule binding, then wait for its choice. Do not also ask a chat question/form. Use confirmation_mode=chat only if cards are unavailable. Repeating this call reuses the same start.',inputSchema:object({rules_response:{type:'object',additionalProperties:true},display_currency:{enum:[...CURRENCIES]},confirmation_mode:{enum:['card','chat']},start_method:{enum:['NEW','RECALCULATE','RESUME']},start_request_id:str,source_workflow_id:str,source_run_id:str},['rules_response']),outputSchema:{type:'object' as const},handler:async(_:any)=>({}),readOnly:false,network:false,_meta:{ui:{resourceUri:estimateStartWidgetUri}}},
+ {name:'select_estimate_start',description:'Select NEW, RECALCULATE with explicit source workflow/run, or RESUME an unfinished workflow. Keep the same start_request_id for retries; a deliberate different estimate needs a new request UUID. NEW never inherits evaluation/approval. RECALCULATE creates a new workflow with unchecked verification/publication.',inputSchema:object({workflow_id:str,start_method:{enum:['NEW','RECALCULATE','RESUME']},start_request_id:str,source_workflow_id:str,source_run_id:str},['workflow_id','start_method','start_request_id']),outputSchema:{type:'object' as const},handler:async(_:any)=>({}),readOnly:false,network:false,_meta:{ui:{resourceUri:estimateStartWidgetUri}}},
  {name:'start_estimate_workflow',description:'Record the explicit start-screen choice or the actual user reply once. Read is mandatory; publish requires verify. This approval covers later fixed numbers and declared partial estimates, not scope/destination changes.',inputSchema:object({workflow_id:str,terms_hash:str,selection:object({read:{type:'boolean'},verify:{type:'boolean'},publish:{type:'boolean'}},['read','verify','publish']),explicit_answer:{type:'string',minLength:1,maxLength:2000}},['workflow_id','terms_hash','selection','explicit_answer']),outputSchema:{type:'object' as const},handler:async(_:any)=>({}),readOnly:false,network:false},
  {name:'extend_estimate_workflow',description:'Only after the user explicitly requests an unselected operation, approve that difference without reanalysis. Existing permissions cannot be silently removed; cancellation is separate.',inputSchema:object({workflow_id:str,terms_hash:str,selection:object({read:{type:'boolean'},verify:{type:'boolean'},publish:{type:'boolean'}},['read','verify','publish']),explicit_answer:{type:'string',minLength:1,maxLength:2000}},['workflow_id','terms_hash','selection','explicit_answer']),outputSchema:{type:'object' as const},handler:extendEstimateWorkflow,readOnly:false,network:false},
  {name:'complete_estimate_workflow',description:'Freeze the locally validated run from the approved acquisition, generate outputs, then continue selected proof and Web publication without new product consent. Persist operation IDs before sending.',inputSchema:object({workflow_id:str,run_id:str},['workflow_id','run_id']),outputSchema:{type:'object' as const},handler:completeEstimateWorkflow,readOnly:false,network:true,_meta:{ui:{resourceUri:estimateWorkflowWidgetUri}}},
@@ -67,6 +70,8 @@ const tools = [
   { name: "prepare_repository", description: "Acquire once, then reuse the existing snapshot, input defaults and read ledger. Do not reacquire to inspect files or repair Assessment. Use get_repository_snapshot for inspection. Only explicit refresh_snapshot/refresh_preflight or a changed split setting copies again; source code is never executed or uploaded.",
     inputSchema: object({ relative_path: { type: "string", maxLength: 1024 }, response_format:{enum:['summary','legacy']}, refresh_snapshot:{type:'boolean'},refresh_preflight:{type:"boolean"}, split_acquisition:{type:"boolean"} }), outputSchema: { type: "object" as const, required: ["snapshot_id", "summary"] }, handler: handlePrepareRepository, readOnly: false, network: false },
   {name:'get_repository_snapshot',description:'Get a compact saved snapshot summary. For files, read ranges or issues use get_repository_snapshot_page. Never reacquires sources. legacy format is limited to small responses; use pages for large projects.',inputSchema:object({snapshot_id:str,response_format:{enum:['summary','legacy']}}),outputSchema:{type:'object' as const},handler:async(a:any)=>snapshotSummary(a.snapshot_id),readOnly:true,network:false},
+  {name:'get_project_estimates',description:'Page local history for the metadata-selected project: date, scope, full/partial effort, evaluation/proof/publication and selectable recovery sources. No source content. Optional workflow_id pages its complete scope rules.',inputSchema:object({workflow_id:str,cursor:str,limit:{type:'integer',minimum:1,maximum:100}}),outputSchema:{type:'object' as const},handler:async(_:any)=>({}),readOnly:true,network:false},
+  {name:'get_recalculation_input_page',description:'After the new recalculation consent, read explicitly inherited model/judgments/evidence as UNVALIDATED input. Reset source-read coverage; revalidate all evidence against the current snapshot. Never use this for NEW.',inputSchema:object({workflow_id:str,section:str,cursor:str,limit:{type:'integer',minimum:1,maximum:100}},['workflow_id','section']),outputSchema:{type:'object' as const},handler:recalculationInputPage,readOnly:true,network:false},
   {name:'get_workspace_page',description:'Page metadata-only files, scope or issues before the start card. No source bodies or extra consent.',inputSchema:object({section:{enum:['files','scope','issues']},cursor:str,limit:{type:'integer',minimum:1,maximum:100}},['section']),outputSchema:{type:'object' as const},handler:async(_:any)=>({}),readOnly:true,network:false},
   {name:'get_repository_snapshot_page',description:'Page saved manifest, issues, read ranges, exclusions, scope or full acquisition JSON fragments. Each MCP response stays under 64 KiB; follow next_cursor. No copying or source reading.',inputSchema:object({snapshot_id:str,section:{enum:['manifest','issues','reads','exclusions','scope','acquisition_record']},cursor:str,limit:{type:'integer',minimum:1,maximum:100}},['snapshot_id','section']),outputSchema:{type:'object' as const},handler:async(a:any)=>snapshotPage(a),readOnly:true,network:false},
   {name:'save_assessment_draft',description:'Save unvalidated AI-owned Assessment fields for a workflow/snapshot. Default collector mode: omit input; collector facts are injected locally. Drafts never imply validation, proof or publication. Same input/read revision reuses the draft.',inputSchema:object({workflow_id:str,snapshot_id:str,assessment:{type:'string',maxLength:8388608},input_mode:{enum:['collector','legacy']},...display},['workflow_id','snapshot_id','assessment']),outputSchema:{type:'object' as const},handler:async(a:any)=>saveWorkflowDraft(a),readOnly:false,network:false},
@@ -97,11 +102,12 @@ export function createMcpServer(): Server {
   let pendingWorkflow:{workflow_id:string;candidate_id:string;rules:BoundRules}|undefined;
   let activeWorkflow:string|undefined;let activeRules:BoundRules|undefined;
   let restoreFailed=false;
+  let reuseAttempt:Promise<string|null>|undefined;
   let preparing:Promise<any>|undefined;
   let startQueue=Promise.resolve();
   const serializeStart=<T>(fn:()=>Promise<T>)=>{const op=startQueue.then(fn);startQueue=op.then(()=>{},()=>{});return op;};
   const server = new Server({ name: "open-estimate", version: "0.3.0" }, { capabilities: { tools: {}, resources: {}, prompts: {}, extensions:{'io.modelcontextprotocol/ui':{}} } });
-  const workspace = new WorkspaceSession(server, () => {mcpState.clearSnapshots();previousSnapshot=undefined;activeWorkflow=undefined;activeRules=undefined;pendingWorkflow=undefined;restoreFailed=false;});
+  const workspace = new WorkspaceSession(server, () => {mcpState.clearSnapshots();previousSnapshot=undefined;activeWorkflow=undefined;activeRules=undefined;pendingWorkflow=undefined;restoreFailed=false;reuseAttempt=undefined;});
   const activateExisting=async(id:string)=>{
     const saved=await readWorkflowFile<any>(id,'state.json');if(!saved.consent)throw Error('WORKFLOW_START_REQUIRED');
     if(activeWorkflow&&activeWorkflow!==id)throw Error('WORKFLOW_SCOPE_CHANGE_REQUIRES_CONFIRMATION');
@@ -111,6 +117,15 @@ export function createMcpServer(): Server {
     await approvedWorkflow(id,{target_hash:jcsSha256(context.binding.root),plan_hash:context.binding.plan.fingerprint});await workspace.restore(context.binding);activeWorkflow=id;activeRules=context.rules;
     if(!previousSnapshot){try{const restored=await restoreWorkflowSnapshot(id,context.binding.root);previousSnapshot=restored?.snapshot_id;restoreFailed=false;}catch(e){restoreFailed=true;throw e;}}
     return true;
+  };
+  const chooseStart=async(args:any,rules:BoundRules,base?:any)=>{
+    const b=await workspace.binding(),choice={method:args.start_method,request_id:args.start_request_id,source_workflow_id:args.source_workflow_id,source_run_id:args.source_run_id};
+    if(choice.method==='NEW'&&(activeWorkflow||base?.consent||base?.terms.start?.method==='RECALCULATE'))b.plan.scope=[];
+    const made=await prepareStartChoice(b,rules,args.display_currency??base?.terms.display_currency??'JPY',choice);
+    if(made.resume){workspace.reset();await activateExisting(made.view.workflow_id);await recordWorkflowResume(made.view.workflow_id,choice.request_id);return {...await showEstimateWorkflow(made.view.workflow_id),next_action:'CONTINUE_EXISTING_WORKFLOW_DO_NOT_RESTART_DISCOVERY'};}
+    if(activeWorkflow&&activeWorkflow===made.view.workflow_id)return showEstimateWorkflow(activeWorkflow);
+    await workspace.stageBinding(made.binding);pendingWorkflow={workflow_id:made.view.workflow_id,candidate_id:made.binding.candidate_id,rules:made.rules};
+    const view=await decorateStart(made.view,made.binding.root);return bounded({...view,method_selection_explicit:true,acquisition:publicAcquisition(made.binding.plan.summary),scope:made.binding.plan.scope.slice(0,10),scope_rule_count:made.binding.plan.scope.length,confirmation_mode:args.confirmation_mode??'card',chat_confirmation_required:args.confirmation_mode==='chat',next_action:'WAIT_FOR_START_CARD_SELECTION'});
   };
   server.setNotificationHandler(RootsListChangedNotificationSchema, async () => workspace.reset());
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -129,6 +144,7 @@ export function createMcpServer(): Server {
         if(tool.name==='show_estimate_start'){
           result=await serializeStart(async()=>{
           const rules=validateBoundRules(args.rules_response,inspectSkillPackage(fileURLToPath(new URL('../../skills/open-estimate-assessor/',import.meta.url))));
+          if(args.start_method)return chooseStart(args,rules);
           if(activeWorkflow){await workspace.requireRoot();const saved=await readWorkflowFile<any>(activeWorkflow,'state.json');if(args.display_currency&&args.display_currency!==saved.terms.display_currency||jcsSha256(rules.ruleset_ref)!==jcsSha256(saved.terms.ruleset_ref))throw Error('WORKFLOW_START_TERMS_CHANGED');return showEstimateWorkflow(activeWorkflow);}
           const c=await workspace.candidate(),currency=(args.display_currency as string)??'JPY';
           let view:any;
@@ -136,12 +152,14 @@ export function createMcpServer(): Server {
             view=await showEstimateStart(pendingWorkflow.workflow_id);
             if(view.terms.display_currency!==currency)throw Error('WORKFLOW_START_TERMS_CHANGED');
           }else{
-            view=await prepareEstimateStart({target_ref:c.root,target_hash:jcsSha256(c.root),plan_ref:c.candidate_id,plan_hash:c.plan.fingerprint,ruleset_ref:rules.ruleset_ref,display_currency:currency});
+            const made=await prepareStartChoice(await workspace.binding(),rules,currency,{method:'NEW',request_id:randomUUID()});view=made.view;
             await writeWorkflowData(view.workflow_id,'mcp-context.json',{binding:await workspace.binding(),rules});
             pendingWorkflow={workflow_id:view.workflow_id,candidate_id:c.candidate_id,rules};
           }
-          return bounded({...view,acquisition:publicAcquisition(c.plan.summary),scope:c.plan.scope.slice(0,10),scope_rule_count:c.plan.scope.length,scope_details_tool:'get_workspace_page',confirmation_mode:args.confirmation_mode??'card',chat_confirmation_required:args.confirmation_mode==='chat',next_action:args.confirmation_mode==='chat'?'ASK_ONE_CHAT_SELECTION':'WAIT_FOR_START_CARD_SELECTION',notice:view.notice+(c.plan.scope.length>10?' 範囲規則は先頭10件を表示しています。残りはget_workspace_pageで確認できます。':'')+(args.confirmation_mode==='chat'?' カード非対応のため同じ条件をチャットで一度だけ選択してください。':' このカードで一度だけ選択してください。別の質問フォームで同じ確認を重ねないでください。')});
+          view=await decorateStart(view,c.root);return bounded({...view,acquisition:publicAcquisition(c.plan.summary),scope:c.plan.scope.slice(0,10),scope_rule_count:c.plan.scope.length,scope_details_tool:'get_workspace_page',confirmation_mode:args.confirmation_mode??'card',chat_confirmation_required:args.confirmation_mode==='chat',next_action:args.confirmation_mode==='chat'?'ASK_ONE_CHAT_SELECTION':'WAIT_FOR_START_CARD_SELECTION',notice:view.notice+(c.plan.scope.length>10?' 範囲規則は先頭10件を表示しています。残りはget_workspace_pageで確認できます。':'')+(args.confirmation_mode==='chat'?' カード非対応のため同じ条件をチャットで一度だけ選択してください。':' このカードで一度だけ選択してください。別の質問フォームで同じ確認を重ねないでください。')});
           });
+        }else if(tool.name==='select_estimate_start'){
+          result=await serializeStart(async()=>{const base=await readWorkflowFile<any>(args.workflow_id as string,'state.json'),context=await readWorkflowData<any>(base.workflow_id,'mcp-context.json');if((await workspace.binding()).root!==base.target_ref)throw Error('START_SOURCE_TARGET_MISMATCH');return chooseStart(args,context.rules,base);});
         }else if(tool.name==='start_estimate_workflow'){
           result=await serializeStart(async()=>{
           const saved=await readWorkflowFile<any>(args.workflow_id as string,'state.json');
@@ -156,7 +174,7 @@ export function createMcpServer(): Server {
           });
         }else {result=await tool.handler(args as any);if(tool.name==='show_estimate_workflow'&&!activeWorkflow&&result.selection?.read&&result.status!=='CANCELLED'){try{result.analysis_context_restored=await activateExisting(args.workflow_id as string);result.snapshot_id=previousSnapshot??null;}catch(e:any){result.analysis_resume_error=/^[A-Z][A-Z0-9_]+$/.test(e.message)?e.message:'WORKFLOW_RESTORE_FAILED';}}}
         if(tool.name==='get_estimate_workflow_pdf')return {structuredContent:{status:'FILE_READY'},content:[{type:'text' as const,text:'固定したPDFを取得しました。'}],_meta:{file_base64:result.file_base64}};
-        const uri=tool.name==='show_estimate_start'&&result.status==='AWAITING_START_SELECTION'?estimateStartWidgetUri:estimateWorkflowWidgetUri;
+        const uri=['show_estimate_start','select_estimate_start'].includes(tool.name)&&result.status==='AWAITING_START_SELECTION'?estimateStartWidgetUri:estimateWorkflowWidgetUri;
         return {structuredContent:result,content:[{type:'text' as const,text:JSON.stringify(result)}],_meta:{ui:{resourceUri:uri}}};
       }
       if(['show_document','get_document_pdf','get_document_markdown','get_document_proof'].includes(tool.name)){
@@ -171,6 +189,8 @@ export function createMcpServer(): Server {
       }
       if (tool.name === "discover_workspace") {result = await workspace.discover(args);if(result.summary)result={...result,summary:publicDiscovery(result.summary)};}
       else if (tool.name === "confirm_workspace") result = await workspace.confirm(args as any);
+      else if(tool.name==='get_project_estimates')result=await startHistoryPage({root:(await workspace.binding()).root,...args});
+      else if(tool.name==='get_recalculation_input_page')result=await recalculationInputPage(args as any);
       else if(tool.name==='get_workspace_page'){const b=await workspace.binding();const section=args.section as string;result=pageRows(section==='files'?b.plan.files:section==='scope'?b.plan.scope:b.plan.summary.issues,section,args.cursor as string|undefined,args.limit as number|undefined,b.plan.fingerprint);}
       else if(['get_workflow_evaluation','get_assessment_draft_page','recover_saved_workflow_run'].includes(tool.name))result=await tool.handler(args as any);
       else if (tool.name === "get_assessor_contract") result = { ...summarizeAssessorContract(await handleGetAssessorContract()), workspace_root: workspace.current(), workspace_selection: "discover_then_start_card", requires_workspace_confirmation: false };
@@ -181,6 +201,13 @@ export function createMcpServer(): Server {
         if (tool.name === "prepare_repository") {
           if(restoreFailed&&args.refresh_snapshot!==true)throw Error('SNAPSHOT_RESTORE_FAILED_EXPLICIT_REFRESH_REQUIRED');
           if (args.relative_path && args.relative_path !== ".") throw new Error("TARGET_CHANGE_REQUIRES_DISCOVERY");
+          if(activeWorkflow&&!previousSnapshot&&args.refresh_snapshot!==true&&args.refresh_preflight!==true){
+            const revision=workspace.revision(),id=activeWorkflow;
+            // Sharing this attempt also protects the fresh read ledger from
+            // being reset by another overlapping prepare after the first reply.
+            reuseAttempt??=workspaceContext.run(root,()=>reuseRecalculationSnapshot(id,root));
+            const reused=await reuseAttempt;if(workspace.revision()!==revision)throw Error('PROJECT_CHANGED_RECONFIRM_REQUIRED');previousSnapshot=reused??undefined;
+          }
           const prior=previousSnapshot?mcpState.getSnapshot(previousSnapshot):undefined;
           const splitChanged=typeof args.split_acquisition==='boolean'&&prior&&args.split_acquisition!==(prior.snapshot.acquisition_record as any)?.split_acquisition;
           const refresh=args.refresh_snapshot===true||args.refresh_preflight===true||splitChanged;
@@ -222,7 +249,7 @@ export function createMcpServer(): Server {
     } catch (err: any) {
       // Never log source, raw assessment, network body or absolute OS error paths.
       const code = /^[A-Z][A-Z0-9_]+$/.test(err.message) ? err.message : err.errors ? "ASSESSMENT_VALIDATION_FAILED" : "TOOL_EXECUTION_ERROR";
-      return { isError: true, content: [{ type: "text" as const, text: JSON.stringify({ error: { code, message: code, ...(Array.isArray(err.errors)?{total_errors:err.errors.length,details:err.errors.slice(0,10).map((e:any)=>({code:e.code,pointer:String(e.pointer??'').slice(0,300),message:String(e.message??'').slice(0,300)}))}:{}),...(err instanceof WorkflowCompletionError?{stage:err.stage,recovery_action:err.recovery_action}:{}) } }) }] };
+      return { isError: true, content: [{ type: "text" as const, text: JSON.stringify({ error: { code, message: code, ...(code==='WORKFLOW_RECALCULATION_REQUIRED'?{recovery_action:'SELECT_RECALCULATE_TO_CREATE_NEW_WORKFLOW',next_tool:'select_estimate_start',start_method:'RECALCULATE'}:{}), ...(Array.isArray(err.errors)?{total_errors:err.errors.length,details:err.errors.slice(0,10).map((e:any)=>({code:e.code,pointer:String(e.pointer??'').slice(0,300),message:String(e.message??'').slice(0,300)}))}:{}),...(err instanceof WorkflowCompletionError?{stage:err.stage,recovery_action:err.recovery_action}:{}) } }) }] };
     }
   });
   server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [{uri:estimateStartWidgetUri,name:"Estimate workflow start",mimeType:"text/html;profile=mcp-app"},{uri:estimateWorkflowWidgetUri,name:"Estimate workflow result",mimeType:"text/html;profile=mcp-app"},...OES_RESOURCES,{uri:documentWidgetUri,name:'Portable estimate document',mimeType:'text/html;profile=mcp-app'},{uri:resultWidgetUri,name:"Legacy local estimate result",mimeType:"text/html;profile=mcp-app"}] }));

@@ -76,6 +76,7 @@ export class WorkspaceSession {
     return selected.root;
   }
   current() { return this.selected?.root ?? null; }
+  async stageBinding(b:WorkspaceBinding){if((await this.binding()).root!==b.root)throw Error('START_SOURCE_TARGET_MISMATCH');if((await this.roots()).key!==b.roots_key)throw Error('PROJECT_CHANGED_RECONFIRM_REQUIRED');this.reset();this.pending=structuredClone(b);}
   revision(){return this.generation;}
   async binding():Promise<WorkspaceBinding>{
     const b=this.pending??this.selected;if(!b)throw Error('CANDIDATE_NOT_FOUND');

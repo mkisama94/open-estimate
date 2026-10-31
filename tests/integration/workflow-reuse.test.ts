@@ -15,6 +15,7 @@ import {Ajv2020} from 'ajv/dist/2020.js';
 import {fork} from 'node:child_process';
 import {once} from 'node:events';
 import {fileURLToPath} from 'node:url';
+import {randomUUID} from 'node:crypto';
 import {workspaceContext} from '../../src/collector/workspace-context.js';
 import {evaluateWorkflowDraft} from '../../src/local/workflow-evaluation.js';
 import {pageRows} from '../../src/mcp/response-pages.js';
@@ -48,6 +49,73 @@ it('replays the card and chat start on one workflow without candidate lookup or 
   expect((await f.ok('show_estimate_start',{rules_response:f.rules,display_currency:'USD'})).status).toBe('STARTED');
   expect(await fs.readdir(path.join(f.base,'workflows'))).toEqual([f.start.workflow_id]);
   const changed=await f.call('start_estimate_workflow',{...f.args,selection:{read:true,verify:true,publish:false}});expect(changed.isError).toBe(true);expect(JSON.stringify(changed.content)).toContain('WORKFLOW_ALREADY_STARTED_NEW_APPROVAL_REQUIRED');
+ }finally{await f.cleanup();}
+},30000);
+
+async function savedOriginal(f:Awaited<ReturnType<typeof fixture>>,freeze=true){
+ const {prep,body}=await editableDraft(f),d=await f.ok('save_assessment_draft',{workflow_id:f.start.workflow_id,snapshot_id:prep.snapshot_id,assessment:JSON.stringify(body)}),run=await f.ok('evaluate_assessment_draft',{workflow_id:f.start.workflow_id,draft_id:d.draft_id});
+ if(freeze)await f.ok('complete_estimate_workflow',{workflow_id:f.start.workflow_id,run_id:run.run_id});return {prep,body,d,run};
+}
+async function choose(f:Awaited<ReturnType<typeof fixture>>,method:string,source?:any,request=randomUUID()){
+ return f.ok('select_estimate_start',{workflow_id:f.start.workflow_id,start_method:method,start_request_id:request,...(source?{source_workflow_id:f.start.workflow_id,...(method==='RECALCULATE'?{source_run_id:source.run.run_id}:{})}:{})});
+}
+async function startChosen(f:Awaited<ReturnType<typeof fixture>>,view:any){return f.ok('start_estimate_workflow',{workflow_id:view.workflow_id,terms_hash:view.terms_hash,selection:{read:true,verify:false,publish:false},explicit_answer:'[合成] 新しい開始方法を選択'});}
+it('returns the start-card resource after selecting a new method and the result-card resource after starting',async()=>{
+ const f=await fixture();try{const selected=await f.call('select_estimate_start',{workflow_id:f.start.workflow_id,start_method:'NEW',start_request_id:randomUUID()});expect((selected._meta as any)?.ui.resourceUri).toBe('ui://open-estimate/workflow-start.html');const view=selected.structuredContent as any;const started=await f.call('start_estimate_workflow',{workflow_id:view.workflow_id,terms_hash:view.terms_hash,selection:{read:true,verify:false,publish:false},explicit_answer:'[合成] 開始カードから開始'});expect(started.isError).not.toBe(true);expect((started._meta as any)?.ui.resourceUri).toBe('ui://open-estimate/workflow-result.html');
+ }finally{await f.cleanup();}
+});
+
+it('rejects post-freeze edits before creating a draft/run and displays only the confirmed run',async()=>{
+ const f=await fixture();try{const old=await savedOriginal(f),before=await readWorkflowFile<any>(f.start.workflow_id,'state.json');
+  const rejected=await f.call('save_assessment_draft',{workflow_id:f.start.workflow_id,snapshot_id:old.prep.snapshot_id,assessment:'{}'});expect(JSON.stringify(rejected.content)).toContain('SELECT_RECALCULATE_TO_CREATE_NEW_WORKFLOW');
+  expect((await f.ok('evaluate_assessment_draft',{workflow_id:f.start.workflow_id,draft_id:old.d.draft_id})).run_id).toBe(old.run.run_id);
+  const view=await f.ok('show_estimate_workflow',{workflow_id:f.start.workflow_id});expect(view.analysis.status).toBe('RESULT_FROZEN');expect(view.confirmed_run_id).toBe(old.run.run_id);expect(await fs.readdir(path.join(f.base,'runs'))).toEqual([old.run.run_id]);expect(await readWorkflowFile(f.start.workflow_id,'state.json')).toEqual(before);
+ }finally{await f.cleanup();}
+},30000);
+
+it('starts recalculation on a new workflow, reuses verified unchanged bytes, and revalidates inherited evidence',async()=>{
+ const f=await fixture();try{const old=await savedOriginal(f),before=await readWorkflowFile<any>(f.start.workflow_id,'state.json');
+  const history=await f.ok('get_project_estimates');expect(history.items[0].value).toMatchObject({workflow_id:f.start.workflow_id,run_id:old.run.run_id,cfp:6,can_resume:false});
+  const request=randomUUID(),next=await choose(f,'RECALCULATE',old,request);expect(next.workflow_id).not.toBe(f.start.workflow_id);expect((await choose(f,'RECALCULATE',old,request)).workflow_id).toBe(next.workflow_id);expect(next.initial_selection).toEqual({read:false,verify:false,publish:false});expect(next.lineage.source_run_id).toBe(old.run.run_id);
+  expect((await f.call('get_recalculation_input_page',{workflow_id:next.workflow_id,section:'evidence'})).isError).toBe(true);await startChosen(f,next);
+  const prepares=Array.from({length:14},()=>f.ok('prepare_repository')),snapshot=await prepares[0];const all=await Promise.all(prepares);expect(new Set(all.map(r=>r.assessment_id)).size).toBe(1);expect(all.every(r=>!r.acquisition_performed)).toBe(true);expect(snapshot.snapshot_id,JSON.stringify(await readWorkflowFile(next.workflow_id,"source-comparison.json"))).toBe(old.prep.snapshot_id);expect(snapshot.acquisition_performed).toBe(false);expect(snapshot.read_coverage[0].readRanges).toEqual([]);expect(await fs.readdir(path.join(f.base,'cache'))).toHaveLength(1);
+  const inherited=await f.ok('get_recalculation_input_page',{workflow_id:next.workflow_id,section:'judgments'});expect(inherited.evidence_revalidation_required).toBe(true);expect(inherited.total_records).toBeGreaterThan(0);old.body.assessor.finished_at=new Date().toISOString();
+  const d=await f.ok('save_assessment_draft',{workflow_id:next.workflow_id,snapshot_id:snapshot.snapshot_id,assessment:JSON.stringify(old.body)}),invalid=await f.ok('evaluate_assessment_draft',{workflow_id:next.workflow_id,draft_id:d.draft_id});expect(invalid.status).toBe('VALIDATION_FAILED');expect(JSON.stringify(invalid.validation)).toContain('UNREAD_EVIDENCE_SOURCE');expect(invalid.run_id).toBeNull();
+  await f.ok('read_repository_file',{snapshot_id:snapshot.snapshot_id,file_id:'notes.js'});const corrected=await f.ok('save_assessment_draft',{workflow_id:next.workflow_id,snapshot_id:snapshot.snapshot_id,assessment:JSON.stringify(old.body)});const evaluated=await f.ok('evaluate_assessment_draft',{workflow_id:next.workflow_id,draft_id:corrected.draft_id});expect(evaluated.status,JSON.stringify(evaluated.validation)).toBe('RUN_SAVED');expect(evaluated.run_id).not.toBe(old.run.run_id);
+  const finished=await f.ok('complete_estimate_workflow',{workflow_id:next.workflow_id,run_id:evaluated.run_id});expect(finished.confirmed_run_id).toBe(evaluated.run_id);expect(finished.proof).toBeNull();expect(finished.publication).toBeNull();expect(await readWorkflowFile(f.start.workflow_id,'state.json')).toEqual(before);
+ }finally{await f.cleanup();}
+},30000);
+
+it('reacquires changed sources and does not accept the old evidence as read',async()=>{
+ const f=await fixture();try{const old=await savedOriginal(f);await fs.appendFile(path.join(f.root,'notes.js'),'\n// changed\n');const next=await choose(f,'RECALCULATE',old);await startChosen(f,next);const snapshot=await f.ok('prepare_repository');expect(snapshot.snapshot_id).not.toBe(old.prep.snapshot_id);expect(snapshot.acquisition_performed).toBe(true);expect(snapshot.read_coverage[0].readRanges).toEqual([]);expect(snapshot.assessment_input.manifest.files[0].sha256).not.toBe(old.prep.assessment_input.manifest.files[0].sha256);
+ }finally{await f.cleanup();}
+},30000);
+
+it('creates an independent NEW estimate without inherited inputs or approval, retaining the old result',async()=>{
+ const f=await fixture();try{const old=await savedOriginal(f),before=await readWorkflowFile(f.start.workflow_id,'state.json'),next=await choose(f,'NEW');expect(next.lineage.source_run_id).toBeUndefined();await startChosen(f,next);const snapshot=await f.ok('prepare_repository');expect(snapshot.snapshot_id).not.toBe(old.prep.snapshot_id);expect((await f.call('get_recalculation_input_page',{workflow_id:next.workflow_id,section:'sections'})).isError).toBe(true);expect(await readWorkflowFile(f.start.workflow_id,'state.json')).toEqual(before);
+ }finally{await f.cleanup();}
+},30000);
+
+it('resumes the same unfinished workflow after reconnect without source acquisition or new consent',async()=>{
+ const f=await fixture();try{const old=await savedOriginal(f,false),before=await readWorkflowFile<any>(f.start.workflow_id,'state.json');await f.restart();await f.ok('discover_workspace',{context_path:f.root});const resumed=await choose(f,'RESUME',old);expect(resumed.workflow_id).toBe(f.start.workflow_id);expect((await f.ok('prepare_repository')).snapshot_id).toBe(old.prep.snapshot_id);expect((await readWorkflowFile<any>(f.start.workflow_id,'state.json')).consent).toEqual(before.consent);expect((await f.ok('get_workflow_evaluation',{workflow_id:f.start.workflow_id})).run_id).toBe(old.run.run_id);expect(await fs.readdir(path.join(f.base,'runs'))).toHaveLength(1);
+ }finally{await f.cleanup();}
+},30000);
+
+it('rejects invalid source combinations and does not silently transfer another project',async()=>{
+ const f=await fixture();try{const old=await savedOriginal(f);const invalid=await f.call('select_estimate_start',{workflow_id:f.start.workflow_id,start_method:'NEW',start_request_id:randomUUID(),source_workflow_id:f.start.workflow_id});expect(JSON.stringify(invalid.content)).toContain('START_SOURCE_COMBINATION_INVALID');
+  const other=path.join(f.base,'other');await fs.mkdir(other);await fs.writeFile(path.join(other,'a.js'),'x');await f.ok('discover_workspace',{context_path:other});const wrong=await f.call('show_estimate_start',{rules_response:f.rules,start_method:'RECALCULATE',start_request_id:randomUUID(),source_workflow_id:f.start.workflow_id,source_run_id:old.run.run_id});expect(JSON.stringify(wrong.content)).toContain('START_SOURCE_TARGET_MISMATCH');
+ }finally{await f.cleanup();}
+},30000);
+it('reacquires when the reusable cache fails integrity even though current source metadata is unchanged',async()=>{
+ const f=await fixture();try{const old=await savedOriginal(f),cache=mcpState.getSnapshot(old.prep.snapshot_id)!.snapshot.cache_dir;await fs.writeFile(path.join(cache,'files','notes.js'),'corrupt');const next=await choose(f,'RECALCULATE',old);await startChosen(f,next);const snapshot=await f.ok('prepare_repository');expect(snapshot.snapshot_id).not.toBe(old.prep.snapshot_id);expect(snapshot.acquisition_performed).toBe(true);expect(await readWorkflowFile(next.workflow_id,'source-comparison.json')).toMatchObject({status:'REACQUIRE_REQUIRED',reason:'SOURCE_CONTENT_CHANGED'});
+ }finally{await f.cleanup();}
+},30000);
+it('does not mix an old frozen result with a newer draft left by a previous version',async()=>{
+ const f=await fixture();try{const old=await savedOriginal(f,false),newer=await f.ok('save_assessment_draft',{workflow_id:f.start.workflow_id,snapshot_id:old.prep.snapshot_id,assessment:'{}'});expect(newer.draft_id).not.toBe(old.d.draft_id);await f.ok('complete_estimate_workflow',{workflow_id:f.start.workflow_id,run_id:old.run.run_id});const view=await f.ok('show_estimate_workflow',{workflow_id:f.start.workflow_id});expect(view.analysis.run_id).toBe(old.run.run_id);expect(view.analysis.status).toBe('RESULT_FROZEN');expect(JSON.stringify((await f.call('evaluate_assessment_draft',{workflow_id:f.start.workflow_id,draft_id:newer.draft_id})).content)).toContain('WORKFLOW_RECALCULATION_REQUIRED');expect((await f.ok('get_workflow_evaluation',{workflow_id:f.start.workflow_id})).run_id).toBe(old.run.run_id);
+ }finally{await f.cleanup();}
+},30000);
+it('keeps a recalculated partial estimate uncalculated for the whole project while another measured file remains unread',async()=>{
+ const f=await fixture(false,1);try{const old=await savedOriginal(f);const original=await f.ok('show_estimate_workflow',{workflow_id:f.start.workflow_id});expect(original.presentation.median).toBeNull();const next=await choose(f,'RECALCULATE',old);await startChosen(f,next);const snapshot=await f.ok('prepare_repository');await f.ok('read_repository_file',{snapshot_id:snapshot.snapshot_id,file_id:'notes.js'});old.body.assessor.finished_at=new Date().toISOString();const d=await f.ok('save_assessment_draft',{workflow_id:next.workflow_id,snapshot_id:snapshot.snapshot_id,assessment:JSON.stringify(old.body)}),evaluated=await f.ok('evaluate_assessment_draft',{workflow_id:next.workflow_id,draft_id:d.draft_id});expect(evaluated.status,JSON.stringify(evaluated.validation)).toBe('RUN_SAVED');expect(evaluated.coverage.project_effort).toBeNull();const done=await f.ok('complete_estimate_workflow',{workflow_id:next.workflow_id,run_id:evaluated.run_id});expect(done.presentation.median).toBeNull();expect(done.selected_stages_complete).toBe(true);expect(done.source_summary.ruleset_ref).toBeDefined();expect(done.source_summary.basis).toBeDefined();
  }finally{await f.cleanup();}
 },30000);
 
