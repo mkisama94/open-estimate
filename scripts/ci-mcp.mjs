@@ -7,6 +7,23 @@ import { run, confirmDeployment } from './release-common.mjs';
 const repo = fileURLToPath(new URL('../', import.meta.url));
 // CI consumes reviewed, Git-tracked registries. Never manufacture history or
 // move migration deadlines during an ephemeral build.
+export async function selectCiIntegrity(skills, sourceIntegrity, version) {
+  validateRegistry(skills);
+  if (sourceIntegrity.skill_version !== version) throw new Error('CI_SOURCE_VERSION_MISMATCH');
+  const sourceRelease = skills.releases.find(r => r.skill_version === version);
+  if (sourceRelease) {
+    // An unpublished source version may coexist with a published server client,
+    // but an existing registration must never hide a changed or revoked package.
+    const { checkSkillIntegrity } = await import('../dist/remote/skill-integrity.js');
+    checkSkillIntegrity(sourceIntegrity, skills);
+    if (sourceRelease.publication === 'published') return sourceIntegrity;
+  }
+  const release = skills.releases.findLast(r => r.publication === 'published'
+    && r.acceptance === 'accepted' && r.measurement_client_protocol === 'oes/measurement-client/v1');
+  if (!release) throw new Error('CI_RELEASE_NOT_REGISTERED');
+  return { format: 'oes/skill-integrity/v1', skill_id: release.skill_id,
+    skill_version: release.skill_version, hash_rule: release.hash_rule, package_sha256: release.package_sha256 };
+}
 export async function validateCiInputs(skills, rules, integrity, generated, version) {
   validateRegistry(skills);
   const { resolveMeasurementRules } = await import('../dist/remote/measurement-rules.js');
@@ -21,14 +38,16 @@ async function inputs() {
   const { inspectSkillPackage } = await import('../dist/profiles/skill-package.js');
   const skills = await readJson(path.join(repo, 'profiles/skill-releases.json'));
   const rules = await readJson(path.join(repo, 'profiles/measurement-rules.json'));
-  const integrity = inspectSkillPackage(path.join(repo, 'skills/open-estimate-assessor'));
-  await validateCiInputs(skills, rules, integrity, await generateRules(repo), (await readJson(path.join(repo, 'package.json'))).version);
-  return { skills, rules, integrity };
+  const sourceIntegrity = inspectSkillPackage(path.join(repo, 'skills/open-estimate-assessor'));
+  const version = (await readJson(path.join(repo, 'package.json'))).version;
+  const integrity = await selectCiIntegrity(skills, sourceIntegrity, version);
+  await validateCiInputs(skills, rules, integrity, await generateRules(repo), integrity.skill_version);
+  return { skills, rules, integrity, version };
 }
 async function main() {
   const mode = process.argv[2];
   if (!['check', 'deploy', 'verify'].includes(mode)) throw new Error('INVALID_CI_MODE');
-  const { skills, rules, integrity } = await inputs();
+  const { skills, rules, integrity, version } = await inputs();
   if (mode === 'deploy') {
     run(repo, 'node_modules/wrangler/bin/wrangler.js', ['deploy', '--config', 'wrangler.mcp.jsonc']);
   }
@@ -40,6 +59,6 @@ async function main() {
       if (!response.ok || !result.result?.tools?.some(t => t.name === name)) throw new Error('PRODUCTION_TOOLS_MISSING');
     }
   }
-  console.log(JSON.stringify({ status: 'PASS', mode, version: integrity.skill_version }));
+  console.log(JSON.stringify({ status: 'PASS', mode, version, verification_skill_version: integrity.skill_version }));
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();
